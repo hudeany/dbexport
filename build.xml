@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build_jar" name="Create all Jars for Project DbCsvExport">
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+	  <classpath>
+	    <pathelement location="lib_ant/ant-contrib-1.0b3.jar" />
+	  </classpath>
+	</taskdef>
+	
+	<property name="buildPath" value="build" />
+	<echo message="buildPath: ${buildPath}" />
+	
+	<target name="build_jar" depends="clean, create_jar" />
+
+	<target name="clean">
+		<delete dir="${buildPath}" />
+	</target>
+
+	<target name="create_jar">
+		<jar destfile="${buildPath}/DbCsvExport.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
+			</manifest>
+			
+			<fileset dir="bin" />
+
+			<zipfileset dir="lib" includes="JavaUtilities_*.jar" />
+		</jar>
+	</target>
+</project>
