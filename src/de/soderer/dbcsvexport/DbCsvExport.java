@@ -16,7 +16,7 @@ import de.soderer.utilities.WorkerParentDual;
 public class DbCsvExport implements WorkerParentDual, UpdateParent {
 	public static final String VERSION = "3.2.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
-	public static final String VERSIONINFO_DOWNLOAD_URL = "http://www.soderer.de/index.php?download=Versions.xml";
+	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
