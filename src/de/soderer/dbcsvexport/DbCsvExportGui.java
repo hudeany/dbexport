@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -23,18 +24,27 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import de.soderer.utilities.ApplicationUpdateHelper;
+import de.soderer.utilities.Credentials;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.ExceptionUtilities;
+import de.soderer.utilities.UpdateParent;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
+import de.soderer.utilities.WorkerSimple;
+import de.soderer.utilities.swing.CredentialsDialog;
 import de.soderer.utilities.swing.DualProgressDialog;
+import de.soderer.utilities.swing.QuestionDialog;
+import de.soderer.utilities.swing.SimpleProgressDialog;
 import de.soderer.utilities.swing.TextDialog;
 
-public class DbCsvExportGui extends JFrame implements WorkerParentDual {
+public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdateParent {
 	private static final long serialVersionUID = 5969613637206441880L;
 
+	SimpleProgressDialog updateProgressDialog;
 	DualProgressDialog progressDialog;
 	DbCsvExportWorker dbCsvExportWorker;
+	ApplicationUpdateHelper applicationUpdateHelper;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) {
 		super("DbCsvExport (Version " + DbCsvExport.VERSION + ")");
@@ -44,11 +54,15 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 		setLocationRelativeTo(null);
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setLayout(new FlowLayout(FlowLayout.LEADING));
-
+		setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
+		
 		// Parameter Panel
 		JPanel parameterPanel = new JPanel();
-		parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.PAGE_AXIS));
+		parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.LINE_AXIS));
+
+		// Mandatory parameter Panel
+		JPanel mandatoryParameterPanel = new JPanel();
+		mandatoryParameterPanel.setLayout(new BoxLayout(mandatoryParameterPanel, BoxLayout.PAGE_AXIS));
 
 		// DBType Pane
 		JPanel dbTypePanel = new JPanel();
@@ -66,7 +80,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			}
 		}
 		dbTypePanel.add(dbTypeCombo, BorderLayout.EAST);
-		parameterPanel.add(dbTypePanel);
+		mandatoryParameterPanel.add(dbTypePanel);
 
 		// Host Panel
 		JPanel hostPanel = new JPanel();
@@ -80,7 +94,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			hostField.setText(dbCsvExportDefinition.getHostname());
 		}
 		hostPanel.add(hostField);
-		parameterPanel.add(hostPanel);
+		mandatoryParameterPanel.add(hostPanel);
 
 		// DB name Panel
 		JPanel dbNamePanel = new JPanel();
@@ -94,7 +108,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			dbNameField.setText(dbCsvExportDefinition.getDbName());
 		}
 		dbNamePanel.add(dbNameField);
-		parameterPanel.add(dbNamePanel);
+		mandatoryParameterPanel.add(dbNamePanel);
 
 		// User Panel
 		JPanel userPanel = new JPanel();
@@ -108,7 +122,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			userField.setText(dbCsvExportDefinition.getUsername());
 		}
 		userPanel.add(userField);
-		parameterPanel.add(userPanel);
+		mandatoryParameterPanel.add(userPanel);
 
 		// Password Panel
 		JPanel passwordPanel = new JPanel();
@@ -122,7 +136,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			passwordField.setText(dbCsvExportDefinition.getPassword());
 		}
 		passwordPanel.add(passwordField);
-		parameterPanel.add(passwordPanel);
+		mandatoryParameterPanel.add(passwordPanel);
 
 		// Outputpath Panel
 		JPanel outputpathPanel = new JPanel();
@@ -137,7 +151,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			outputpathField.setText(dbCsvExportDefinition.getOutputpath());
 		}
 		outputpathPanel.add(outputpathField);
-		parameterPanel.add(outputpathPanel);
+		mandatoryParameterPanel.add(outputpathPanel);
 
 		// Encoding Pane
 		JPanel encodingPanel = new JPanel();
@@ -162,7 +176,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			encodingCombo.setSelectedItem(dbCsvExportDefinition.getEncoding());
 		}
 		encodingPanel.add(encodingCombo);
-		parameterPanel.add(encodingPanel);
+		mandatoryParameterPanel.add(encodingPanel);
 
 		// Separator Pane
 		JPanel separatorPanel = new JPanel();
@@ -187,7 +201,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			separatorCombo.setSelectedItem("" + dbCsvExportDefinition.getSeparator());
 		}
 		separatorPanel.add(separatorCombo);
-		parameterPanel.add(separatorPanel);
+		mandatoryParameterPanel.add(separatorPanel);
 
 		// StringQuote Pane
 		JPanel stringQuotePanel = new JPanel();
@@ -212,7 +226,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			stringQuoteCombo.setSelectedItem("" + dbCsvExportDefinition.getStringQuote());
 		}
 		stringQuotePanel.add(stringQuoteCombo);
-		parameterPanel.add(stringQuotePanel);
+		mandatoryParameterPanel.add(stringQuotePanel);
 
 		// Locale Panel
 		JPanel localePanel = new JPanel();
@@ -237,7 +251,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			localeCombo.setSelectedItem(dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage());
 		}
 		localePanel.add(localeCombo);
-		parameterPanel.add(localePanel);
+		mandatoryParameterPanel.add(localePanel);
 
 		// Statement Panel
 		JPanel statementPanel = new JPanel();
@@ -252,7 +266,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 		JScrollPane statementScrollpane = new JScrollPane(statementField);
 		statementScrollpane.setPreferredSize(new Dimension(200, 100));
 		statementPanel.add(statementScrollpane);
-		parameterPanel.add(statementPanel);
+		mandatoryParameterPanel.add(statementPanel);
 
 		// Optional parameters Panel
 		JPanel optionalParametersPanel = new JPanel();
@@ -327,6 +341,25 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 		});
 		buttonPanel.add(startButton);
 
+		buttonPanel.add(Box.createRigidArea(new Dimension(5, 0)));
+
+		// Update Button
+		JButton updateButton = new JButton("Check update");
+		updateButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				try {
+					new ApplicationUpdateHelper(DbCsvExport.APPLICATION_NAME, DbCsvExport.VERSION, DbCsvExport.VERSIONINFO_DOWNLOAD_URL, dbCsvExportGui, "-gui").executeUpdate();
+				} catch (Exception e) {
+					TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e.getCause()).getMessage(), Color.RED);
+					textDialog.setVisible(true);
+				}
+			}
+		});
+		buttonPanel.add(updateButton);
+		
+		buttonPanel.add(Box.createRigidArea(new Dimension(5, 0)));
+
 		// Close Button
 		JButton closeButton = new JButton("Close");
 		closeButton.addActionListener(new ActionListener() {
@@ -337,9 +370,12 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 		});
 		buttonPanel.add(closeButton);
 
+		parameterPanel.add(mandatoryParameterPanel);
+		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
-		add(optionalParametersPanel);
-		parameterPanel.add(buttonPanel);
+		add(buttonPanel);
+		
+		add(Box.createRigidArea(new Dimension(0, 5)));
 
 		pack();
 
@@ -442,6 +478,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 			e.printStackTrace();
 		} finally {
 			progressDialog.dispose();
+			progressDialog = null;
 		}
 	}
 
@@ -449,6 +486,68 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual {
 	public void cancel() {
 		if (dbCsvExportWorker != null) {
 			dbCsvExportWorker.cancel();
+		}
+	}
+
+	@Override
+	public Credentials aquireCredentials(String text, boolean aquireUsername, boolean aquirePassword) throws Exception {
+		CredentialsDialog credentialsDialog = new CredentialsDialog(this, DbCsvExport.APPLICATION_NAME, text, aquireUsername, aquirePassword);
+		credentialsDialog.setVisible(true);
+		return credentialsDialog.getCredentials();
+	}
+
+	@Override
+	public void showUpdateError(String errorText) {
+		if (updateProgressDialog != null) {
+			updateProgressDialog.dispose();
+			updateProgressDialog = null;
+		}
+		
+		new TextDialog(this, "Update Error", errorText, Color.PINK).setVisible(true);
+	}
+
+	@Override
+	public void showUpdateProgress(Date itemStart, long itemsToDo, long itemsDone) {
+		if (updateProgressDialog != null) {
+			updateProgressDialog.setProgress(itemsToDo, itemsDone);
+			updateProgressDialog.setETA(DateUtilities.calculateETA(itemStart, itemsToDo, itemsDone));
+		}
+	}
+
+	@Override
+	public void showUpdateDone() {
+		if (updateProgressDialog != null) {
+			updateProgressDialog.dispose();
+			updateProgressDialog = null;
+		}
+		
+		new QuestionDialog(this, "Update Error", "Restart").setVisible(true);
+	}
+
+	@Override
+	public boolean askForUpdate(String availableNewVersion) throws Exception {
+		if (availableNewVersion == null) {
+			TextDialog textDialog = new TextDialog(this, "Update", "There is no newer version available for " + DbCsvExport.APPLICATION_NAME + "\nThe current local version is " + DbCsvExport.VERSION, Color.WHITE);
+			textDialog.setVisible(true);
+			return false;
+		} else {
+			QuestionDialog questionDialog = new QuestionDialog(this, "Update", "New version " + availableNewVersion + " is available.\nCurrent version is " + DbCsvExport.VERSION + ".\nInstall update?", "Yes", "No");
+			questionDialog.setVisible(true);
+			return questionDialog.getAnswerButtonIndex() == 0;
+		}
+	}
+
+	@Override
+	public void showUpdateDownloadStart(WorkerSimple<?> worker) throws Exception {
+		updateProgressDialog = new SimpleProgressDialog(this, "Update");
+		updateProgressDialog.setVisible(true);
+	}
+
+	@Override
+	public void showUpdateDownloadEnd() {
+		if (updateProgressDialog != null) {
+			updateProgressDialog.dispose();
+			updateProgressDialog = null;
 		}
 	}
 }

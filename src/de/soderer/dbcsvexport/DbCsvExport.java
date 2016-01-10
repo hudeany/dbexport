@@ -8,15 +8,17 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import de.soderer.utilities.ApplicationUpdateHelper;
+import de.soderer.utilities.Credentials;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.UpdateParent;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
+import de.soderer.utilities.WorkerSimple;
 
 public class DbCsvExport implements WorkerParentDual, UpdateParent {
-	public static final String VERSION = "3.2.0";
+	public static final String VERSION = "3.1.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
-	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
+	public static final String VERSIONINFO_DOWNLOAD_URL = "http://www.soderer.de/index.php?download=Versions.xml";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
@@ -281,7 +283,7 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 	}
 
 	private void updateApplication() throws Exception {
-		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this).executeUpdate();
+		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null).executeUpdate();
 	}
 
 	@Override
@@ -303,23 +305,29 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 	}
 
 	@Override
-	public String aquireUserName() throws Exception {
+	public Credentials aquireCredentials(String text, boolean aquireUsername, boolean aquirePassword) throws Exception {
 		Console console = System.console();
 		if (console == null) {
 			throw new Exception("Couldn't get Console instance");
 		}
 
-		return console.readLine("Please enter username: ");
-	}
-
-	@Override
-	public char[] aquirePassword() throws Exception {
-		Console console = System.console();
-		if (console == null) {
-			throw new Exception("Couldn't get Console instance");
+		String userName = null;
+		char[] password = null;
+		
+		if (aquireUsername && aquirePassword) {
+			userName = console.readLine("Please enter username: ");
+			password = console.readPassword("Please enter password: ");
+		} else if (aquireUsername) {
+			userName = console.readLine("Please enter username: ");
+		} else if (aquirePassword) {
+			password = console.readPassword("Please enter password: ");
 		}
-
-		return console.readPassword("Please enter password: ");
+		
+		if (Utilities.isBlank(userName) && Utilities.isBlank(password)) {
+			return null;
+		} else {
+			return new Credentials(userName, password);
+		}
 	}
 
 	@Override
@@ -333,11 +341,21 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 	}
 
 	@Override
-	public void showUpdateDone(Date start, Date end, long itemsDone) {
-		System.out.print("\r" + Utilities.rightPad("Downloaded " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " bytes in "
-				+ DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
+	public void showUpdateDone() {
 		System.out.println();
-		System.out.println("Installing update");
+		System.out.println("Restarting after update");
 		System.out.println();
+	}
+
+	@Override
+	public void showUpdateDownloadStart(WorkerSimple<?> worker) throws Exception {
+		while (!worker.isDone()) {
+			Thread.sleep(1000);
+		}
+	}
+
+	@Override
+	public void showUpdateDownloadEnd() {
+		// Do nothing
 	}
 }
