@@ -118,8 +118,8 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 				} else if ("-beautify".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setBeautify(true);
 				} else {
-					if (dbCsvExportDefinition.getDbType() == null) {
-						dbCsvExportDefinition.setDbType(arguments[i]);
+					if (dbCsvExportDefinition.getDbVendor() == null) {
+						dbCsvExportDefinition.setDbVendor(arguments[i]);
 					} else if (dbCsvExportDefinition.getHostname() == null) {
 						dbCsvExportDefinition.setHostname(arguments[i]);
 					} else if (dbCsvExportDefinition.getUsername() == null) {

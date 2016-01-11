@@ -27,6 +27,7 @@ import javax.swing.JTextField;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.Credentials;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.ExceptionUtilities;
 import de.soderer.utilities.UpdateParent;
 import de.soderer.utilities.Utilities;
@@ -46,7 +47,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdatePa
 	DbCsvExportWorker dbCsvExportWorker;
 	ApplicationUpdateHelper applicationUpdateHelper;
 
-	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) {
+	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		super("DbCsvExport (Version " + DbCsvExport.VERSION + ")");
 
 		final DbCsvExportGui dbCsvExportGui = this;
@@ -75,7 +76,7 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdatePa
 		dbTypeCombo.addItem("MySQL");
 		dbTypeCombo.addItem("PostgreSQL");
 		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
-			if (dbTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
+			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbCsvExportDefinition.getDbVendor()) {
 				dbTypeCombo.setSelectedIndex(i);
 				break;
 			}
@@ -312,32 +313,36 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdatePa
 		startButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				dbCsvExportDefinition.setDbType((String) dbTypeCombo.getSelectedItem());
-				dbCsvExportDefinition.setHostname(hostField.getText());
-				dbCsvExportDefinition.setDbName(dbNameField.getText());
-				dbCsvExportDefinition.setUsername(userField.getText());
-				dbCsvExportDefinition.setPassword(passwordField.getText());
-				dbCsvExportDefinition.setOutputpath(outputpathField.getText());
-				dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
+				try {
+					dbCsvExportDefinition.setDbVendor(DbUtilities.DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()));
+					dbCsvExportDefinition.setHostname(hostField.getText());
+					dbCsvExportDefinition.setDbName(dbNameField.getText());
+					dbCsvExportDefinition.setUsername(userField.getText());
+					dbCsvExportDefinition.setPassword(passwordField.getText());
+					dbCsvExportDefinition.setOutputpath(outputpathField.getText());
+					dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
 
-				dbCsvExportDefinition.setLog(fileLogBox.isSelected());
-				dbCsvExportDefinition.setZip(zipBox.isSelected());
-				dbCsvExportDefinition.setAlwaysQuote(alwaysQuoteBox.isSelected());
-				dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
-				dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
-				dbCsvExportDefinition.setBeautify(beautifyBox.isSelected());
+					dbCsvExportDefinition.setLog(fileLogBox.isSelected());
+					dbCsvExportDefinition.setZip(zipBox.isSelected());
+					dbCsvExportDefinition.setAlwaysQuote(alwaysQuoteBox.isSelected());
+					dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
+					dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
+					dbCsvExportDefinition.setBeautify(beautifyBox.isSelected());
 
-				dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
-				dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
-				dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
-				dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
+					dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
+					dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
+					dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
+					dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
 
-				dbCsvExportWorker = new DbCsvExportWorker(dbCsvExportGui, dbCsvExportDefinition);
-				Thread dbCsvExportThread = new Thread(dbCsvExportWorker);
-				dbCsvExportThread.start();
+					dbCsvExportWorker = new DbCsvExportWorker(dbCsvExportGui, dbCsvExportDefinition);
+					Thread dbCsvExportThread = new Thread(dbCsvExportWorker);
+					dbCsvExportThread.start();
 
-				progressDialog = new DualProgressDialog(dbCsvExportGui, "DbCsvExport");
-				progressDialog.setVisible(true);
+					progressDialog = new DualProgressDialog(dbCsvExportGui, "DbCsvExport");
+					progressDialog.setVisible(true);
+				} catch (Exception e) {
+					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e.getCause()).getMessage(), Color.RED).setVisible(true);
+				}
 			}
 		});
 		buttonPanel.add(startButton);

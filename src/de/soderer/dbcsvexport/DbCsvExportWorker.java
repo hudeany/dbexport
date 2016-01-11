@@ -23,6 +23,7 @@ import java.util.zip.ZipOutputStream;
 
 import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
@@ -188,10 +189,14 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				showUnlimitedSubProgress();
 			}
 
-			if ("oracle".equals(dbCsvExportDefinition.getDbType())) {
+			if (dbCsvExportDefinition.getDbVendor() == DbVendor.Oracle) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ")");
-			} else {
+			} else if (dbCsvExportDefinition.getDbVendor() == DbVendor.MySQL) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else if (dbCsvExportDefinition.getDbVendor() == DbVendor.PostgreSQL) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else {
+				throw new Exception("Unknown db vendor");
 			}
 			resultSet.next();
 			int linesToExport = resultSet.getInt(1);
