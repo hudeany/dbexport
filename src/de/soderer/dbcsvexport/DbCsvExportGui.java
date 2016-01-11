@@ -25,30 +25,24 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import de.soderer.utilities.ApplicationUpdateHelper;
-import de.soderer.utilities.Credentials;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.ExceptionUtilities;
-import de.soderer.utilities.UpdateParent;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerParentDual;
-import de.soderer.utilities.WorkerSimple;
-import de.soderer.utilities.swing.CredentialsDialog;
+import de.soderer.utilities.swing.BasicUpdateableGuiApplication;
 import de.soderer.utilities.swing.DualProgressDialog;
-import de.soderer.utilities.swing.QuestionDialog;
-import de.soderer.utilities.swing.SimpleProgressDialog;
 import de.soderer.utilities.swing.TextDialog;
 
-public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdateParent {
+public class DbCsvExportGui extends BasicUpdateableGuiApplication implements WorkerParentDual {
 	private static final long serialVersionUID = 5969613637206441880L;
 
-	SimpleProgressDialog updateProgressDialog;
-	DualProgressDialog progressDialog;
-	DbCsvExportWorker dbCsvExportWorker;
-	ApplicationUpdateHelper applicationUpdateHelper;
+	private DualProgressDialog progressDialog;
+	private DbCsvExportWorker dbCsvExportWorker;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
-		super("DbCsvExport (Version " + DbCsvExport.VERSION + ")");
+		super(DbCsvExport.APPLICATION_NAME, new Version(DbCsvExport.VERSION));
 
 		final DbCsvExportGui dbCsvExportGui = this;
 
@@ -492,68 +486,6 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdatePa
 	public void cancel() {
 		if (dbCsvExportWorker != null) {
 			dbCsvExportWorker.cancel();
-		}
-	}
-
-	@Override
-	public Credentials aquireCredentials(String text, boolean aquireUsername, boolean aquirePassword) throws Exception {
-		CredentialsDialog credentialsDialog = new CredentialsDialog(this, DbCsvExport.APPLICATION_NAME, text, aquireUsername, aquirePassword);
-		credentialsDialog.setVisible(true);
-		return credentialsDialog.getCredentials();
-	}
-
-	@Override
-	public void showUpdateError(String errorText) {
-		if (updateProgressDialog != null) {
-			updateProgressDialog.dispose();
-			updateProgressDialog = null;
-		}
-		
-		new TextDialog(this, "Update Error", errorText, Color.PINK).setVisible(true);
-	}
-
-	@Override
-	public void showUpdateProgress(Date itemStart, long itemsToDo, long itemsDone) {
-		if (updateProgressDialog != null) {
-			updateProgressDialog.setProgress(itemsToDo, itemsDone);
-			updateProgressDialog.setETA(DateUtilities.calculateETA(itemStart, itemsToDo, itemsDone));
-		}
-	}
-
-	@Override
-	public void showUpdateDone() {
-		if (updateProgressDialog != null) {
-			updateProgressDialog.dispose();
-			updateProgressDialog = null;
-		}
-		
-		new QuestionDialog(this, "Update Error", "Restart").setVisible(true);
-	}
-
-	@Override
-	public boolean askForUpdate(String availableNewVersion) throws Exception {
-		if (availableNewVersion == null) {
-			TextDialog textDialog = new TextDialog(this, "Update", "There is no newer version available for " + DbCsvExport.APPLICATION_NAME + "\nThe current local version is " + DbCsvExport.VERSION, Color.WHITE);
-			textDialog.setVisible(true);
-			return false;
-		} else {
-			QuestionDialog questionDialog = new QuestionDialog(this, "Update", "New version " + availableNewVersion + " is available.\nCurrent version is " + DbCsvExport.VERSION + ".\nInstall update?", "Yes", "No");
-			questionDialog.setVisible(true);
-			return questionDialog.getAnswerButtonIndex() == 0;
-		}
-	}
-
-	@Override
-	public void showUpdateDownloadStart(WorkerSimple<?> worker) throws Exception {
-		updateProgressDialog = new SimpleProgressDialog(this, "Update");
-		updateProgressDialog.setVisible(true);
-	}
-
-	@Override
-	public void showUpdateDownloadEnd() {
-		if (updateProgressDialog != null) {
-			updateProgressDialog.dispose();
-			updateProgressDialog = null;
 		}
 	}
 }

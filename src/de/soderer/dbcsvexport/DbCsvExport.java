@@ -8,14 +8,13 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import de.soderer.utilities.ApplicationUpdateHelper;
-import de.soderer.utilities.Credentials;
+import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.UpdateParent;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerParentDual;
-import de.soderer.utilities.WorkerSimple;
 
-public class DbCsvExport implements WorkerParentDual, UpdateParent {
+public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
 	public static final String VERSION = "3.2.1";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
@@ -179,6 +178,10 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 			}
 		}
 	}
+	
+	public DbCsvExport() throws Exception {
+		super(APPLICATION_NAME, new Version(VERSION));
+	}
 
 	private void export(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		if (dbCsvExportDefinition.isVerbose()) {
@@ -284,78 +287,5 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 
 	private void updateApplication() throws Exception {
 		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null).executeUpdate();
-	}
-
-	@Override
-	public boolean askForUpdate(String availableNewVersion) throws Exception {
-		Console console = System.console();
-		if (console == null) {
-			throw new Exception("Couldn't get Console instance");
-		}
-		if (availableNewVersion == null) {
-			System.out.println("There is no newer version available for " + APPLICATION_NAME + "\nThe current local version is " + VERSION);
-			System.out.println();
-			return false;
-		} else {
-			System.out.println("New version " + availableNewVersion + " is available.\nCurrent version is " + VERSION + ".");
-			String input = console.readLine("Install update? (yN): ");
-			System.out.println();
-			return input != null && (input.toLowerCase().startsWith("y") || input.toLowerCase().startsWith("j"));
-		}
-	}
-
-	@Override
-	public Credentials aquireCredentials(String text, boolean aquireUsername, boolean aquirePassword) throws Exception {
-		Console console = System.console();
-		if (console == null) {
-			throw new Exception("Couldn't get Console instance");
-		}
-
-		String userName = null;
-		char[] password = null;
-		
-		if (aquireUsername && aquirePassword) {
-			userName = console.readLine("Please enter username: ");
-			password = console.readPassword("Please enter password: ");
-		} else if (aquireUsername) {
-			userName = console.readLine("Please enter username: ");
-		} else if (aquirePassword) {
-			password = console.readPassword("Please enter password: ");
-		}
-		
-		if (Utilities.isBlank(userName) && Utilities.isBlank(password)) {
-			return null;
-		} else {
-			return new Credentials(userName, password);
-		}
-	}
-
-	@Override
-	public void showUpdateError(String errorText) {
-		System.err.println(errorText);
-	}
-
-	@Override
-	public void showUpdateProgress(Date itemStart, long itemsToDo, long itemsDone) {
-		System.out.print("\r" + Utilities.getConsoleProgressString(80, itemStart, itemsToDo, itemsDone));
-	}
-
-	@Override
-	public void showUpdateDone() {
-		System.out.println();
-		System.out.println("Restarting after update");
-		System.out.println();
-	}
-
-	@Override
-	public void showUpdateDownloadStart(WorkerSimple<?> worker) throws Exception {
-		while (!worker.isDone()) {
-			Thread.sleep(1000);
-		}
-	}
-
-	@Override
-	public void showUpdateDownloadEnd() {
-		// Do nothing
 	}
 }
