@@ -114,6 +114,9 @@ public class DbCsvExportDefinition {
 		this.outputpath = outputpath;
 		if (this.outputpath != null) {
 			this.outputpath = this.outputpath.replace("~", System.getProperty("user.home"));
+			if (this.outputpath.endsWith(File.separator)) {
+				this.outputpath = this.outputpath.substring(0, this.outputpath.length() - 1);
+			}
 		}
 	}
 
@@ -194,7 +197,7 @@ public class DbCsvExportDefinition {
 	}
 
 	public void checkParameters() throws Exception {
-		if (!"oracle".equalsIgnoreCase(dbType) && !"mysql".equalsIgnoreCase(dbType)) {
+		if (!"oracle".equalsIgnoreCase(dbType) && !"mysql".equalsIgnoreCase(dbType) && !"postgres".equalsIgnoreCase(dbType) && !"postgresql".equalsIgnoreCase(dbType)) {
 			throw new DbCsvExportException("Invalid parameter dbType: " + dbType);
 		}
 
@@ -218,10 +221,10 @@ public class DbCsvExportDefinition {
 	}
 	
 	public void checkAndLoadDbDrivers() throws Exception {
-		if ("oracle".equalsIgnoreCase(dbType) || "mysql".equalsIgnoreCase(dbType)) {
+		if ("oracle".equalsIgnoreCase(dbType) || "mysql".equalsIgnoreCase(dbType) || "postgres".equalsIgnoreCase(dbType) || "postgresql".equalsIgnoreCase(dbType)) {
 			// Check if driver is included in jar/classpath
 			try {
-				Class.forName("oracle".equalsIgnoreCase(dbType) ? DbUtilities.DB_DRIVER_NAME_ORACLE : DbUtilities.DB_DRIVER_NAME_MYSQL);
+				Class.forName(DbUtilities.getDriverClassName(dbType));
 			} catch (ClassNotFoundException e) {
 				// Driver is missing, so use the configured one
 				SectionedProperties configuration = new SectionedProperties(true);
@@ -230,7 +233,7 @@ public class DbCsvExportDefinition {
 						configuration.load(inputStream);
 					}
 				}
-				String driverFile = configuration.getValue("oracle".equalsIgnoreCase(dbType) ? "oracle" : "mysql", "driver_location");
+				String driverFile = configuration.getValue(dbType.toLowerCase(), "driver_location");
 				if (driverFile != null) {
 					driverFile = driverFile.replace("~", System.getProperty("user.home"));
 				}
@@ -241,17 +244,17 @@ public class DbCsvExportDefinition {
 							throw new Exception("File " + driverFile + " not found");
 						}
 						Utilities.addFileToClasspath(driverFile);
-						Class.forName("oracle".equalsIgnoreCase(dbType) ? DbUtilities.DB_DRIVER_NAME_ORACLE : DbUtilities.DB_DRIVER_NAME_MYSQL);
+						Class.forName(DbUtilities.getDriverClassName(dbType));
 					} catch (Exception e1) {
 						String newDriverFile = aquireNewDriver();
-						configuration.setValue("oracle".equalsIgnoreCase(dbType) ? "oracle" : "mysql", "driver_location", newDriverFile);
+						configuration.setValue(dbType.toLowerCase(), "driver_location", newDriverFile);
 						try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 							configuration.save(outputStream);
 						}
 					}
 				} else {
 					String newDriverFile = aquireNewDriver();
-					configuration.setValue("oracle".equalsIgnoreCase(dbType) ? "oracle" : "mysql", "driver_location", newDriverFile);
+					configuration.setValue(dbType.toLowerCase(), "driver_location", newDriverFile);
 					try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 						configuration.save(outputStream);
 					}
@@ -267,7 +270,7 @@ public class DbCsvExportDefinition {
 			if (!DbCsvExport.CONFIGURATION_FILE.exists()) {
 				try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 					SectionedProperties configuration = new SectionedProperties(true);
-					configuration.setValue("oracle".equalsIgnoreCase(dbType) ? "oracle" : "mysql", "driver_location", "");
+					configuration.setValue(dbType.toLowerCase(), "driver_location", "");
 					configuration.save(outputStream);
 				}
 			}
@@ -292,7 +295,7 @@ public class DbCsvExportDefinition {
 				} else {
 					try {
 						Utilities.addFileToClasspath(newFilePath);
-						Class.forName("oracle".equalsIgnoreCase(dbType) ? DbUtilities.DB_DRIVER_NAME_ORACLE : DbUtilities.DB_DRIVER_NAME_MYSQL);
+						Class.forName(DbUtilities.getDriverClassName(dbType));
 						return newFilePath;
 					} catch (Exception e) {
 						System.out.println("File " + newFilePath + " does not contain a " + dbType + " driver");

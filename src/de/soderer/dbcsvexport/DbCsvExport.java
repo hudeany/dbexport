@@ -27,7 +27,7 @@ public class DbCsvExport implements WorkerParentDual, UpdateParent {
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql or oracle\n"
+			+ "\tdbtype: mysql, oracle or postgresql\n"
 			+ "\thostname: with optional port\n"
 			+ "\tusername: username\n"
 			+ "\tdbname: dbname\n"

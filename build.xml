@@ -16,7 +16,7 @@
 	</target>
 
 	<target name="create_jar">
-		<jar destfile="${buildPath}/DbCsvExport_3.2.1.jar">
+		<jar destfile="${buildPath}/DbCsvExport_3.3.0.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
 				<attribute name="Class-Path" value="." />

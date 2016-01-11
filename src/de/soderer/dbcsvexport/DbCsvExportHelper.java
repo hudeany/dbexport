@@ -20,7 +20,33 @@ public class DbCsvExportHelper {
 
 			String tableQuery;
 			if ("oracle".equals(dbCsvExportDefinition.getDbType())) {
-				tableQuery = "SELECT table_name FROM all_tables WHERE owner NOT IN ('CTXSYS', 'DBSNMP', 'MDDATA', 'MDSYS', 'DMSYS', 'OLAPSYS', 'ORDPLUGINS', 'OUTLN', 'SI_INFORMATN_SCHEMA', 'SYS', 'SYSMAN', 'SYSTEM')";
+				tableQuery = "SELECT DISTINCT table_name FROM all_tables WHERE owner NOT IN ('CTXSYS', 'DBSNMP', 'MDDATA', 'MDSYS', 'DMSYS', 'OLAPSYS', 'ORDPLUGINS', 'OUTLN', 'SI_INFORMATN_SCHEMA', 'SYS', 'SYSMAN', 'SYSTEM')";
+				for (String tablePattern : dbCsvExportDefinition.getSqlStatementOrTablelist().split(",| |;|\\||\n")) {
+					if (Utilities.isNotBlank(tablePattern)) {
+						tablePattern = tablePattern.trim().toUpperCase().replace("%", "\\%").replace("_", "\\_").replace("*", "%").replace("?", "_");
+						if (tablePattern.startsWith("!")) {
+							tableQuery += " AND table_name NOT LIKE '" + tablePattern.substring(1) + "' ESCAPE '\\'";
+						} else {
+							tableQuery += " AND table_name LIKE '" + tablePattern + "' ESCAPE '\\'";
+						}
+					}
+				}
+				tableQuery += " ORDER BY table_name";
+			} else if ("mysql".equals(dbCsvExportDefinition.getDbType())) {
+				tableQuery = "SELECT DISTINCT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema')";
+				for (String tablePattern : dbCsvExportDefinition.getSqlStatementOrTablelist().split(",| |;|\\||\n")) {
+					if (Utilities.isNotBlank(tablePattern)) {
+						tablePattern = tablePattern.trim().replace("%", "\\%").replace("_", "\\_").replace("*", "%").replace("?", "_");
+						if (tablePattern.startsWith("!")) {
+							tableQuery += " AND table_name NOT LIKE '" + tablePattern.substring(1) + "'";
+						} else {
+							tableQuery += " AND table_name LIKE '" + tablePattern + "'";
+						}
+					}
+				}
+				tableQuery += " ORDER BY table_name";
+			} else if ("postgres".equals(dbCsvExportDefinition.getDbType()) || "postgressql".equals(dbCsvExportDefinition.getDbType())) {
+				tableQuery = "SELECT DISTINCT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog')";
 				for (String tablePattern : dbCsvExportDefinition.getSqlStatementOrTablelist().split(",| |;|\\||\n")) {
 					if (Utilities.isNotBlank(tablePattern)) {
 						tablePattern = tablePattern.trim().toUpperCase().replace("%", "\\%").replace("_", "\\_").replace("*", "%").replace("?", "_");
@@ -33,18 +59,7 @@ public class DbCsvExportHelper {
 				}
 				tableQuery += " ORDER BY table_name";
 			} else {
-				tableQuery = "SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema')";
-				for (String tablePattern : dbCsvExportDefinition.getSqlStatementOrTablelist().split(",| |;|\\||\n")) {
-					if (Utilities.isNotBlank(tablePattern)) {
-						tablePattern = tablePattern.trim().replace("%", "\\%").replace("_", "\\_").replace("*", "%").replace("?", "_");
-						if (tablePattern.startsWith("!")) {
-							tableQuery += " AND table_name NOT LIKE '" + tablePattern.substring(1) + "'";
-						} else {
-							tableQuery += " AND table_name LIKE '" + tablePattern + "'";
-						}
-					}
-				}
-				tableQuery += " ORDER BY table_name";
+				throw new Exception("Unknown db vendor");
 			}
 			resultSet = statement.executeQuery(tableQuery);
 			List<String> tableNamesToExport = new ArrayList<String>();
@@ -82,28 +97,26 @@ public class DbCsvExportHelper {
 	}
 
 	public static Connection createConnection(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
-		boolean isOracleDb = "oracle".equalsIgnoreCase(dbCsvExportDefinition.getDbType());
+		Class.forName(DbUtilities.getDriverClassName(dbCsvExportDefinition.getDbType()));
 
-		if (isOracleDb) {
-			Class.forName(DbUtilities.DB_DRIVER_NAME_ORACLE);
-		} else {
-			Class.forName(DbUtilities.DB_DRIVER_NAME_MYSQL);
-		}
-
+		int port;
 		String[] hostParts = dbCsvExportDefinition.getHostname().split(":");
-		int port = 1521;
-		if ("mysql".equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
-			port = 3306;
-		}
 		if (hostParts.length == 2) {
 			try {
 				port = Integer.parseInt(hostParts[1]);
 			} catch (Exception e) {
 				throw new DbCsvExportException("Invalid port: " + hostParts[1]);
 			}
+		} else if ("oracle".equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
+			port = 1521;
+		} else if ("mysql".equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
+			port = 3306;
+		} else if ("postgres".equalsIgnoreCase(dbCsvExportDefinition.getDbType()) || "postgresql".equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
+			port = 5432;
+		} else {
+			throw new Exception("Unknown db vendor");
 		}
 
-		return DriverManager.getConnection(DbUtilities.generateUrlConnectionString(isOracleDb, hostParts[0], port, dbCsvExportDefinition.getDbName()), dbCsvExportDefinition.getUsername(),
-				dbCsvExportDefinition.getPassword());
+		return DriverManager.getConnection(DbUtilities.generateUrlConnectionString(dbCsvExportDefinition.getDbType(), hostParts[0], port, dbCsvExportDefinition.getDbName()), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword());
 	}
 }

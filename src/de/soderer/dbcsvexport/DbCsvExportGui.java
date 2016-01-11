@@ -70,9 +70,10 @@ public class DbCsvExportGui extends JFrame implements WorkerParentDual, UpdatePa
 		JLabel dbTypeLabel = new JLabel("DB-Type");
 		dbTypePanel.add(dbTypeLabel);
 		JComboBox<String> dbTypeCombo = new JComboBox<String>();
-		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521) or MySQL (default port 3306)");
+		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521) or MySQL (default port 3306) or PostgreSQL (default port  5432)");
 		dbTypeCombo.addItem("Oracle");
 		dbTypeCombo.addItem("MySQL");
+		dbTypeCombo.addItem("PostgreSQL");
 		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
 			if (dbTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getDbType())) {
 				dbTypeCombo.setSelectedIndex(i);

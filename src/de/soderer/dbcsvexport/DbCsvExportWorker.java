@@ -188,8 +188,11 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				showUnlimitedSubProgress();
 			}
 
-			boolean isOracleDb = "oracle".equals(dbCsvExportDefinition.getDbType());
-			resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ")" + (isOracleDb ? "" : "AS data"));
+			if ("oracle".equals(dbCsvExportDefinition.getDbType())) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ")");
+			} else {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			}
 			resultSet.next();
 			int linesToExport = resultSet.getInt(1);
 			logToFile(logOutputStream, "Lines to export: " + linesToExport);
