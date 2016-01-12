@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbCsvExport">
 	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
-	  <classpath>
-	    <pathelement location="lib_ant/ant-contrib-1.0b3.jar" />
-	  </classpath>
+		<classpath>
+			<pathelement location="lib_ant/ant-contrib-1.0b3.jar" />
+		</classpath>
 	</taskdef>
-	
+
+	<property name="version" value="3.3.0" />
+
 	<property name="buildPath" value="build" />
 	<echo message="buildPath: ${buildPath}" />
-	
+
 	<target name="build_jar" depends="clean, create_jar" />
 
 	<target name="clean">
@@ -16,16 +18,23 @@
 	</target>
 
 	<target name="create_jar">
-		<jar destfile="${buildPath}/DbCsvExport_3.3.0.jar">
+		<jar destfile="${buildPath}/DbCsvExport_${version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
 				<attribute name="Class-Path" value="." />
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
 			</manifest>
-			
+
 			<fileset dir="bin" />
 
 			<zipfileset dir="lib" includes="JavaUtilities_*.jar" />
 		</jar>
+
+		<tstamp>
+			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
+		</tstamp>
+		<checksum file="${buildPath}/DbCsvExport_${version}.jar" property="checksumMD5" />
+
+		<echo message="&lt;?xml version=&apos;1.0&apos; encoding=&apos;utf-8&apos; standalone=&apos;yes&apos;?>${line.separator}&lt;ApplicationVersions creationDate=&apos;${buildTime}&apos;>${line.separator}&#9;&lt;DbCsvExport version=&apos;${version}&apos; md5CheckSum=&apos;${checksumMD5}&apos;>http://downloads.sourceforge.net/project/dbcsvexport/DbCsvExport_${version}.jar?r=http://sourceforge.net/projects/dbcsvexport/&amp;amp;ts=&amp;lt;time_seconds>&amp;amp;use_mirror=master&lt;/DbCsvExport>${line.separator}&lt;/ApplicationVersions>" file="${buildPath}/Versions.xml" />
 	</target>
 </project>
