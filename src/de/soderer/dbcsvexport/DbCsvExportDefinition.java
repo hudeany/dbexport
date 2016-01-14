@@ -118,6 +118,7 @@ public class DbCsvExportDefinition {
 	public void setOutputpath(String outputpath) {
 		this.outputpath = outputpath;
 		if (this.outputpath != null) {
+			this.outputpath = this.outputpath.trim();
 			this.outputpath = this.outputpath.replace("~", System.getProperty("user.home"));
 			if (this.outputpath.endsWith(File.separator)) {
 				this.outputpath = this.outputpath.substring(0, this.outputpath.length() - 1);
@@ -202,17 +203,19 @@ public class DbCsvExportDefinition {
 	}
 
 	public void checkParameters() throws Exception {
-		if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
+		if (outputpath == null) {
+			throw new DbCsvExportException("Outputpath is missing");
+		} else if ("console".equalsIgnoreCase(outputpath) && zip) {
+			throw new DbCsvExportException("Zipping not allowed for console output");
+		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
 			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
 				throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
 			}
 		} else {
-			if (!"console".equalsIgnoreCase(outputpath)) {
-				if (!new File(outputpath).exists()) {
-					throw new DbCsvExportException("Outputpath does not exist: " + outputpath);
-				} else if (!new File(outputpath).isDirectory()) {
-					throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
-				}
+			if (!new File(outputpath).exists()) {
+				throw new DbCsvExportException("Outputpath does not exist: " + outputpath);
+			} else if (!new File(outputpath).isDirectory()) {
+				throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
 			}
 		}
 

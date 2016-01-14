@@ -15,7 +15,7 @@ import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerParentDual;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.3.0";
+	public static final String VERSION = "3.4.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
@@ -37,9 +37,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
-			+ "\t-l: log in file\n"
-			+ "\t-v: progress output in terminal\n"
-			+ "\t-z: output as zipfile\n"
+			+ "\t-l: log export information in .log files\n"
+			+ "\t-v: progress and e.t.a. output in terminal\n"
+			+ "\t-z: output as zipfile (not for console output)\n"
 			+ "\t-e: encoding (default UTF-8)\n"
 			+ "\t-s: separator character, default ';', encapsulate by '\n"
 			+ "\t-q: string quote character, default '\"', encapsulate by '\n"

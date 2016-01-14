@@ -30,15 +30,13 @@ import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.ExceptionUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
-import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.swing.BasicUpdateableGuiApplication;
 import de.soderer.utilities.swing.DualProgressDialog;
 import de.soderer.utilities.swing.TextDialog;
 
-public class DbCsvExportGui extends BasicUpdateableGuiApplication implements WorkerParentDual {
+public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private static final long serialVersionUID = 5969613637206441880L;
 
-	private DualProgressDialog progressDialog;
 	private DbCsvExportWorker dbCsvExportWorker;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
@@ -328,12 +326,41 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication implements Wor
 					dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
 					dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
 
-					dbCsvExportWorker = new DbCsvExportWorker(dbCsvExportGui, dbCsvExportDefinition);
-					Thread dbCsvExportThread = new Thread(dbCsvExportWorker);
-					dbCsvExportThread.start();
+					dbCsvExportWorker = new DbCsvExportWorker(null, dbCsvExportDefinition);
+					DualProgressDialog<DbCsvExportWorker> progressDialog = new DualProgressDialog<DbCsvExportWorker>(dbCsvExportGui, "DbCsvExport", dbCsvExportWorker);
+					progressDialog.showDialog();
+					
+					try {
+						if (dbCsvExportWorker.isCancelled()) {
+							TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport", "Canceled by user", Color.YELLOW);
+							textDialog.setVisible(true);
+						} else {
+							// Get result to trigger possible Exception
+							dbCsvExportWorker.get();
 
-					progressDialog = new DualProgressDialog(dbCsvExportGui, "DbCsvExport");
-					progressDialog.setVisible(true);
+							TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport", "Result:\n" + getResult(dbCsvExportWorker, dbCsvExportWorker.getStartTime(), dbCsvExportWorker.getEndTime(), dbCsvExportWorker.getItemsDone()), Color.WHITE);
+							textDialog.setVisible(true);
+						}
+					} catch (ExecutionException e) {
+						if (e.getCause() instanceof DbCsvExportException) {
+							TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e.getCause()).getMessage(), Color.PINK);
+							textDialog.setVisible(true);
+						} else if (e.getCause() instanceof Exception) {
+							String stacktrace = ExceptionUtilities.getStackTrace(e.getCause());
+							TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR",
+									"ERROR:\n" + e.getCause().getClass().getSimpleName() + ":\n" + ((Exception) e.getCause()).getMessage() + "\n\n" + stacktrace, Color.PINK);
+							textDialog.setVisible(true);
+						} else {
+							String stacktrace = ExceptionUtilities.getStackTrace(e.getCause());
+							TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getCause().getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace, Color.PINK);
+							textDialog.setVisible(true);
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally {
+						progressDialog.dispose();
+						progressDialog = null;
+					}
 				} catch (Exception e) {
 					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e.getCause()).getMessage(), Color.RED).setVisible(true);
 				}
@@ -393,99 +420,5 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication implements Wor
 		}
 		result += "\nExported lines: " + dbCsvExportWorker.getOverallExportedLines();
 		return result;
-	}
-
-	@Override
-	public void showUnlimitedProgress() {
-		if (progressDialog != null) {
-			progressDialog.setIndeterminate();
-			progressDialog.setProgress(0, 0);
-			progressDialog.setETA(null);
-		}
-	}
-
-	@Override
-	public void showUnlimitedSubProgress() {
-		if (progressDialog != null) {
-			progressDialog.setSubItemIndeterminate();
-			progressDialog.setSubProgress(0, 0);
-			progressDialog.setSubETA(null);
-		}
-	}
-
-	@Override
-	public void showProgress(Date start, long itemsToDo, long itemsDone) {
-		if (progressDialog != null) {
-			progressDialog.setProgress(itemsToDo, itemsDone);
-			progressDialog.setETA(DateUtilities.calculateETA(start, itemsToDo, itemsDone));
-		}
-	}
-
-	@Override
-	public void showItemStart(String itemName) {
-		if (progressDialog != null) {
-			progressDialog.setSubItemTitle(itemName);
-			progressDialog.setSubProgress(0, 0);
-			progressDialog.setSubETA(null);
-		}
-	}
-
-	@Override
-	public void showItemProgress(Date itemStart, long subItemToDo, long subItemDone) {
-		if (progressDialog != null) {
-			progressDialog.setSubProgress(subItemToDo, subItemDone);
-			progressDialog.setSubETA(DateUtilities.calculateETA(itemStart, subItemToDo, subItemDone));
-		}
-	}
-
-	@Override
-	public void showItemDone(Date itemStart, Date itemEnd, long subItemsDone) {
-		if (progressDialog != null) {
-			progressDialog.setSubItemTitle(null);
-			progressDialog.setSubProgress(0, 0);
-			progressDialog.setSubETA(null);
-		}
-	}
-
-	@Override
-	public void showDone(Date start, Date end, long itemsDone) {
-		try {
-			if (dbCsvExportWorker.isCancelled()) {
-				TextDialog textDialog = new TextDialog(this, "DbCsvExport", "Canceled by user", Color.YELLOW);
-				textDialog.setVisible(true);
-			} else {
-				// Get result to trigger possible Exception
-				dbCsvExportWorker.get();
-
-				TextDialog textDialog = new TextDialog(this, "DbCsvExport", "Result:\n" + getResult(dbCsvExportWorker, start, end, itemsDone), Color.WHITE);
-				textDialog.setVisible(true);
-			}
-		} catch (ExecutionException e) {
-			if (e.getCause() instanceof DbCsvExportException) {
-				TextDialog textDialog = new TextDialog(this, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e.getCause()).getMessage(), Color.PINK);
-				textDialog.setVisible(true);
-			} else if (e.getCause() instanceof Exception) {
-				String stacktrace = ExceptionUtilities.getStackTrace(e.getCause());
-				TextDialog textDialog = new TextDialog(this, "DbCsvExport ERROR",
-						"ERROR:\n" + e.getCause().getClass().getSimpleName() + ":\n" + ((Exception) e.getCause()).getMessage() + "\n\n" + stacktrace, Color.PINK);
-				textDialog.setVisible(true);
-			} else {
-				String stacktrace = ExceptionUtilities.getStackTrace(e.getCause());
-				TextDialog textDialog = new TextDialog(this, "DbCsvExport ERROR", "ERROR:\n" + e.getCause().getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace, Color.PINK);
-				textDialog.setVisible(true);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			progressDialog.dispose();
-			progressDialog = null;
-		}
-	}
-
-	@Override
-	public void cancel() {
-		if (dbCsvExportWorker != null) {
-			dbCsvExportWorker.cancel();
-		}
 	}
 }
