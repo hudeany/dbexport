@@ -16,8 +16,14 @@
 	<target name="clean">
 		<delete dir="${buildPath}" />
 	</target>
+	
+	<target name="compile" description="Compile source">
+        <mkdir dir="bin" />
+		
+        <javac srcdir="src" includes="**" destdir="bin"/>
+    </target>
 
-	<target name="create_jar">
+	<target name="create_jar" depends="compile">
 		<jar destfile="${buildPath}/DbCsvExport_${version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
@@ -29,10 +35,24 @@
 
 			<zipfileset dir="lib" includes="JavaUtilities_*.jar" />
 		</jar>
+		
+		<jar destfile="${buildPath}/DbCsvExport_${version}_sources.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
+			</manifest>
+			
+			<fileset dir="bin" />
+		    <fileset dir="src" includes="**/*.java"/>
+
+			<zipfileset dir="lib" includes="JavaUtilities_*.jar" />
+		</jar>
 
 		<tstamp>
 			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
 		</tstamp>
+		
 		<checksum file="${buildPath}/DbCsvExport_${version}.jar" property="checksumMD5" />
 
 		<echo message="&lt;?xml version=&apos;1.0&apos; encoding=&apos;utf-8&apos; standalone=&apos;yes&apos;?>${line.separator}&lt;ApplicationVersions creationDate=&apos;${buildTime}&apos;>${line.separator}&#9;&lt;DbCsvExport version=&apos;${version}&apos; md5CheckSum=&apos;${checksumMD5}&apos;>http://downloads.sourceforge.net/project/dbcsvexport/DbCsvExport_${version}.jar?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fdbcsvexport%2F&amp;amp;ts=&amp;lt;time_seconds>&amp;amp;use_mirror=master&lt;/DbCsvExport>${line.separator}&lt;/ApplicationVersions>" file="${buildPath}/Versions.xml" />
