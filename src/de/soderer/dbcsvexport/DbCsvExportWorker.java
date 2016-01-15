@@ -23,6 +23,7 @@ import java.util.zip.ZipOutputStream;
 
 import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerDual;
@@ -49,7 +50,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			dbCsvExportDefinition.checkAndLoadDbDrivers();
 
 			overallExportedLines = 0;
-			connection = DbCsvExportHelper.createConnection(dbCsvExportDefinition);
+			connection = DbUtilities.createConnection(dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword().toCharArray());
 
 			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
 				itemsToDo = 0;
@@ -76,7 +77,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			} else {
 				showItemStart("Scanning tables ...");
 				showUnlimitedProgress();
-				List<String> tablesToExport = DbCsvExportHelper.getTablesToExport(connection, dbCsvExportDefinition);
+				List<String> tablesToExport = DbUtilities.getAvailableTables(connection, dbCsvExportDefinition.getSqlStatementOrTablelist());
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
 				boolean success = true;
@@ -85,7 +86,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					String tableName = tablesToExport.get(i);
 					subItemsToDo = 0;
 					subItemsDone = 0;
-					String keyColumn = DbCsvExportHelper.getPrimaryKeyColumn(connection, tableName, dbCsvExportDefinition);
+					String keyColumn = DbUtilities.getPrimaryKeyColumn(connection, tableName);
 					showItemStart(tableName);
 
 					try {
@@ -105,11 +106,9 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				}
 				result = success && !cancel;
 			}
-			showDone();
 		} catch (Exception e) {
 			error = e;
 			result = false;
-			showDone();
 		} finally {
 			if (connection != null) {
 				try {
@@ -119,6 +118,8 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 		}
+		
+		showDone();
 	}
 
 	public void export(Connection connection, String sqlStatement, String outputFilePath) throws Exception {

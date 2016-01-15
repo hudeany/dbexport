@@ -85,12 +85,25 @@ public class DbCsvExportDefinition {
 		this.dbVendor = DbUtilities.DbVendor.getDbVendorByName(dbVendor);
 	}
 
-	public void setDbVendor(DbVendor dbVendor) throws Exception {
+	public void setDbVendor(DbVendor dbVendor) {
 		this.dbVendor = dbVendor;
 	}
 
-	public void setHostname(String hostname) {
+	public void setHostname(String hostname) throws Exception {
 		this.hostname = hostname;
+		
+		if (Utilities.isNotBlank(hostname)) {
+			String[] hostParts = this.hostname.split(":");
+			if (hostParts.length == 2) {
+				if (!Utilities.isNumber(hostParts[1])) {
+					throw new Exception("Invalid port in hostname: " + hostname);
+				}
+			} else if (hostParts.length > 2) {
+				throw new Exception("Invalid hostname: " + hostname);
+			}
+		} else {
+			throw new Exception("Invalid empty hostname");
+		}
 	}
 
 	public void setDbName(String dbName) {

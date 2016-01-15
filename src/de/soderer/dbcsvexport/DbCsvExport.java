@@ -15,7 +15,7 @@ import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerParentDual;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.4.0";
+	public static final String VERSION = "3.5.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
@@ -200,8 +200,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 		try {
 			dbCsvExportWorker = new DbCsvExportWorker(this, dbCsvExportDefinition);
-			dbCsvExportWorker.setShowProgressAfterMilliseconds(5000);
-			dbCsvExportWorker.setShowProgressOverrideRefreshMilliseconds(0);
+			dbCsvExportWorker.setShowProgressAfterMilliseconds(2000);
 			dbCsvExportWorker.run();
 
 			// Get result to trigger possible Exception
