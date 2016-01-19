@@ -12,10 +12,11 @@ import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
+import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.5.0";
+	public static final String VERSION = "3.6.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
@@ -37,6 +38,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
+			+ "\t-json: export in json format instead of csv (don't forget to beautify for human readable data)\n"
 			+ "\t-l: log export information in .log files\n"
 			+ "\t-v: progress and e.t.a. output in terminal\n"
 			+ "\t-z: output as zipfile (not for console output)\n"
@@ -48,12 +50,14 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
 			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
 			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
+			+ "\t  or beautify json output to make it human readable with linebreak and indention\n"
 			+ "\n"
 			+ "global/single parameters\n"
 			+ "\t-help: show this help manual\n"
 			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
 	
-	private DbCsvExportWorker dbCsvExportWorker;
+	private DbCsvExportDefinition dbCsvExportDefinition;
+	private WorkerDual<Boolean> worker;
 
 	public static void main(String[] arguments) {
 		DbCsvExportDefinition dbCsvExportDefinition = new DbCsvExportDefinition();
@@ -74,6 +78,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					System.exit(1);
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setOpenGUI(true);
+				} else if ("-json".equalsIgnoreCase(arguments[i])) {
+					dbCsvExportDefinition.setExportJson(true);
 				} else if ("-l".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setLog(true);
 				} else if ("-v".equalsIgnoreCase(arguments[i])) {
@@ -184,7 +190,10 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	}
 
 	private void export(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
+		this.dbCsvExportDefinition = dbCsvExportDefinition;
+		
 		if (dbCsvExportDefinition.isVerbose()) {
+			System.out.println("Format: " + (dbCsvExportDefinition.isExportJson() ? "JSON" : "CSV"));
 			System.out.println("Separator: " + dbCsvExportDefinition.getSeparator());
 			System.out.println("Zip: " + dbCsvExportDefinition.isZip());
 			System.out.println("Encoding: " + dbCsvExportDefinition.getEncoding());
@@ -199,12 +208,33 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 
 		try {
-			dbCsvExportWorker = new DbCsvExportWorker(this, dbCsvExportDefinition);
-			dbCsvExportWorker.setShowProgressAfterMilliseconds(2000);
-			dbCsvExportWorker.run();
+			if (dbCsvExportDefinition.isExportJson()) {
+				worker = new DbJsonExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbJsonExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbJsonExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbJsonExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbJsonExportWorker) worker).setDateLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			} else {
+				worker = new DbCsvExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbCsvExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbCsvExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbCsvExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbCsvExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbCsvExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbCsvExportWorker) worker).setSeparator(dbCsvExportDefinition.getSeparator());
+				((DbCsvExportWorker) worker).setStringQuote(dbCsvExportDefinition.getStringQuote());
+				((DbCsvExportWorker) worker).setAlwaysQuote(dbCsvExportDefinition.isAlwaysQuote());
+				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			}
+			worker.setShowProgressAfterMilliseconds(2000);
+			worker.run();
 
 			// Get result to trigger possible Exception
-			dbCsvExportWorker.get();
+			worker.get();
 		} catch (ExecutionException e) {
 			if (e.getCause() instanceof Exception) {
 				throw (Exception) e.getCause();
@@ -228,8 +258,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	@Override
 	public void showProgress(Date start, long itemsToDo, long itemsDone) {
-		if (dbCsvExportWorker.getDbCsvExportDefinition().isVerbose()) {
-			if (dbCsvExportWorker.getDbCsvExportDefinition().getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
+		if (dbCsvExportDefinition.isVerbose()) {
+			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
 				System.out.print("\r" + Utilities.getConsoleProgressString(80, start, itemsToDo, itemsDone));
 			} else {
 				System.out.println();
@@ -249,14 +279,14 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	@Override
 	public void showItemProgress(Date itemStart, long subItemToDo, long subItemDone) {
-		if (dbCsvExportWorker.getDbCsvExportDefinition().isVerbose()) {
+		if (dbCsvExportDefinition.isVerbose()) {
 			System.out.print("\r" + Utilities.getConsoleProgressString(80, itemStart, subItemToDo, subItemDone));
 		}
 	}
 
 	@Override
 	public void showItemDone(Date itemStart, Date itemEnd, long subItemsDone) {
-		if (dbCsvExportWorker.getDbCsvExportDefinition().isVerbose()) {
+		if (dbCsvExportDefinition.isVerbose()) {
 			System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(subItemsDone - 1) + " lines in "
 					+ DateUtilities.getShortHumanReadableTimespan(itemEnd.getTime() - itemStart.getTime(), false), 80));
 			System.out.println();
@@ -265,8 +295,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	@Override
 	public void showDone(Date start, Date end, long itemsDone) {
-		if (dbCsvExportWorker.getDbCsvExportDefinition().isVerbose()) {
-			if (dbCsvExportWorker.getDbCsvExportDefinition().getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
+		if (dbCsvExportDefinition.isVerbose()) {
+			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
 				System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in "
 						+ DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
 				System.out.println();

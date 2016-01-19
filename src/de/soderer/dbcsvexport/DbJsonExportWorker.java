@@ -13,8 +13,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -24,7 +22,6 @@ import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -32,8 +29,9 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.ZipUtilities;
+import de.soderer.utilities.json.JsonWriter;
 
-public class DbCsvExportWorker extends WorkerDual<Boolean> {
+public class DbJsonExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
 	private DbUtilities.DbVendor dbVendor = null;
 	private String hostname;
@@ -46,21 +44,17 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 	// Default optional parameters
 	private boolean log = false;
 	private boolean zip = false;
+	private boolean beautify = true;
 	private String encoding = "UTF-8";
-	private char separator = ';';
-	private char stringQuote = '"';
-	private boolean alwaysQuote = false;
 	private boolean createBlobFiles = false;
 	private boolean createClobFiles = false;
-	private Locale dateAndDecimalLocale = Locale.getDefault();
-	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
-	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
-	private boolean beautify = false;
+	private Locale dateLocale = Locale.getDefault();
+	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateLocale);
 	
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmount = 0;
 
-	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
+	public DbJsonExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
@@ -91,23 +85,10 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 		this.createClobFiles = createClobFiles;
 	}
 
-	public void setDateAndDecimalLocale(Locale dateAndDecimalLocale) {
-		this.dateAndDecimalLocale = dateAndDecimalLocale;
+	public void setDateLocale(Locale dateLocale) {
+		this.dateLocale = dateLocale;
 
-		dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
-		decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
-	}
-
-	public void setSeparator(char separator) {
-		this.separator = separator;
-	}
-
-	public void setStringQuote(char stringQuote) {
-		this.stringQuote = stringQuote;
-	}
-
-	public void setAlwaysQuote(boolean alwaysQuote) {
-		this.alwaysQuote = alwaysQuote;
+		dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateLocale);
 	}
 
 	public void setBeautify(boolean beautify) {
@@ -198,7 +179,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 		OutputStream logOutputStream = null;
 		Statement statement = null;
 		ResultSet resultSet = null;
-		CsvWriter csvWriter = null;
+		JsonWriter jsonWriter = null;
 
 		try {
 			if (!"console".equalsIgnoreCase(outputFilePath)) {
@@ -206,8 +187,8 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						outputFilePath = outputFilePath + ".zip";
 					}
-				} else if (!outputFilePath.toLowerCase().endsWith(".csv")) {
-					outputFilePath = outputFilePath + ".csv";
+				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
+					outputFilePath = outputFilePath + ".json";
 				}
 
 				if (new File(outputFilePath).exists()) {
@@ -218,18 +199,14 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					logOutputStream = new FileOutputStream(new File(outputFilePath + "." + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()) + ".log"));
 
 					logToFile(logOutputStream, "File: " + new File(outputFilePath).getName());
-					logToFile(logOutputStream, "Format: CSV");
-					logToFile(logOutputStream, "Separator: " + separator);
+					logToFile(logOutputStream, "Format: JSON");
 					logToFile(logOutputStream, "Zip: " + zip);
 					logToFile(logOutputStream, "Encoding: " + encoding);
-					logToFile(logOutputStream, "StringQuote: " + stringQuote);
-					logToFile(logOutputStream, "AlwaysQuote: " + alwaysQuote);
 					logToFile(logOutputStream, "SqlStatement: " + sqlStatement);
-					logToFile(logOutputStream, "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage());
-					logToFile(logOutputStream, "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage());
+					logToFile(logOutputStream, "OutputFormatLocale: " + dateLocale.getLanguage());
+					logToFile(logOutputStream, "OutputFormatLocale: " + dateLocale.getLanguage());
 					logToFile(logOutputStream, "CreateBlobFiles: " + createBlobFiles);
 					logToFile(logOutputStream, "CreateClobFiles: " + createClobFiles);
-					logToFile(logOutputStream, "Beautify: " + beautify);
 				}
 
 				if (currentItemName == null) {
@@ -242,8 +219,8 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
-					if (!entryFileName.toLowerCase().endsWith(".csv")) {
-						entryFileName += ".csv";
+					if (!entryFileName.toLowerCase().endsWith(".json")) {
+						entryFileName += ".json";
 					}
 					ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(new Date().getTime());
@@ -287,104 +264,10 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			resultSet.close();
 			resultSet = null;
 
-			int[] minimumColumnSizes = null;
-			boolean[] columnPaddings = null;
-
-			csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
-			csvWriter.setAlwaysQuote(alwaysQuote);
-
-			// Scan all data for column lengths
-			if (beautify) {
-				resultSet = statement.executeQuery(sqlStatement);
-				ResultSetMetaData metaData = resultSet.getMetaData();
-
-				columnPaddings = new boolean[metaData.getColumnCount()];
-				for (int i = 0; i < columnPaddings.length; i++) {
-					columnPaddings[i] = true;
-				}
-
-				// Scan headers
-				List<String> headers = new ArrayList<String>();
-				for (int i = 1; i <= metaData.getColumnCount(); i++) {
-					headers.add(metaData.getColumnName(i));
-				}
-				minimumColumnSizes = csvWriter.calculateOutputSizesOfValues(headers);
-
-				if (currentItemName == null) {
-					itemsDone++;
-					showProgress();
-				} else {
-					subItemsDone++;
-					showItemProgress();
-				}
-
-				// Scan values
-				while (resultSet.next() && !cancel) {
-					List<String> values = new ArrayList<String>();
-					for (int i = 1; i <= metaData.getColumnCount(); i++) {
-						String valueString;
-						if (resultSet.getObject(i) == null) {
-							valueString = "";
-						} else if (metaData.getColumnType(i) == Types.BLOB) {
-							if (createBlobFiles) {
-								File blobOutputFile = File.createTempFile(outputFilePath.substring(0, outputFilePath.length() - 4) + "_", ".blob" + (zip ? ".zip" : ""),
-										new File(outputFilePath).getParentFile());
-								valueString = blobOutputFile.getName();
-							} else {
-								byte[] data = Utilities.toByteArray(resultSet.getBlob(i).getBinaryStream());
-								valueString = Base64.getEncoder().encodeToString(data);
-							}
-						} else if (metaData.getColumnType(i) == Types.CLOB) {
-							if (createClobFiles) {
-								File clobOutputFile = File.createTempFile(outputFilePath.substring(0, outputFilePath.length() - 4) + "_", ".clob" + (zip ? ".zip" : ""),
-										new File(outputFilePath).getParentFile());
-								valueString = clobOutputFile.getName();
-							} else {
-								valueString = resultSet.getString(i);
-							}
-						} else if (metaData.getColumnType(i) == Types.DATE || metaData.getColumnType(i) == Types.TIMESTAMP) {
-							valueString = dateFormat.format(resultSet.getObject(i));
-						} else if (metaData.getColumnType(i) == Types.DECIMAL || metaData.getColumnType(i) == Types.DOUBLE || metaData.getColumnType(i) == Types.FLOAT) {
-							valueString = decimalFormat.format(resultSet.getObject(i));
-							columnPaddings[i - 1] = false;
-						} else if (metaData.getColumnType(i) == Types.BIGINT || metaData.getColumnType(i) == Types.BIT || metaData.getColumnType(i) == Types.INTEGER
-								|| metaData.getColumnType(i) == Types.NUMERIC || metaData.getColumnType(i) == Types.SMALLINT || metaData.getColumnType(i) == Types.TINYINT) {
-							valueString = resultSet.getString(i);
-							columnPaddings[i - 1] = false;
-						} else {
-							valueString = resultSet.getString(i);
-						}
-						values.add(valueString);
-					}
-					int[] nextColumnSizes = csvWriter.calculateOutputSizesOfValues(values);
-					for (int i = 0; i < nextColumnSizes.length; i++) {
-						minimumColumnSizes[i] = Math.max(minimumColumnSizes[i], nextColumnSizes[i]);
-					}
-
-					if (currentItemName == null) {
-						itemsDone++;
-						showProgress();
-					} else {
-						subItemsDone++;
-						showItemProgress();
-					}
-				}
-
-				resultSet.close();
-				resultSet = null;
-
-				if (currentItemName == null) {
-					itemsDone = 0;
-					showProgress();
-				} else {
-					subItemsDone = 0;
-					showItemProgress();
-				}
-			}
+			jsonWriter = new JsonWriter(outputStream, encoding);
+			jsonWriter.setUglify(!beautify);
 
 			resultSet = statement.executeQuery(sqlStatement);
-			csvWriter.setColumnPaddings(columnPaddings);
-			csvWriter.setMinimumColumnSizes(minimumColumnSizes);
 			ResultSetMetaData metaData = resultSet.getMetaData();
 
 			if (currentItemName == null) {
@@ -400,7 +283,6 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			for (int i = 1; i <= metaData.getColumnCount(); i++) {
 				headers.add(metaData.getColumnName(i));
 			}
-			csvWriter.writeValues(headers);
 
 			if (currentItemName == null) {
 				itemsDone++;
@@ -411,12 +293,13 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			}
 
 			// Write values
+			jsonWriter.openJsonArray();
 			while (resultSet.next() && !cancel) {
-				List<String> values = new ArrayList<String>();
+				jsonWriter.openJsonObject();
 				for (int i = 1; i <= metaData.getColumnCount(); i++) {
-					String valueString;
+					jsonWriter.openJsonObjectProperty(headers.get(i - 1));
 					if (resultSet.getObject(i) == null) {
-						valueString = "";
+						jsonWriter.addSimpleJsonObjectPropertyValue(null);
 					} else if (metaData.getColumnType(i) == Types.BLOB) {
 						if (createBlobFiles) {
 							File blobOutputFile = File.createTempFile(outputFilePath.substring(0, outputFilePath.length() - 4) + "_", ".blob" + (zip ? ".zip" : ""),
@@ -438,14 +321,14 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 									Utilities.closeQuietly(output);
 								}
 								overallExportedDataAmount += blobOutputFile.length();
-								valueString = blobOutputFile.getName();
+								jsonWriter.addSimpleJsonObjectPropertyValue(blobOutputFile.getName());
 							} catch (Exception e) {
 								logToFile(logOutputStream, "Cannot create blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								valueString = "Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'";
+								jsonWriter.addSimpleJsonObjectPropertyValue("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'");
 							}
 						} else {
 							byte[] data = Utilities.toByteArray(resultSet.getBlob(i).getBinaryStream());
-							valueString = Base64.getEncoder().encodeToString(data);
+							jsonWriter.addSimpleJsonObjectPropertyValue(Base64.getEncoder().encodeToString(data));
 						}
 					} else if (metaData.getColumnType(i) == Types.CLOB) {
 						if (createClobFiles) {
@@ -468,27 +351,26 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 									Utilities.closeQuietly(output);
 								}
 								overallExportedDataAmount += clobOutputFile.length();
-								valueString = clobOutputFile.getName();
+								jsonWriter.addSimpleJsonObjectPropertyValue(clobOutputFile.getName());
 							} catch (Exception e) {
 								logToFile(logOutputStream, "Cannot create blob file '" + clobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								valueString = "Error creating blob file '" + clobOutputFile.getAbsolutePath() + "'";
+								jsonWriter.addSimpleJsonObjectPropertyValue("Error creating blob file '" + clobOutputFile.getAbsolutePath() + "'");
 							}
 						} else {
-							valueString = resultSet.getString(i);
+							jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getString(i));
 						}
 					} else if (metaData.getColumnType(i) == Types.DATE || metaData.getColumnType(i) == Types.TIMESTAMP) {
-						valueString = dateFormat.format(resultSet.getObject(i));
+						jsonWriter.addSimpleJsonObjectPropertyValue(dateFormat.format(resultSet.getObject(i)));
 					} else if (metaData.getColumnType(i) == Types.DECIMAL || metaData.getColumnType(i) == Types.DOUBLE || metaData.getColumnType(i) == Types.FLOAT) {
-						valueString = decimalFormat.format(resultSet.getObject(i));
+						jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getObject(i));
 					} else if (metaData.getColumnType(i) == Types.BIGINT || metaData.getColumnType(i) == Types.BIT || metaData.getColumnType(i) == Types.INTEGER
 							|| metaData.getColumnType(i) == Types.NUMERIC || metaData.getColumnType(i) == Types.SMALLINT || metaData.getColumnType(i) == Types.TINYINT) {
-						valueString = resultSet.getString(i);
+						jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getObject(i));
 					} else {
-						valueString = resultSet.getString(i);
+						jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getString(i));
 					}
-					values.add(valueString);
 				}
-				csvWriter.writeValues(values);
+				jsonWriter.closeJsonObject();
 
 				if (currentItemName == null) {
 					itemsDone++;
@@ -498,6 +380,14 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					showItemProgress();
 				}
 			}
+			jsonWriter.closeJsonArray();
+			
+			long exportedLines;
+			if (currentItemName == null) {
+				exportedLines = itemsDone;
+			} else {
+				exportedLines = subItemsDone;
+			}
 
 			if (currentItemName == null) {
 				endTime = new Date();
@@ -506,12 +396,12 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			}
 
 			if ("console".equalsIgnoreCase(outputFilePath)) {
-				csvWriter.flush();
+				jsonWriter.flush();
 				System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
 			}
 
-			if ((csvWriter.getWrittenLines() - 1) > 0) {
-				logToFile(logOutputStream, "Exported lines: " + (csvWriter.getWrittenLines() - 1));
+			if (exportedLines > 0) {
+				logToFile(logOutputStream, "Exported lines: " + exportedLines);
 
 				int elapsedTimeInSeconds;
 				if (currentItemName == null) {
@@ -520,7 +410,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 					elapsedTimeInSeconds = (int) (endTimeSub.getTime() - startTimeSub.getTime()) / 1000;
 				}
 				if (elapsedTimeInSeconds > 0) {
-					int linesPerSecond = (csvWriter.getWrittenLines() - 1) / elapsedTimeInSeconds;
+					int linesPerSecond = (int) (exportedLines / elapsedTimeInSeconds);
 					logToFile(logOutputStream, "Export speed: " + linesPerSecond + " lines/second");
 				} else {
 					logToFile(logOutputStream, "Export speed: immediately");
@@ -539,7 +429,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(endTimeSub.getTime() - startTimeSub.getTime(), true));
 			}
 
-			overallExportedLines += csvWriter.getWrittenLines() - 1;
+			overallExportedLines += exportedLines;
 		} catch (Exception e) {
 			try {
 				logToFile(logOutputStream, "Error: " + e.getMessage());
@@ -564,9 +454,9 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 
-			if (csvWriter != null) {
+			if (jsonWriter != null) {
 				try {
-					csvWriter.flush();
+					jsonWriter.flush();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -582,7 +472,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				}
 
 				try {
-					csvWriter.close();
+					jsonWriter.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -596,7 +486,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 		}
-		
+
 		if (new File(outputFilePath).exists()) {
 			overallExportedDataAmount += new File(outputFilePath).length();
 		}

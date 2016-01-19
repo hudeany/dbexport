@@ -20,6 +20,7 @@ import de.soderer.utilities.DbUtilities.DbVendor;
 public class DbCsvExportDefinition {
 	// Default optional parameters
 	private boolean openGui = false;
+	private boolean exportJson = false;
 	private boolean log = false;
 	private boolean verbose = false;
 	private boolean zip = false;
@@ -32,7 +33,7 @@ public class DbCsvExportDefinition {
 	private Locale dateAndDecimalLocale = Locale.getDefault();
 	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
 	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
-	private boolean beautify;
+	private boolean beautify = false;
 
 	// Mandatory parameters
 	private DbUtilities.DbVendor dbVendor = null;
@@ -47,6 +48,10 @@ public class DbCsvExportDefinition {
 
 	public void setOpenGUI(boolean openGui) {
 		this.openGui = openGui;
+	}
+	
+	public void setExportJson(boolean exportJson) {
+		this.exportJson = exportJson;
 	}
 
 	public void setLog(boolean log) {
@@ -169,6 +174,10 @@ public class DbCsvExportDefinition {
 
 	public boolean isOpenGui() {
 		return openGui;
+	}
+
+	public boolean isExportJson() {
+		return exportJson;
 	}
 
 	public boolean isLog() {
