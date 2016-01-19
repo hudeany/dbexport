@@ -23,7 +23,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
+			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-json] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
