@@ -20,7 +20,7 @@ import de.soderer.utilities.DbUtilities.DbVendor;
 public class DbCsvExportDefinition {
 	// Default optional parameters
 	private boolean openGui = false;
-	private boolean exportJson = false;
+	private ExportType exportType = ExportType.CSV;
 	private boolean log = false;
 	private boolean verbose = false;
 	private boolean zip = false;
@@ -34,6 +34,7 @@ public class DbCsvExportDefinition {
 	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
 	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
 	private boolean beautify = false;
+	private boolean noHeaders = false;
 
 	// Mandatory parameters
 	private DbUtilities.DbVendor dbVendor = null;
@@ -42,6 +43,24 @@ public class DbCsvExportDefinition {
 	private String username;
 	private String sqlStatementOrTablelist;
 	private String outputpath;
+	
+	public enum ExportType {
+		CSV,
+		JSON,
+		XML;
+
+		public static ExportType getFromString(String exportType) throws Exception {
+			if ("CSV".equalsIgnoreCase(exportType)) {
+				return ExportType.CSV;
+			} else if ("JSON".equalsIgnoreCase(exportType)) {
+				return ExportType.JSON;
+			} else if ("XML".equalsIgnoreCase(exportType)) {
+				return ExportType.XML;
+			} else {
+				throw new Exception("Invalid export format: " + exportType);
+			}
+		}
+	}
 
 	// Password may be entered interactive
 	private String password;
@@ -50,8 +69,15 @@ public class DbCsvExportDefinition {
 		this.openGui = openGui;
 	}
 	
-	public void setExportJson(boolean exportJson) {
-		this.exportJson = exportJson;
+	public void setExportType(ExportType exportType) {
+		this.exportType = exportType;
+		if (this.exportType == null) {
+			this.exportType = ExportType.CSV;
+		}
+	}
+	
+	public void setExportType(String exportType) throws Exception {
+		this.exportType = ExportType.getFromString(exportType);
 	}
 
 	public void setLog(boolean log) {
@@ -176,8 +202,8 @@ public class DbCsvExportDefinition {
 		return openGui;
 	}
 
-	public boolean isExportJson() {
-		return exportJson;
+	public ExportType getExportType() {
+		return exportType;
 	}
 
 	public boolean isLog() {
@@ -227,8 +253,10 @@ public class DbCsvExportDefinition {
 	public void checkParameters() throws Exception {
 		if (outputpath == null) {
 			throw new DbCsvExportException("Outputpath is missing");
-		} else if ("console".equalsIgnoreCase(outputpath) && zip) {
-			throw new DbCsvExportException("Zipping not allowed for console output");
+		} else if ("console".equalsIgnoreCase(outputpath)) {
+			if (zip) {
+				throw new DbCsvExportException("Zipping not allowed for console output");
+			}
 		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
 			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
 				throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
@@ -285,6 +313,8 @@ public class DbCsvExportDefinition {
 						configuration.save(outputStream);
 					}
 				}
+			} catch (Throwable e) {
+				throw new Exception("Cannot load db driver: " + e.getMessage());
 			}
 		} else {
 			throw new Exception("Invalid empty db vendor");
@@ -346,5 +376,13 @@ public class DbCsvExportDefinition {
 
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
+	}
+
+	public void setNoHeaders(boolean noHeaders) {
+		this.noHeaders = noHeaders;
+	}
+
+	public boolean isNoHeaders() {
+		return noHeaders;
 	}
 }

@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.DateFormat;
@@ -56,6 +57,7 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
 	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
 	private boolean beautify = false;
+	private boolean noHeaders = false;
 	
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmount = 0;
@@ -114,6 +116,10 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 		this.beautify = beautify;
 	}
 
+	public void setNoHeaders(boolean noHeaders) {
+		this.noHeaders = noHeaders;
+	}
+
 	@Override
 	public void run() {
 		startTime = new Date();
@@ -149,6 +155,9 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 				showItemStart("Scanning tables ...");
 				showUnlimitedProgress();
 				List<String> tablesToExport = DbUtilities.getAvailableTables(connection, sqlStatementOrTablelist);
+				if (tablesToExport.size() == 0) {
+					throw new DbCsvExportException("No table found for export");
+				}
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
 				boolean success = true;
@@ -400,7 +409,9 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			for (int i = 1; i <= metaData.getColumnCount(); i++) {
 				headers.add(metaData.getColumnName(i));
 			}
-			csvWriter.writeValues(headers);
+			if (!noHeaders) {
+				csvWriter.writeValues(headers);
+			}
 
 			if (currentItemName == null) {
 				itemsDone++;
@@ -540,6 +551,8 @@ public class DbCsvExportWorker extends WorkerDual<Boolean> {
 			}
 
 			overallExportedLines += csvWriter.getWrittenLines() - 1;
+		} catch (SQLException sqle) {
+			throw new DbCsvExportException("SQL error: " + sqle.getMessage());
 		} catch (Exception e) {
 			try {
 				logToFile(logOutputStream, "Error: " + e.getMessage());

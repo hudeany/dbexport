@@ -14,13 +14,21 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamWriter;
+
+import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
@@ -29,9 +37,8 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.ZipUtilities;
-import de.soderer.utilities.json.JsonWriter;
 
-public class DbJsonExportWorker extends WorkerDual<Boolean> {
+public class DbXmlExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
 	private DbUtilities.DbVendor dbVendor = null;
 	private String hostname;
@@ -44,15 +51,18 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 	// Default optional parameters
 	private boolean log = false;
 	private boolean zip = false;
-	private boolean beautify = true;
 	private String encoding = "UTF-8";
 	private boolean createBlobFiles = false;
 	private boolean createClobFiles = false;
+	private Locale dateAndDecimalLocale = Locale.getDefault();
+	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
+	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
+	private boolean beautify = false;
 	
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmount = 0;
 
-	public DbJsonExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
+	public DbXmlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
@@ -81,6 +91,13 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 
 	public void setCreateClobFiles(boolean createClobFiles) {
 		this.createClobFiles = createClobFiles;
+	}
+
+	public void setDateAndDecimalLocale(Locale dateAndDecimalLocale) {
+		this.dateAndDecimalLocale = dateAndDecimalLocale;
+
+		dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
+		decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
 	}
 
 	public void setBeautify(boolean beautify) {
@@ -174,7 +191,7 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 		OutputStream logOutputStream = null;
 		Statement statement = null;
 		ResultSet resultSet = null;
-		JsonWriter jsonWriter = null;
+		XMLStreamWriter writer = null;
 
 		try {
 			if (!"console".equalsIgnoreCase(outputFilePath)) {
@@ -182,8 +199,8 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						outputFilePath = outputFilePath + ".zip";
 					}
-				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
-					outputFilePath = outputFilePath + ".json";
+				} else if (!outputFilePath.toLowerCase().endsWith(".xml")) {
+					outputFilePath = outputFilePath + ".xml";
 				}
 
 				if (new File(outputFilePath).exists()) {
@@ -194,10 +211,12 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 					logOutputStream = new FileOutputStream(new File(outputFilePath + "." + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()) + ".log"));
 
 					logToFile(logOutputStream, "File: " + new File(outputFilePath).getName());
-					logToFile(logOutputStream, "Format: JSON");
+					logToFile(logOutputStream, "Format: XML");
 					logToFile(logOutputStream, "Zip: " + zip);
 					logToFile(logOutputStream, "Encoding: " + encoding);
 					logToFile(logOutputStream, "SqlStatement: " + sqlStatement);
+					logToFile(logOutputStream, "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage());
+					logToFile(logOutputStream, "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage());
 					logToFile(logOutputStream, "CreateBlobFiles: " + createBlobFiles);
 					logToFile(logOutputStream, "CreateClobFiles: " + createClobFiles);
 				}
@@ -212,8 +231,8 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
-					if (!entryFileName.toLowerCase().endsWith(".json")) {
-						entryFileName += ".json";
+					if (!entryFileName.toLowerCase().endsWith(".xml")) {
+						entryFileName += ".xml";
 					}
 					ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(new Date().getTime());
@@ -257,8 +276,11 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 			resultSet.close();
 			resultSet = null;
 
-			jsonWriter = new JsonWriter(outputStream, encoding);
-			jsonWriter.setUglify(!beautify);
+			if (beautify) {
+				writer = new IndentingXMLStreamWriter(XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, encoding));
+			} else {
+				writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, encoding);
+			}
 
 			resultSet = statement.executeQuery(sqlStatement);
 			ResultSetMetaData metaData = resultSet.getMetaData();
@@ -284,15 +306,19 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 				subItemsDone++;
 				showItemProgress();
 			}
+			
+			// Create root node
+			writer.writeStartDocument("utf-8","1.0");
+			writer.writeStartElement("table");
+			writer.writeAttribute("statement", sqlStatement);
 
 			// Write values
-			jsonWriter.openJsonArray();
 			while (resultSet.next() && !cancel) {
-				jsonWriter.openJsonObject();
+				writer.writeStartElement("line");
 				for (int i = 1; i <= metaData.getColumnCount(); i++) {
-					jsonWriter.openJsonObjectProperty(headers.get(i - 1));
+					writer.writeStartElement(headers.get(i - 1));
 					if (resultSet.getObject(i) == null) {
-						jsonWriter.addSimpleJsonObjectPropertyValue(null);
+						writer.writeCharacters(null);
 					} else if (metaData.getColumnType(i) == Types.BLOB) {
 						if (createBlobFiles) {
 							File blobOutputFile = File.createTempFile(outputFilePath.substring(0, outputFilePath.length() - 4) + "_", ".blob" + (zip ? ".zip" : ""),
@@ -314,14 +340,14 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 									Utilities.closeQuietly(output);
 								}
 								overallExportedDataAmount += blobOutputFile.length();
-								jsonWriter.addSimpleJsonObjectPropertyValue(blobOutputFile.getName());
+								writer.writeCharacters(blobOutputFile.getName());
 							} catch (Exception e) {
 								logToFile(logOutputStream, "Cannot create blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								jsonWriter.addSimpleJsonObjectPropertyValue("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'");
+								writer.writeCharacters("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'");
 							}
 						} else {
 							byte[] data = Utilities.toByteArray(resultSet.getBlob(i).getBinaryStream());
-							jsonWriter.addSimpleJsonObjectPropertyValue(Base64.getEncoder().encodeToString(data));
+							writer.writeCharacters(Base64.getEncoder().encodeToString(data));
 						}
 					} else if (metaData.getColumnType(i) == Types.CLOB) {
 						if (createClobFiles) {
@@ -344,19 +370,27 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 									Utilities.closeQuietly(output);
 								}
 								overallExportedDataAmount += clobOutputFile.length();
-								jsonWriter.addSimpleJsonObjectPropertyValue(clobOutputFile.getName());
+								writer.writeCharacters(clobOutputFile.getName());
 							} catch (Exception e) {
 								logToFile(logOutputStream, "Cannot create blob file '" + clobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								jsonWriter.addSimpleJsonObjectPropertyValue("Error creating blob file '" + clobOutputFile.getAbsolutePath() + "'");
+								writer.writeCharacters("Error creating blob file '" + clobOutputFile.getAbsolutePath() + "'");
 							}
 						} else {
-							jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getString(i));
+							writer.writeCharacters(resultSet.getString(i));
 						}
+					} else if (metaData.getColumnType(i) == Types.DATE || metaData.getColumnType(i) == Types.TIMESTAMP) {
+						writer.writeCharacters(dateFormat.format(resultSet.getObject(i)));
+					} else if (metaData.getColumnType(i) == Types.DECIMAL || metaData.getColumnType(i) == Types.DOUBLE || metaData.getColumnType(i) == Types.FLOAT) {
+						writer.writeCharacters(decimalFormat.format(resultSet.getObject(i)));
+					} else if (metaData.getColumnType(i) == Types.BIGINT || metaData.getColumnType(i) == Types.BIT || metaData.getColumnType(i) == Types.INTEGER
+							|| metaData.getColumnType(i) == Types.NUMERIC || metaData.getColumnType(i) == Types.SMALLINT || metaData.getColumnType(i) == Types.TINYINT) {
+						writer.writeCharacters(decimalFormat.format(resultSet.getObject(i)));
 					} else {
-						jsonWriter.addSimpleJsonObjectPropertyValue(resultSet.getObject(i));
+						writer.writeCharacters(resultSet.getString(i));
 					}
+					writer.writeEndElement();
 				}
-				jsonWriter.closeJsonObject();
+				writer.writeEndElement();
 
 				if (currentItemName == null) {
 					itemsDone++;
@@ -366,7 +400,7 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 					showItemProgress();
 				}
 			}
-			jsonWriter.closeJsonArray();
+			writer.writeEndElement();
 			
 			long exportedLines;
 			if (currentItemName == null) {
@@ -382,7 +416,7 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 			}
 
 			if ("console".equalsIgnoreCase(outputFilePath)) {
-				jsonWriter.flush();
+				writer.flush();
 				System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
 			}
 
@@ -442,9 +476,9 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 
-			if (jsonWriter != null) {
+			if (writer != null) {
 				try {
-					jsonWriter.flush();
+					writer.flush();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -460,7 +494,7 @@ public class DbJsonExportWorker extends WorkerDual<Boolean> {
 				}
 
 				try {
-					jsonWriter.close();
+					writer.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

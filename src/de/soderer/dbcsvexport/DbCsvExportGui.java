@@ -23,6 +23,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
@@ -62,7 +63,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		JLabel dbTypeLabel = new JLabel("DB-Type");
 		dbTypePanel.add(dbTypeLabel);
 		JComboBox<String> dbTypeCombo = new JComboBox<String>();
-		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521) or MySQL (default port 3306) or PostgreSQL (default port  5432)");
+		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306) or PostgreSQL (default port 5432)");
 		dbTypeCombo.addItem("Oracle");
 		dbTypeCombo.addItem("MySQL");
 		dbTypeCombo.addItem("PostgreSQL");
@@ -130,6 +131,25 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		}
 		passwordPanel.add(passwordField);
 		mandatoryParameterPanel.add(passwordPanel);
+		
+		// Export type Pane
+		JPanel exportTypePanel = new JPanel();
+		exportTypePanel.setLayout(new FlowLayout());
+		JLabel exportTypeLabel = new JLabel("Export-Format");
+		exportTypePanel.add(exportTypeLabel);
+		JComboBox<String> exportTypeCombo = new JComboBox<String>();
+		exportTypeCombo.setToolTipText("Export-Format: CSV, JSON or XML. Don't forget to beautify JSON for human readable data");
+		exportTypeCombo.addItem("CSV");
+		exportTypeCombo.addItem("JSON");
+		exportTypeCombo.addItem("XML");
+		for (int i = 0; i < exportTypeCombo.getItemCount(); i++) {
+			if (exportTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getExportType().toString())) {
+				exportTypeCombo.setSelectedIndex(i);
+				break;
+			}
+		}
+		exportTypePanel.add(exportTypeCombo, BorderLayout.EAST);
+		mandatoryParameterPanel.add(exportTypePanel);
 
 		// Outputpath Panel
 		JPanel outputpathPanel = new JPanel();
@@ -295,10 +315,10 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		beautifyBox.setSelected(dbCsvExportDefinition.isBeautify());
 		optionalParametersPanel.add(beautifyBox);
 
-		JCheckBox jsonBox = new JCheckBox("Json");
-		jsonBox.setToolTipText("Export in Json format instead of csv (don't forget to beautify for human readable data)");
-		jsonBox.setSelected(dbCsvExportDefinition.isExportJson());
-		optionalParametersPanel.add(jsonBox);
+		JCheckBox noHeadersyBox = new JCheckBox("No headers");
+		noHeadersyBox.setToolTipText("Do not export headers in CSV data");
+		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
+		optionalParametersPanel.add(noHeadersyBox);
 
 		// Button Panel
 		JPanel buttonPanel = new JPanel();
@@ -317,6 +337,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					dbCsvExportDefinition.setPassword(passwordField.getText());
 					dbCsvExportDefinition.setOutputpath(outputpathField.getText());
 					dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
+
+					dbCsvExportDefinition.setExportType((String) exportTypeCombo.getSelectedItem());
 	
 					dbCsvExportDefinition.setLog(fileLogBox.isSelected());
 					dbCsvExportDefinition.setZip(zipBox.isSelected());
@@ -324,7 +346,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 					dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 					dbCsvExportDefinition.setBeautify(beautifyBox.isSelected());
-					dbCsvExportDefinition.setExportJson(jsonBox.isSelected());
+					dbCsvExportDefinition.setNoHeaders(noHeadersyBox.isSelected());
 	
 					dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
 					dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
@@ -388,15 +410,23 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private void export(DbCsvExportDefinition dbCsvExportDefinition, final DbCsvExportGui dbCsvExportGui) {
 		try {
 			WorkerDual<Boolean> worker;
-			if (dbCsvExportDefinition.isExportJson()) {
+			if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
 				worker = new DbJsonExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbJsonExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
 				((DbJsonExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
 				((DbJsonExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
 				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
 				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
-				((DbJsonExportWorker) worker).setDateLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
+				worker = new DbXmlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbXmlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbXmlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbXmlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbXmlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 			} else {
 				worker = new DbCsvExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -409,6 +439,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				((DbCsvExportWorker) worker).setStringQuote(dbCsvExportDefinition.getStringQuote());
 				((DbCsvExportWorker) worker).setAlwaysQuote(dbCsvExportDefinition.isAlwaysQuote());
 				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
 			}
 			
 			DualProgressDialog<WorkerDual<Boolean>> progressDialog = new DualProgressDialog<WorkerDual<Boolean>>(dbCsvExportGui, "DbCsvExport", worker);
@@ -436,8 +467,24 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				} else {
 					resultText += "\nExported tables: " + itemsDone;
 				}
-				resultText += "\nExported lines: " + (dbCsvExportDefinition.isExportJson() ? ((DbJsonExportWorker) worker).getOverallExportedLines() : ((DbCsvExportWorker) worker).getOverallExportedLines());
-				resultText += "\nExported data amount: " + Utilities.getHumanReadableNumber((dbCsvExportDefinition.isExportJson() ? ((DbJsonExportWorker) worker).getOverallExportedDataAmount() : ((DbCsvExportWorker) worker).getOverallExportedDataAmount()), "B");
+				long exportedLines;
+				if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
+					exportedLines = ((DbJsonExportWorker) worker).getOverallExportedLines();
+				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
+					exportedLines = ((DbXmlExportWorker) worker).getOverallExportedLines();
+				} else {
+					exportedLines = ((DbCsvExportWorker) worker).getOverallExportedLines();
+				}
+				long exportedDataAmount;
+				if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
+					exportedDataAmount = ((DbJsonExportWorker) worker).getOverallExportedDataAmount();
+				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
+					exportedDataAmount = ((DbXmlExportWorker) worker).getOverallExportedDataAmount();
+				} else {
+					exportedDataAmount = ((DbCsvExportWorker) worker).getOverallExportedDataAmount();
+				}
+				resultText += "\nExported lines: " + exportedLines;
+				resultText += "\nExported data amount: " + Utilities.getHumanReadableNumber(exportedDataAmount, "B");
 				
 				new TextDialog(dbCsvExportGui, "DbCsvExport", "Result:\n" + resultText, Color.WHITE).setVisible(true);
 			}

@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
+import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
@@ -23,7 +24,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-json] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
+			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
@@ -38,7 +39,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
-			+ "\t-json: export in json format instead of csv (don't forget to beautify for human readable data)\n"
+			+ "\t-x 'exportformat': export in csv, json or xml format. Default format is csv (don't forget to beautify json for human readable data)\n"
 			+ "\t-l: log export information in .log files\n"
 			+ "\t-v: progress and e.t.a. output in terminal\n"
 			+ "\t-z: output as zipfile (not for console output)\n"
@@ -51,9 +52,11 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
 			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
 			+ "\t  or beautify json output to make it human readable with linebreak and indention\n"
+			+ "\t-noheaders: don't export csv header line\n"
 			+ "\n"
 			+ "global/single parameters\n"
 			+ "\t-help: show this help manual\n"
+			+ "\t-version: show current local version of this tool\n"
 			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
 	
 	private DbCsvExportDefinition dbCsvExportDefinition;
@@ -73,13 +76,22 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
 					System.out.println(USAGE_MESSAGE);
 					System.exit(1);
+				} else if ("-version".equalsIgnoreCase(arguments[i])) {
+					System.out.println(VERSION);
+					System.exit(1);
 				} else if ("-update".equalsIgnoreCase(arguments[i])) {
 					new DbCsvExport().updateApplication();
 					System.exit(1);
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setOpenGUI(true);
-				} else if ("-json".equalsIgnoreCase(arguments[i])) {
-					dbCsvExportDefinition.setExportJson(true);
+				} else if ("-x".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new DbCsvExportException("Missing parameter for export format");
+					} else if (Utilities.isBlank(arguments[i])) {
+						throw new DbCsvExportException("Invalid parameter for export format: " + arguments[i]);
+					}
+					dbCsvExportDefinition.setExportType(arguments[i]);
 				} else if ("-l".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setLog(true);
 				} else if ("-v".equalsIgnoreCase(arguments[i])) {
@@ -122,6 +134,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					dbCsvExportDefinition.setCreateClobFiles(true);
 				} else if ("-beautify".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setBeautify(true);
+				} else if ("-noheaders".equalsIgnoreCase(arguments[i])) {
+					dbCsvExportDefinition.setNoHeaders(true);
 				} else {
 					if (dbCsvExportDefinition.getDbVendor() == null) {
 						dbCsvExportDefinition.setDbVendor(arguments[i]);
@@ -143,17 +157,17 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				}
 			}
 
-			if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null) {
-				Console console = System.console();
-				if (console == null) {
-					throw new DbCsvExportException("Couldn't get Console instance");
+			if (!dbCsvExportDefinition.isOpenGui()) {
+				if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null) {
+					Console console = System.console();
+					if (console == null) {
+						throw new DbCsvExportException("Couldn't get Console instance");
+					}
+	
+					char[] passwordArray = console.readPassword("Please enter db password: ");
+					dbCsvExportDefinition.setPassword(new String(passwordArray));
 				}
 
-				char[] passwordArray = console.readPassword("Please enter db password: ");
-				dbCsvExportDefinition.setPassword(new String(passwordArray));
-			}
-
-			if (!dbCsvExportDefinition.isOpenGui()) {
 				dbCsvExportDefinition.checkParameters();
 				dbCsvExportDefinition.checkAndLoadDbDrivers();
 			}
@@ -193,7 +207,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		this.dbCsvExportDefinition = dbCsvExportDefinition;
 		
 		if (dbCsvExportDefinition.isVerbose()) {
-			System.out.println("Format: " + (dbCsvExportDefinition.isExportJson() ? "JSON" : "CSV"));
+			System.out.println("Format: " + (dbCsvExportDefinition.getExportType()));
 			System.out.println("Separator: " + dbCsvExportDefinition.getSeparator());
 			System.out.println("Zip: " + dbCsvExportDefinition.isZip());
 			System.out.println("Encoding: " + dbCsvExportDefinition.getEncoding());
@@ -208,15 +222,23 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 
 		try {
-			if (dbCsvExportDefinition.isExportJson()) {
+			if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
 				worker = new DbJsonExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbJsonExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
 				((DbJsonExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
 				((DbJsonExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
 				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
 				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
-				((DbJsonExportWorker) worker).setDateLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
+				worker = new DbXmlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbXmlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbXmlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbXmlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbXmlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 			} else {
 				worker = new DbCsvExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -229,6 +251,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbCsvExportWorker) worker).setStringQuote(dbCsvExportDefinition.getStringQuote());
 				((DbCsvExportWorker) worker).setAlwaysQuote(dbCsvExportDefinition.isAlwaysQuote());
 				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
 			}
 			worker.setShowProgressAfterMilliseconds(2000);
 			worker.run();
