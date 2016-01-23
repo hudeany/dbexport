@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.Date;
 import java.util.Locale;
 
@@ -38,6 +40,15 @@ import de.soderer.utilities.swing.TextDialog;
 
 public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private static final long serialVersionUID = 5969613637206441880L;
+	
+	private JComboBox<String> exportTypeCombo;
+	private JComboBox<String> separatorCombo;
+	private JComboBox<String> stringQuoteCombo;
+	private JComboBox<String> encodingCombo;
+	private JComboBox<String> localeCombo;
+	private JCheckBox alwaysQuoteBox;
+	private JCheckBox beautifyBox;
+	private JCheckBox noHeadersyBox;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		super(DbCsvExport.APPLICATION_NAME, new Version(DbCsvExport.VERSION));
@@ -137,7 +148,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		exportTypePanel.setLayout(new FlowLayout());
 		JLabel exportTypeLabel = new JLabel("Export-Format");
 		exportTypePanel.add(exportTypeLabel);
-		JComboBox<String> exportTypeCombo = new JComboBox<String>();
+		exportTypeCombo = new JComboBox<String>();
 		exportTypeCombo.setToolTipText("Export-Format: CSV, JSON or XML. Don't forget to beautify JSON for human readable data");
 		exportTypeCombo.addItem("CSV");
 		exportTypeCombo.addItem("JSON");
@@ -148,6 +159,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				break;
 			}
 		}
+		exportTypeCombo.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				checkButtonStatus();
+			}
+		});
 		exportTypePanel.add(exportTypeCombo, BorderLayout.EAST);
 		mandatoryParameterPanel.add(exportTypePanel);
 
@@ -171,7 +188,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		encodingPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel encodingLabel = new JLabel("Encoding");
 		encodingPanel.add(encodingLabel);
-		JComboBox<String> encodingCombo = new JComboBox<String>();
+		encodingCombo = new JComboBox<String>();
 		encodingCombo.setToolTipText("Output encoding");
 		encodingCombo.setPreferredSize(new Dimension(200, encodingCombo.getPreferredSize().height));
 		encodingCombo.addItem("UTF-8");
@@ -196,7 +213,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		separatorPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel separatorLabel = new JLabel("Separator");
 		separatorPanel.add(separatorLabel);
-		JComboBox<String> separatorCombo = new JComboBox<String>();
+		separatorCombo = new JComboBox<String>();
 		separatorCombo.setToolTipText("CSV value separator");
 		separatorCombo.setPreferredSize(new Dimension(200, separatorCombo.getPreferredSize().height));
 		separatorCombo.addItem(";");
@@ -221,7 +238,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		stringQuotePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel stringQuoteLabel = new JLabel("Stringquote");
 		stringQuotePanel.add(stringQuoteLabel);
-		JComboBox<String> stringQuoteCombo = new JComboBox<String>();
+		stringQuoteCombo = new JComboBox<String>();
 		stringQuoteCombo.setToolTipText("CSV string quote for values");
 		stringQuoteCombo.setPreferredSize(new Dimension(200, stringQuoteCombo.getPreferredSize().height));
 		stringQuoteCombo.addItem("\"");
@@ -246,7 +263,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		localePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel localeLabel = new JLabel("Locale");
 		localePanel.add(localeLabel);
-		JComboBox<String> localeCombo = new JComboBox<String>();
+		localeCombo = new JComboBox<String>();
 		localeCombo.setToolTipText("Locale to format numbers and date/time values");
 		localeCombo.setPreferredSize(new Dimension(200, localeCombo.getPreferredSize().height));
 		localeCombo.addItem("DE");
@@ -295,7 +312,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		zipBox.setSelected(dbCsvExportDefinition.isZip());
 		optionalParametersPanel.add(zipBox);
 
-		JCheckBox alwaysQuoteBox = new JCheckBox("Always quote");
+		alwaysQuoteBox = new JCheckBox("Always quote");
 		alwaysQuoteBox.setToolTipText("Quote every csv value by the string quote character");
 		alwaysQuoteBox.setSelected(dbCsvExportDefinition.isAlwaysQuote());
 		optionalParametersPanel.add(alwaysQuoteBox);
@@ -310,12 +327,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		clobfilesBox.setSelected(dbCsvExportDefinition.isCreateClobFiles());
 		optionalParametersPanel.add(clobfilesBox);
 
-		JCheckBox beautifyBox = new JCheckBox("Beautify");
+		beautifyBox = new JCheckBox("Beautify");
 		beautifyBox.setToolTipText("<html>Beautify csv output to make column values equal length (takes extra time)<br />or beautify json output to make it human readable with linebreak and indention<html>");
 		beautifyBox.setSelected(dbCsvExportDefinition.isBeautify());
 		optionalParametersPanel.add(beautifyBox);
 
-		JCheckBox noHeadersyBox = new JCheckBox("No headers");
+		noHeadersyBox = new JCheckBox("No headers");
 		noHeadersyBox.setToolTipText("Do not export headers in CSV data");
 		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
 		optionalParametersPanel.add(noHeadersyBox);
@@ -398,6 +415,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		add(parameterPanel);
 		add(buttonPanel);
 		
+		checkButtonStatus();
+		
 		add(Box.createRigidArea(new Dimension(0, 5)));
 
 		pack();
@@ -405,6 +424,28 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		setLocationRelativeTo(null);
 		setResizable(false);
 		setVisible(true);
+	}
+	
+	private void checkButtonStatus() {
+		if ("CSV".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			separatorCombo.setEnabled(true);
+			stringQuoteCombo.setEnabled(true);
+			localeCombo.setEnabled(true);
+			alwaysQuoteBox.setEnabled(true);
+			noHeadersyBox.setEnabled(true);
+		} else if ("JSON".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			separatorCombo.setEnabled(false);
+			stringQuoteCombo.setEnabled(false);
+			localeCombo.setEnabled(false);
+			alwaysQuoteBox.setEnabled(false);
+			noHeadersyBox.setEnabled(false);
+		} else if ("XML".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			separatorCombo.setEnabled(false);
+			stringQuoteCombo.setEnabled(false);
+			localeCombo.setEnabled(true);
+			alwaysQuoteBox.setEnabled(false);
+			noHeadersyBox.setEnabled(false);
+		}
 	}
 
 	private void export(DbCsvExportDefinition dbCsvExportDefinition, final DbCsvExportGui dbCsvExportGui) {
