@@ -11,8 +11,14 @@ import de.soderer.utilities.json.JsonWriter;
 public class DbJsonExportWorker extends AbstractDbExportWorker {
 	private JsonWriter jsonWriter = null;
 	
+	private String indentation = "\t";
+	
 	public DbJsonExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
+	}
+	
+	public void setIndentation(String indentation) {
+		this.indentation = indentation;
 	}
 
 	@Override
@@ -27,7 +33,8 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
 			+ "CreateBlobFiles: " + createBlobFiles
 			+ "CreateClobFiles: " + createClobFiles
-			+ "Beautify: " + beautify;
+			+ "Beautify: " + beautify
+			+ "Indentation: \"" + indentation + "\"";
 	}
 
 	@Override
@@ -38,6 +45,7 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void openWriter(OutputStream outputStream) throws Exception {
 		jsonWriter = new JsonWriter(outputStream, encoding);
+		jsonWriter.setIndentation(indentation);
 		jsonWriter.setUglify(!beautify);
 	}
 

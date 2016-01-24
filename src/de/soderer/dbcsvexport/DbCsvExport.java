@@ -48,6 +48,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-e: encoding (default UTF-8)\n"
 			+ "\t-s: separator character, default ';', encapsulate by '\n"
 			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
+			+ "\t-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\\t', encapsulate by '\n"
 			+ "\t-a: always quote value\n"
 			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc.\n"
 			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
@@ -119,6 +120,22 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						throw new DbCsvExportException("Invalid parameter stringquote character: " + arguments[i]);
 					}
 					dbCsvExportDefinition.setStringQuote(arguments[i].charAt(0));
+				} else if ("-i".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new DbCsvExportException("Missing parameter indentation string");
+					} else if (arguments[i].length() == 0) {
+						throw new DbCsvExportException("Invalid parameter indentation string: " + arguments[i]);
+					}
+					if ("TAB".equalsIgnoreCase(arguments[i])) {
+						dbCsvExportDefinition.setIndentation("\t");
+					} else if ("BLANK".equalsIgnoreCase(arguments[i])) {
+						dbCsvExportDefinition.setIndentation(" ");
+					}  else if ("DOUBLEBLANK".equalsIgnoreCase(arguments[i])) {
+						dbCsvExportDefinition.setIndentation("  ");
+					} else {
+						dbCsvExportDefinition.setIndentation(arguments[i]);
+					}
 				} else if ("-a".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setAlwaysQuote(true);
 				} else if ("-f".equalsIgnoreCase(arguments[i])) {
@@ -207,21 +224,6 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	private void export(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		this.dbCsvExportDefinition = dbCsvExportDefinition;
-		
-		if (dbCsvExportDefinition.isVerbose()) {
-			System.out.println("Format: " + (dbCsvExportDefinition.getExportType()));
-			System.out.println("Separator: " + dbCsvExportDefinition.getSeparator());
-			System.out.println("Zip: " + dbCsvExportDefinition.isZip());
-			System.out.println("Encoding: " + dbCsvExportDefinition.getEncoding());
-			System.out.println("StringQuote: " + dbCsvExportDefinition.getStringQuote());
-			System.out.println("AlwaysQuote: " + dbCsvExportDefinition.isAlwaysQuote());
-			System.out.println("SqlStatementOrTablelist: " + dbCsvExportDefinition.getSqlStatementOrTablelist());
-			System.out.println("OutputFormatLocale: " + dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage());
-			System.out.println("CreateBlobFiles: " + dbCsvExportDefinition.isCreateBlobFiles());
-			System.out.println("CreateClobFiles: " + dbCsvExportDefinition.isCreateClobFiles());
-			System.out.println("Beautify: " + dbCsvExportDefinition.isBeautify());
-			System.out.println();
-		}
 
 		try {
 			if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
@@ -232,6 +234,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
 				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbJsonExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
 				worker = new DbXmlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbXmlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -241,6 +244,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbXmlExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
 				worker = new DbSqlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -264,6 +268,12 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
 			}
+			
+			if (dbCsvExportDefinition.isVerbose()) {
+				System.out.println(((AbstractDbExportWorker) worker).getConfigurationLogString(new File(dbCsvExportDefinition.getOutputpath()).getName(), dbCsvExportDefinition.getSqlStatementOrTablelist()));
+				System.out.println();
+			}
+			
 			worker.setShowProgressAfterMilliseconds(2000);
 			worker.run();
 

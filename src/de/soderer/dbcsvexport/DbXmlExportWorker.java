@@ -8,16 +8,25 @@ import java.util.List;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
 
-import com.sun.xml.internal.txw2.output.IndentingXMLStreamWriter;
-
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.WorkerParentDual;
+import de.soderer.utilities.xml.IndentedXMLStreamWriter;
 
 public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private XMLStreamWriter xmlWriter = null;
 	
+	private String indentation = "\t";
+	
 	public DbXmlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
+	}
+	
+	public void setIndentation(String indentation) {
+		this.indentation = indentation;
+	}
+	
+	public void setIndentation(char indentationCharacter) {
+		this.indentation = Character.toString(indentationCharacter);
 	}
 
 	@Override
@@ -32,7 +41,8 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
 			+ "CreateBlobFiles: " + createBlobFiles
 			+ "CreateClobFiles: " + createClobFiles
-			+ "Beautify: " + beautify;
+			+ "Beautify: " + beautify
+			+ "Indentation: \"" + indentation + "\"";
 	}
 
 	@Override
@@ -43,7 +53,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void openWriter(OutputStream outputStream) throws Exception {
 		if (beautify) {
-			xmlWriter = new IndentingXMLStreamWriter(XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, encoding));
+			xmlWriter = new IndentedXMLStreamWriter(outputStream, encoding, indentation);
 		} else {
 			xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, encoding);
 		}

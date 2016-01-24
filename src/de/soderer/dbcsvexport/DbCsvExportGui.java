@@ -44,6 +44,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private JComboBox<String> exportTypeCombo;
 	private JComboBox<String> separatorCombo;
 	private JComboBox<String> stringQuoteCombo;
+	private JComboBox<String> indentationCombo;
 	private JComboBox<String> encodingCombo;
 	private JComboBox<String> localeCombo;
 	private JCheckBox alwaysQuoteBox;
@@ -249,19 +250,53 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		stringQuoteCombo.addItem("\"");
 		stringQuoteCombo.addItem("'");
 		stringQuoteCombo.setEditable(true);
-		boolean stringQuoteEncoding = false;
+		boolean stringQuoteFound = false;
 		for (int i = 0; i < stringQuoteCombo.getItemCount(); i++) {
 			if (stringQuoteCombo.getItemAt(i).equalsIgnoreCase("" + dbCsvExportDefinition.getStringQuote())) {
 				stringQuoteCombo.setSelectedIndex(i);
-				stringQuoteEncoding = true;
+				stringQuoteFound = true;
 				break;
 			}
 		}
-		if (!stringQuoteEncoding) {
+		if (!stringQuoteFound) {
 			stringQuoteCombo.setSelectedItem("" + dbCsvExportDefinition.getStringQuote());
 		}
 		stringQuotePanel.add(stringQuoteCombo);
 		mandatoryParameterPanel.add(stringQuotePanel);
+
+		// Indentation Pane
+		JPanel indentationPanel = new JPanel();
+		indentationPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		JLabel indentationLabel = new JLabel("Indentation");
+		indentationPanel.add(indentationLabel);
+		indentationCombo = new JComboBox<String>();
+		indentationCombo.setToolTipText("CSV string quote for values");
+		indentationCombo.setPreferredSize(new Dimension(200, indentationCombo.getPreferredSize().height));
+		indentationCombo.addItem("TAB");
+		indentationCombo.addItem("BLANK");
+		indentationCombo.addItem("DOUBLEBLANK");
+		indentationCombo.setEditable(true);
+		if (dbCsvExportDefinition.getIndentation() == "\t") {
+			indentationCombo.setSelectedIndex(0);
+		} else if (dbCsvExportDefinition.getIndentation() == " ") {
+			indentationCombo.setSelectedIndex(1);
+		} else if (dbCsvExportDefinition.getIndentation() == "  ") {
+			indentationCombo.setSelectedIndex(2);
+		} else {
+			boolean indentationFound = false;
+			for (int i = 0; i < indentationCombo.getItemCount(); i++) {
+				if (indentationCombo.getItemAt(i).equalsIgnoreCase("" + dbCsvExportDefinition.getIndentation())) {
+					indentationCombo.setSelectedIndex(i);
+					indentationFound = true;
+					break;
+				}
+			}
+			if (!indentationFound) {
+				indentationCombo.setSelectedItem("" + dbCsvExportDefinition.getIndentation());
+			}
+		}
+		indentationPanel.add(indentationCombo);
+		mandatoryParameterPanel.add(indentationPanel);
 
 		// Locale Panel
 		JPanel localePanel = new JPanel();
@@ -373,6 +408,17 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
 					dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
 					dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
+					String indentationString;
+					if ("TAB".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+						indentationString = "\t";
+					} else if ("BLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+						indentationString = " ";
+					}  else if ("DOUBLEBLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+						indentationString = "  ";
+					} else {
+						indentationString = (String) indentationCombo.getSelectedItem();
+					}
+					dbCsvExportDefinition.setIndentation(indentationString);
 					dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
 					
 					dbCsvExportDefinition.checkParameters();
@@ -439,6 +485,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			alwaysQuoteBox.setEnabled(true);
 			noHeadersyBox.setEnabled(true);
 			beautifyBox.setEnabled(true);
+			indentationCombo.setEnabled(false);
 		} else if (ExportType.JSON.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
@@ -446,6 +493,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			alwaysQuoteBox.setEnabled(false);
 			noHeadersyBox.setEnabled(false);
 			beautifyBox.setEnabled(true);
+			indentationCombo.setEnabled(true);
 		} else if (ExportType.XML.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
@@ -453,6 +501,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			alwaysQuoteBox.setEnabled(false);
 			noHeadersyBox.setEnabled(false);
 			beautifyBox.setEnabled(true);
+			indentationCombo.setEnabled(true);
 		} else if (ExportType.SQL.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
@@ -460,6 +509,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			alwaysQuoteBox.setEnabled(false);
 			noHeadersyBox.setEnabled(false);
 			beautifyBox.setEnabled(false);
+			indentationCombo.setEnabled(false);
 		}
 	}
 
@@ -474,6 +524,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
 				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbJsonExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
 				worker = new DbXmlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbXmlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -483,6 +534,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+				((DbXmlExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
 				worker = new DbSqlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());

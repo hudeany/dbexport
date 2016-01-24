@@ -27,6 +27,7 @@ public class DbCsvExportDefinition {
 	private String encoding = "UTF-8";
 	private char separator = ';';
 	private char stringQuote = '"';
+	private String indentation = "\t";
 	private boolean alwaysQuote = false;
 	private boolean createBlobFiles = false;
 	private boolean createClobFiles = false;
@@ -101,6 +102,10 @@ public class DbCsvExportDefinition {
 
 	public void setStringQuote(char stringQuote) {
 		this.stringQuote = stringQuote;
+	}
+
+	public void setIndentation(String indentation) {
+		this.indentation = indentation;
 	}
 
 	public void setAlwaysQuote(boolean alwaysQuote) {
@@ -227,6 +232,10 @@ public class DbCsvExportDefinition {
 
 	public char getStringQuote() {
 		return stringQuote;
+	}
+
+	public String getIndentation() {
+		return indentation;
 	}
 
 	public boolean isAlwaysQuote() {
