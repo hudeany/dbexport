@@ -149,10 +149,11 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		JLabel exportTypeLabel = new JLabel("Export-Format");
 		exportTypePanel.add(exportTypeLabel);
 		exportTypeCombo = new JComboBox<String>();
-		exportTypeCombo.setToolTipText("Export-Format: CSV, JSON or XML. Don't forget to beautify JSON for human readable data");
+		exportTypeCombo.setToolTipText("Export-Format: CSV, JSON, XML or SQL. Don't forget to beautify JSON for human readable data");
 		exportTypeCombo.addItem("CSV");
 		exportTypeCombo.addItem("JSON");
 		exportTypeCombo.addItem("XML");
+		exportTypeCombo.addItem("SQL");
 		for (int i = 0; i < exportTypeCombo.getItemCount(); i++) {
 			if (exportTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getExportType().toString())) {
 				exportTypeCombo.setSelectedIndex(i);
@@ -162,6 +163,10 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		exportTypeCombo.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
+				if (((String) exportTypeCombo.getSelectedItem()).equalsIgnoreCase("JSON")
+						|| ((String) exportTypeCombo.getSelectedItem()).equalsIgnoreCase("XML")) {
+					beautifyBox.setSelected(true);
+				}
 				checkButtonStatus();
 			}
 		});
@@ -375,7 +380,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					
 					export(dbCsvExportDefinition, dbCsvExportGui);
 				} catch (Exception e) {
-					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e).getMessage(), Color.RED).setVisible(true);
+					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
 				}
 			}
 		});
@@ -427,24 +432,34 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	}
 	
 	private void checkButtonStatus() {
-		if ("CSV".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+		if (ExportType.CSV.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(true);
 			stringQuoteCombo.setEnabled(true);
 			localeCombo.setEnabled(true);
 			alwaysQuoteBox.setEnabled(true);
 			noHeadersyBox.setEnabled(true);
-		} else if ("JSON".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			beautifyBox.setEnabled(true);
+		} else if (ExportType.JSON.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			localeCombo.setEnabled(false);
 			alwaysQuoteBox.setEnabled(false);
 			noHeadersyBox.setEnabled(false);
-		} else if ("XML".equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			beautifyBox.setEnabled(true);
+		} else if (ExportType.XML.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			localeCombo.setEnabled(true);
 			alwaysQuoteBox.setEnabled(false);
 			noHeadersyBox.setEnabled(false);
+			beautifyBox.setEnabled(true);
+		} else if (ExportType.SQL.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {
+			separatorCombo.setEnabled(false);
+			stringQuoteCombo.setEnabled(false);
+			localeCombo.setEnabled(true);
+			alwaysQuoteBox.setEnabled(false);
+			noHeadersyBox.setEnabled(false);
+			beautifyBox.setEnabled(false);
 		}
 	}
 
@@ -468,6 +483,15 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
+				worker = new DbSqlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbSqlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbSqlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbSqlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbSqlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbSqlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbSqlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 			} else {
 				worker = new DbCsvExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -513,6 +537,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					exportedLines = ((DbJsonExportWorker) worker).getOverallExportedLines();
 				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
 					exportedLines = ((DbXmlExportWorker) worker).getOverallExportedLines();
+				} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
+					exportedLines = ((DbSqlExportWorker) worker).getOverallExportedLines();
 				} else {
 					exportedLines = ((DbCsvExportWorker) worker).getOverallExportedLines();
 				}
@@ -521,6 +547,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					exportedDataAmount = ((DbJsonExportWorker) worker).getOverallExportedDataAmount();
 				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
 					exportedDataAmount = ((DbXmlExportWorker) worker).getOverallExportedDataAmount();
+				} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
+					exportedDataAmount = ((DbSqlExportWorker) worker).getOverallExportedDataAmount();
 				} else {
 					exportedDataAmount = ((DbCsvExportWorker) worker).getOverallExportedDataAmount();
 				}
@@ -530,7 +558,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				new TextDialog(dbCsvExportGui, "DbCsvExport", "Result:\n" + resultText, Color.WHITE).setVisible(true);
 			}
 		} catch (Exception e) {
-			new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e).getMessage(), Color.RED).setVisible(true);
+			new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
 		}
 	}
 }

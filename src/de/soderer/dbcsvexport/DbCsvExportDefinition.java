@@ -47,7 +47,8 @@ public class DbCsvExportDefinition {
 	public enum ExportType {
 		CSV,
 		JSON,
-		XML;
+		XML,
+		SQL;
 
 		public static ExportType getFromString(String exportType) throws Exception {
 			if ("CSV".equalsIgnoreCase(exportType)) {
@@ -56,6 +57,8 @@ public class DbCsvExportDefinition {
 				return ExportType.JSON;
 			} else if ("XML".equalsIgnoreCase(exportType)) {
 				return ExportType.XML;
+			}  else if ("SQL".equalsIgnoreCase(exportType)) {
+				return ExportType.SQL;
 			} else {
 				throw new Exception("Invalid export format: " + exportType);
 			}

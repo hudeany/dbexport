@@ -17,14 +17,14 @@ import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.8.0";
+	public static final String VERSION = "3.9.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
+			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
@@ -39,7 +39,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
-			+ "\t-x 'exportformat': export in csv, json or xml format. Default format is csv (don't forget to beautify json for human readable data)\n"
+			+ "\t-x exportformat: Default format is CSV\n"
+			+ "\t\texportformat: CSV | JSON | XML | SQL\n"
+			+ "\t\t(don't forget to beautify json for human readable data)\n"
 			+ "\t-l: log export information in .log files\n"
 			+ "\t-v: progress and e.t.a. output in terminal\n"
 			+ "\t-z: output as zipfile (not for console output)\n"
@@ -239,6 +241,15 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
+			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
+				worker = new DbSqlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
+				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+				((DbSqlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+				((DbSqlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+				((DbSqlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+				((DbSqlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+				((DbSqlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
+				((DbSqlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 			} else {
 				worker = new DbCsvExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
