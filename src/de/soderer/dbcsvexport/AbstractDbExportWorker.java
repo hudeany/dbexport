@@ -106,7 +106,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		Connection connection = null;
 		try {
 			overallExportedLines = 0;
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, password.toCharArray());
+			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
 
 			if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
 				itemsToDo = 0;
@@ -181,7 +181,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		showDone();
 	}
 
-	public void export(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
+	private void export(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 		OutputStream logOutputStream = null;
 		Statement statement = null;
@@ -247,6 +247,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else if (dbVendor == DbVendor.MySQL) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else if (dbVendor == DbVendor.PostgreSQL) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else if (dbVendor == DbVendor.SQLite) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else {
 				throw new Exception("Unknown db vendor");
@@ -372,6 +374,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						} else {
 							value = resultSet.getString(i);
 						}
+					} else if (dbVendor == DbVendor.Oracle && metaData.getColumnType(i) == DbUtilities.ORACLE_TIMESTAMPTZ_TYPECODE) {
+						value = resultSet.getTimestamp(i);
 					} else {
 						value = resultSet.getObject(i);
 					}
@@ -478,7 +482,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 		
 		if ("console".equalsIgnoreCase(outputFilePath) && outputStream != null && outputStream instanceof ByteArrayOutputStream) {
-			System.out.print(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
+			System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
 		}
 	}
 

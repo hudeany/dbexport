@@ -6,16 +6,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 import de.soderer.utilities.DbUtilities;
+import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.SectionedProperties;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.DbUtilities.DbVendor;
 
 public class DbCsvExportDefinition {
 	// Default optional parameters
@@ -31,9 +27,7 @@ public class DbCsvExportDefinition {
 	private boolean alwaysQuote = false;
 	private boolean createBlobFiles = false;
 	private boolean createClobFiles = false;
-	private Locale dateAndDecimalLocale = Locale.getDefault();
-	private DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
-	private NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
+	private Locale dateAndDecimalLocale = null;
 	private boolean beautify = false;
 	private boolean noHeaders = false;
 
@@ -140,7 +134,7 @@ public class DbCsvExportDefinition {
 			} else if (hostParts.length > 2) {
 				throw new Exception("Invalid hostname: " + hostname);
 			}
-		} else {
+		} else if (dbVendor != DbVendor.SQLite) {
 			throw new Exception("Invalid empty hostname");
 		}
 	}
@@ -155,8 +149,6 @@ public class DbCsvExportDefinition {
 
 	public void setDateAndDecimalLocale(Locale dateAndDecimalLocale) {
 		this.dateAndDecimalLocale = dateAndDecimalLocale;
-		dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, dateAndDecimalLocale);
-		decimalFormat = NumberFormat.getNumberInstance(dateAndDecimalLocale);
 	}
 
 	public void setPassword(String password) {
@@ -249,17 +241,13 @@ public class DbCsvExportDefinition {
 	public boolean isCreateClobFiles() {
 		return createClobFiles;
 	}
-
+	
 	public Locale getDateAndDecimalLocale() {
-		return dateAndDecimalLocale;
-	}
-
-	public DateFormat getDateFormat() {
-		return dateFormat;
-	}
-
-	public NumberFormat getDecimalFormat() {
-		return decimalFormat;
+		if (dateAndDecimalLocale == null) {
+			return Locale.getDefault();
+		} else {
+			return dateAndDecimalLocale;
+		}
 	}
 
 	public void checkParameters() throws Exception {
@@ -281,8 +269,20 @@ public class DbCsvExportDefinition {
 			}
 		}
 
-		if (Utilities.isBlank(password)) {
-			throw new DbCsvExportException("Missing or invalid empty password");
+		if (dbVendor == DbVendor.SQLite) {
+			if (Utilities.isNotBlank(hostname)) {
+				throw new DbCsvExportException("SQLite db connections so not support the hostname parameter");
+			} else if (Utilities.isNotBlank(username)) {
+				throw new DbCsvExportException("SQLite db connections so not support the username parameter");
+			} else if (Utilities.isNotBlank(password)) {
+				throw new DbCsvExportException("SQLite db connections so not support the password parameter");
+			} else if (dateAndDecimalLocale != null) {
+				throw new DbCsvExportException("SQLite db connections so not support the date and decimal locale parameter");
+			}
+		} else {
+			if (Utilities.isBlank(password)) {
+				throw new DbCsvExportException("Missing or invalid empty password");
+			}
 		}
 		
 		if (alwaysQuote && exportType != ExportType.CSV) {
