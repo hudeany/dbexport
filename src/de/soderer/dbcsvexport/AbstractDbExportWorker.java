@@ -402,10 +402,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				endTimeSub = new Date();
 			}
 
-			if ("console".equalsIgnoreCase(outputFilePath)) {
-				System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
-			}
-
 			if (exportedLines > 0) {
 				logToFile(logOutputStream, "Exported lines: " + exportedLines);
 
@@ -479,6 +475,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		if (new File(outputFilePath).exists()) {
 			overallExportedDataAmount += new File(outputFilePath).length();
+		}
+		
+		if ("console".equalsIgnoreCase(outputFilePath) && outputStream != null && outputStream instanceof ByteArrayOutputStream) {
+			System.out.print(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
 		}
 	}
 

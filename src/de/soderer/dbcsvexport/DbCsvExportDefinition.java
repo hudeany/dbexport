@@ -284,6 +284,18 @@ public class DbCsvExportDefinition {
 		if (Utilities.isBlank(password)) {
 			throw new DbCsvExportException("Missing or invalid empty password");
 		}
+		
+		if (alwaysQuote && exportType != ExportType.CSV) {
+			throw new DbCsvExportException("AlwaysQuote is not supported for export format " + exportType);
+		}
+		
+		if (noHeaders && exportType != ExportType.CSV) {
+			throw new DbCsvExportException("NoHeaders is not supported for export format " + exportType);
+		}
+		
+		if (beautify && exportType != ExportType.CSV && exportType != ExportType.JSON && exportType != ExportType.XML) {
+			throw new DbCsvExportException("Beautify is not supported for export format " + exportType);
+		}
 	}
 	
 	public void checkAndLoadDbDrivers() throws Exception {

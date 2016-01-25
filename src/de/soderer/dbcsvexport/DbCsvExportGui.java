@@ -41,12 +41,23 @@ import de.soderer.utilities.swing.TextDialog;
 public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private static final long serialVersionUID = 5969613637206441880L;
 	
+	private JComboBox<String> dbTypeCombo;
+	private JTextField hostField;
+	private JTextField dbNameField;
+	private JTextField userField;
+	private JTextField passwordField;
 	private JComboBox<String> exportTypeCombo;
+	private JCheckBox fileLogBox;
+	private JTextField outputpathField;
 	private JComboBox<String> separatorCombo;
 	private JComboBox<String> stringQuoteCombo;
 	private JComboBox<String> indentationCombo;
 	private JComboBox<String> encodingCombo;
 	private JComboBox<String> localeCombo;
+	private JTextArea statementField;
+	private JCheckBox zipBox;
+	private JCheckBox blobfilesBox;
+	private JCheckBox clobfilesBox;
 	private JCheckBox alwaysQuoteBox;
 	private JCheckBox beautifyBox;
 	private JCheckBox noHeadersyBox;
@@ -74,7 +85,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbTypePanel.setLayout(new FlowLayout());
 		JLabel dbTypeLabel = new JLabel("DB-Type");
 		dbTypePanel.add(dbTypeLabel);
-		JComboBox<String> dbTypeCombo = new JComboBox<String>();
+		dbTypeCombo = new JComboBox<String>();
 		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306) or PostgreSQL (default port 5432)");
 		dbTypeCombo.addItem("Oracle");
 		dbTypeCombo.addItem("MySQL");
@@ -93,7 +104,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		hostPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel hostLabel = new JLabel("Host");
 		hostPanel.add(hostLabel);
-		JTextField hostField = new JTextField();
+		hostField = new JTextField();
 		hostField.setToolTipText("Hostname and optional port like \"hostname:port\"");
 		hostField.setPreferredSize(new Dimension(200, hostField.getPreferredSize().height));
 		if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname())) {
@@ -107,7 +118,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbNamePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel dbNameLabel = new JLabel("DB-Name");
 		dbNamePanel.add(dbNameLabel);
-		JTextField dbNameField = new JTextField();
+		dbNameField = new JTextField();
 		dbNameField.setToolTipText("Database name or Oracle SID");
 		dbNameField.setPreferredSize(new Dimension(200, dbNameField.getPreferredSize().height));
 		if (Utilities.isNotBlank(dbCsvExportDefinition.getDbName())) {
@@ -121,7 +132,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		userPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel userLabel = new JLabel("User");
 		userPanel.add(userLabel);
-		JTextField userField = new JTextField();
+		userField = new JTextField();
 		userField.setToolTipText("Username for db authentification");
 		userField.setPreferredSize(new Dimension(200, userField.getPreferredSize().height));
 		if (Utilities.isNotBlank(dbCsvExportDefinition.getUsername())) {
@@ -135,7 +146,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		passwordPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel passwordLabel = new JLabel("Password");
 		passwordPanel.add(passwordLabel);
-		JTextField passwordField = new JPasswordField();
+		passwordField = new JPasswordField();
 		passwordField.setToolTipText("Password for db authentification");
 		passwordField.setPreferredSize(new Dimension(200, passwordField.getPreferredSize().height));
 		if (Utilities.isNotBlank(dbCsvExportDefinition.getPassword())) {
@@ -179,7 +190,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		outputpathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel outputpathLabel = new JLabel("Outputpath");
 		outputpathPanel.add(outputpathLabel);
-		JTextField outputpathField = new JTextField();
+		outputpathField = new JTextField();
 		outputpathField.setToolTipText("File for single statement or directory for tablepatterns or 'console' for output to terminal");
 		outputpathField.setPreferredSize(new Dimension(200, outputpathField.getPreferredSize().height));
 		outputpathField.setBorder(BorderFactory.createLineBorder(Color.GRAY));
@@ -328,7 +339,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		statementPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel statementLabel = new JLabel("Statement");
 		statementPanel.add(statementLabel);
-		JTextArea statementField = new JTextArea();
+		statementField = new JTextArea();
 		statementField.setToolTipText("Single SQL select statment or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)");
 		if (Utilities.isNotBlank(dbCsvExportDefinition.getSqlStatementOrTablelist())) {
 			statementField.setText(dbCsvExportDefinition.getSqlStatementOrTablelist());
@@ -342,12 +353,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		JPanel optionalParametersPanel = new JPanel();
 		optionalParametersPanel.setLayout(new BoxLayout(optionalParametersPanel, BoxLayout.PAGE_AXIS));
 
-		JCheckBox fileLogBox = new JCheckBox("Filelog");
+		fileLogBox = new JCheckBox("Filelog");
 		fileLogBox.setToolTipText("Create additional log files for each csv file with statistics and other information");
 		fileLogBox.setSelected(dbCsvExportDefinition.isLog());
 		optionalParametersPanel.add(fileLogBox);
 
-		JCheckBox zipBox = new JCheckBox("Zip");
+		zipBox = new JCheckBox("Zip");
 		zipBox.setToolTipText("Zip exported csv files");
 		zipBox.setSelected(dbCsvExportDefinition.isZip());
 		optionalParametersPanel.add(zipBox);
@@ -357,12 +368,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		alwaysQuoteBox.setSelected(dbCsvExportDefinition.isAlwaysQuote());
 		optionalParametersPanel.add(alwaysQuoteBox);
 
-		JCheckBox blobfilesBox = new JCheckBox("Blobfiles");
+		blobfilesBox = new JCheckBox("Blobfiles");
 		blobfilesBox.setToolTipText("Create a file (.blob or .blob.zip) for each blob instead of base64 encoding");
 		blobfilesBox.setSelected(dbCsvExportDefinition.isCreateBlobFiles());
 		optionalParametersPanel.add(blobfilesBox);
 
-		JCheckBox clobfilesBox = new JCheckBox("Clobfiles");
+		clobfilesBox = new JCheckBox("Clobfiles");
 		clobfilesBox.setToolTipText("Create a file (.clob or .clob.zip) for each clob instead of base64 encoding");
 		clobfilesBox.setSelected(dbCsvExportDefinition.isCreateClobFiles());
 		optionalParametersPanel.add(clobfilesBox);
@@ -387,42 +398,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
-					dbCsvExportDefinition.setDbVendor((String) dbTypeCombo.getSelectedItem());
-					dbCsvExportDefinition.setHostname(hostField.getText());
-					dbCsvExportDefinition.setDbName(dbNameField.getText());
-					dbCsvExportDefinition.setUsername(userField.getText());
-					dbCsvExportDefinition.setPassword(passwordField.getText());
-					dbCsvExportDefinition.setOutputpath(outputpathField.getText());
-					dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
-
-					dbCsvExportDefinition.setExportType((String) exportTypeCombo.getSelectedItem());
-	
-					dbCsvExportDefinition.setLog(fileLogBox.isSelected());
-					dbCsvExportDefinition.setZip(zipBox.isSelected());
-					dbCsvExportDefinition.setAlwaysQuote(alwaysQuoteBox.isSelected());
-					dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
-					dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
-					dbCsvExportDefinition.setBeautify(beautifyBox.isSelected());
-					dbCsvExportDefinition.setNoHeaders(noHeadersyBox.isSelected());
-	
-					dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
-					dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
-					dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
-					String indentationString;
-					if ("TAB".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
-						indentationString = "\t";
-					} else if ("BLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
-						indentationString = " ";
-					}  else if ("DOUBLEBLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
-						indentationString = "  ";
-					} else {
-						indentationString = (String) indentationCombo.getSelectedItem();
-					}
-					dbCsvExportDefinition.setIndentation(indentationString);
-					dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
-					
-					dbCsvExportDefinition.checkParameters();
-					dbCsvExportDefinition.checkAndLoadDbDrivers();
+					putConfigurationInDefinition(dbCsvExportDefinition);
 					
 					export(dbCsvExportDefinition, dbCsvExportGui);
 				} catch (Exception e) {
@@ -475,6 +451,44 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		setLocationRelativeTo(null);
 		setResizable(false);
 		setVisible(true);
+	}
+
+	private void putConfigurationInDefinition(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
+		dbCsvExportDefinition.setDbVendor((String) dbTypeCombo.getSelectedItem());
+		dbCsvExportDefinition.setHostname(hostField.getText());
+		dbCsvExportDefinition.setDbName(dbNameField.getText());
+		dbCsvExportDefinition.setUsername(userField.getText());
+		dbCsvExportDefinition.setPassword(passwordField.getText());
+		dbCsvExportDefinition.setOutputpath(outputpathField.getText());
+		dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
+
+		dbCsvExportDefinition.setExportType((String) exportTypeCombo.getSelectedItem());
+
+		dbCsvExportDefinition.setLog(fileLogBox.isSelected());
+		dbCsvExportDefinition.setZip(zipBox.isSelected());
+		dbCsvExportDefinition.setAlwaysQuote(alwaysQuoteBox.isEnabled() ? alwaysQuoteBox.isSelected() : false);
+		dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
+		dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
+		dbCsvExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
+		dbCsvExportDefinition.setNoHeaders(noHeadersyBox.isEnabled() ? noHeadersyBox.isSelected() : false);
+		dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
+		dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
+		dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
+		String indentationString;
+		if ("TAB".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+			indentationString = "\t";
+		} else if ("BLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+			indentationString = " ";
+		}  else if ("DOUBLEBLANK".equalsIgnoreCase((String) indentationCombo.getSelectedItem())) {
+			indentationString = "  ";
+		} else {
+			indentationString = (String) indentationCombo.getSelectedItem();
+		}
+		dbCsvExportDefinition.setIndentation(indentationString);
+		dbCsvExportDefinition.setDateAndDecimalLocale(new Locale((String) localeCombo.getSelectedItem()));
+		
+		dbCsvExportDefinition.checkParameters();
+		dbCsvExportDefinition.checkAndLoadDbDrivers();
 	}
 	
 	private void checkButtonStatus() {

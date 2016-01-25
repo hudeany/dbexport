@@ -81,6 +81,10 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 			xmlWriter.writeCharacters(dateFormat.format(value));
 		} else if (value instanceof Number) {
 			xmlWriter.writeCharacters(decimalFormat.format(value));
+		} else if (value instanceof String) {
+			xmlWriter.writeCharacters((String) value);
+		} else {
+			xmlWriter.writeCharacters(value.toString());
 		}
 		xmlWriter.writeEndElement();
 	}

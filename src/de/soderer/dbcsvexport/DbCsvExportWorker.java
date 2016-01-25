@@ -25,11 +25,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	
 	private CsvWriter csvWriter = null;
 	
-	private List<String> columnNames = null;
-	
 	private List<String> values = null;
-	
-	private boolean headersDone = false;
 	
 	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
@@ -204,13 +200,11 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	protected void startTableLine() throws Exception {
-		columnNames = new ArrayList<String>();
 		values = new ArrayList<String>();
 	}
 
 	@Override
 	protected void writeColumn(String columnName, Object value) throws Exception {
-		columnNames.add(columnName);
 		if (value == null) {
 			values.add("");
 		} else if (value instanceof String) {
@@ -226,13 +220,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	protected void endTableLine() throws Exception {
-		if (!noHeaders && !headersDone) {
-			csvWriter.writeValues(columnNames);
-			headersDone = true;
-		}
 		csvWriter.writeValues(values);
-		
-		columnNames = null;
 		values = null;
 	}
 
