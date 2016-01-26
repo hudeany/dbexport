@@ -50,7 +50,7 @@
 		</jar>
 
 		<tstamp>
-			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
+			<format property="buildTime" pattern="YYYY-MM-DD HH:mm:ss" />
 		</tstamp>
 		
 		<checksum file="${buildPath}/DbCsvExport_${version}.jar" property="checksumMD5" />
