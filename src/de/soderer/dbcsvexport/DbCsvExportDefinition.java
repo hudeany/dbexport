@@ -263,7 +263,7 @@ public class DbCsvExportDefinition {
 			}
 		} else {
 			if (!new File(outputpath).exists()) {
-				throw new DbCsvExportException("Outputpath does not exist: " + outputpath);
+				throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
 			} else if (!new File(outputpath).isDirectory()) {
 				throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
 			}

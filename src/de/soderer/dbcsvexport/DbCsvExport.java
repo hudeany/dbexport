@@ -1,5 +1,6 @@
 package de.soderer.dbcsvexport;
 
+import java.awt.GraphicsEnvironment;
 import java.io.Console;
 import java.io.File;
 import java.text.NumberFormat;
@@ -29,18 +30,18 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql, oracle, postgresql or sqlite\n"
-			+ "\thostname: with optional port, not needed for sqlite\n"
-			+ "\tusername: username, not needed for sqlite\n"
-			+ "\tdbname: dbname, or filepath for sqlite db\n"
+			+ "\tdbtype: mysql | oracle | postgresql | sqlite\n"
+			+ "\thostname: with optional port (not needed for sqlite)\n"
+			+ "\tusername: username (not needed for sqlite)\n"
+			+ "\tdbname: dbname or filepath for sqlite db\n"
 			+ "\tstatement or list of tablepatterns: statement, encapsulate by '\n"
 			+ "\t  or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)\n"
 			+ "\toutputpath: file for single statement or directory for tablepatterns or 'console' for output to terminal\n"
-			+ "\tpassword: is asked interactive, if not given as parameter, not needed for sqlite\n"
+			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite)\n"
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
-			+ "\t-x exportformat: Default format is CSV\n"
+			+ "\t-x exportformat: Data export format, default format is CSV\n"
 			+ "\t\texportformat: CSV | JSON | XML | SQL\n"
 			+ "\t\t(don't forget to beautify json for human readable data)\n"
 			+ "\t-l: log export information in .log files\n"
@@ -51,7 +52,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
 			+ "\t-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\\t', encapsulate by '\n"
 			+ "\t-a: always quote value\n"
-			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc., not needed for sqlite\n"
+			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite)\n"
 			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
 			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
 			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
@@ -87,13 +88,16 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					new DbCsvExport().updateApplication();
 					System.exit(1);
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
+					if (GraphicsEnvironment.isHeadless()) {
+						throw new DbCsvExportException("GUI can only be shown on a non-headless environment");
+					}
 					dbCsvExportDefinition.setOpenGUI(true);
 				} else if ("-x".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
-						throw new DbCsvExportException("Missing parameter for export format");
+						throw new ParameterException(arguments[i - 1], "Missing parameter for export format");
 					} else if (Utilities.isBlank(arguments[i])) {
-						throw new DbCsvExportException("Invalid parameter for export format: " + arguments[i]);
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for export format");
 					}
 					dbCsvExportDefinition.setExportType(arguments[i]);
 				} else if ("-l".equalsIgnoreCase(arguments[i])) {
@@ -108,25 +112,25 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				} else if ("-s".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
-						throw new DbCsvExportException("Missing parameter separator character");
+						throw new ParameterException(arguments[i - 1], "Missing parameter separator character");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
-						throw new DbCsvExportException("Invalid parameter separator character: " + arguments[i]);
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter separator character");
 					}
 					dbCsvExportDefinition.setSeparator(arguments[i].charAt(0));
 				} else if ("-q".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
-						throw new DbCsvExportException("Missing parameter stringquote character");
+						throw new ParameterException(arguments[i - 1], "Missing parameter stringquote character");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
-						throw new DbCsvExportException("Invalid parameter stringquote character: " + arguments[i]);
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote character");
 					}
 					dbCsvExportDefinition.setStringQuote(arguments[i].charAt(0));
 				} else if ("-i".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
-						throw new DbCsvExportException("Missing parameter indentation string");
+						throw new ParameterException(arguments[i - 1], "Missing parameter indentation string");
 					} else if (arguments[i].length() == 0) {
-						throw new DbCsvExportException("Invalid parameter indentation string: " + arguments[i]);
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter indentation string");
 					}
 					if ("TAB".equalsIgnoreCase(arguments[i])) {
 						dbCsvExportDefinition.setIndentation("\t");
@@ -142,9 +146,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				} else if ("-f".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
-						throw new DbCsvExportException("Missing parameter format locale");
+						throw new ParameterException(arguments[i - 1], "Missing parameter format locale");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
-						throw new DbCsvExportException("Invalid parameter format locale: " + arguments[i]);
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter format locale");
 					}
 					Locale locale = new Locale(arguments[i]);
 					dbCsvExportDefinition.setDateAndDecimalLocale(locale);
@@ -172,7 +176,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					} else if (dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite) {
 						dbCsvExportDefinition.setPassword(arguments[i]);
 					} else {
-						throw new DbCsvExportException("Invalid parameter: " + arguments[i]);
+						throw new ParameterException(arguments[i], "Invalid parameter");
 					}
 				}
 			}
@@ -191,10 +195,13 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				dbCsvExportDefinition.checkParameters();
 				dbCsvExportDefinition.checkAndLoadDbDrivers();
 			}
-		} catch (Exception e) {
+		} catch (ParameterException e) {
 			System.err.println(e.getMessage());
 			System.err.println();
 			System.err.println(USAGE_MESSAGE);
+			System.exit(1);
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
 			System.exit(1);
 		}
 

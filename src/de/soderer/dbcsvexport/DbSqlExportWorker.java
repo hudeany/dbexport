@@ -54,8 +54,11 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
 		if (sqlStatement.toUpperCase().startsWith("SELECT * FROM ")) {
 			tableName = sqlStatement.substring(14).trim();
+			if (tableName.contains(" ")) {
+				tableName = tableName.substring(0,  tableName.indexOf(" "));
+			}
 		} else {
-			throw new Exception("Cannot create insert sql statements for complex select statement");
+			tableName = "export_tbl";
 		}
 	}
 

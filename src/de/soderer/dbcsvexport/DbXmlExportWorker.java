@@ -98,6 +98,8 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	protected void endOutput() throws Exception {
 		// Close root node
 		xmlWriter.writeEndElement();
+		// Close document
+		xmlWriter.writeEndDocument();
 	}
 
 	@Override
