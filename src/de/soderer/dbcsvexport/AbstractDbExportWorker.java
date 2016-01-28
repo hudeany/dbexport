@@ -152,6 +152,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						String nextOutputFilePath = outputpath;
 						if (!"console".equalsIgnoreCase(outputpath)) {
 							nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
+						} else {
+							System.out.println("Table: " + tableName);
 						}
 						export(connection, "SELECT * FROM " + tableName + (Utilities.isNotEmpty(keyColumn) ? " ORDER BY " + keyColumn : ""), nextOutputFilePath);
 					} catch (Exception e) {
@@ -250,6 +252,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else if (dbVendor == DbVendor.SQLite) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else if (dbVendor == DbVendor.Derby) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else {
 				throw new Exception("Unknown db vendor");
 			}
@@ -301,7 +305,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				for (int i = 1; i <= metaData.getColumnCount(); i++) {
 					String columnName = metaData.getColumnName(i);
 					Object value;
-					if (resultSet.getObject(i) == null) {
+					if (metaData.getColumnType(i) != Types.BLOB && metaData.getColumnType(i) != Types.CLOB && resultSet.getObject(i) == null) {
+						// Blobs and Clobs may only be read once
 						value = null;
 					} else if (metaData.getColumnType(i) == Types.BLOB) {
 						if (createBlobFiles) {

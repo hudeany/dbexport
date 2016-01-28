@@ -134,7 +134,7 @@ public class DbCsvExportDefinition {
 			} else if (hostParts.length > 2) {
 				throw new Exception("Invalid hostname: " + hostname);
 			}
-		} else if (dbVendor != DbVendor.SQLite) {
+		} else if (dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby) {
 			throw new Exception("Invalid empty hostname");
 		}
 	}
@@ -271,13 +271,21 @@ public class DbCsvExportDefinition {
 
 		if (dbVendor == DbVendor.SQLite) {
 			if (Utilities.isNotBlank(hostname)) {
-				throw new DbCsvExportException("SQLite db connections so not support the hostname parameter");
+				throw new DbCsvExportException("SQLite db connections do not support the hostname parameter");
 			} else if (Utilities.isNotBlank(username)) {
-				throw new DbCsvExportException("SQLite db connections so not support the username parameter");
+				throw new DbCsvExportException("SQLite db connections do not support the username parameter");
 			} else if (Utilities.isNotBlank(password)) {
-				throw new DbCsvExportException("SQLite db connections so not support the password parameter");
+				throw new DbCsvExportException("SQLite db connections do not support the password parameter");
 			} else if (dateAndDecimalLocale != null) {
-				throw new DbCsvExportException("SQLite db connections so not support the date and decimal locale parameter");
+				throw new DbCsvExportException("SQLite db connections do not support the date and decimal locale parameter");
+			}
+		} else if (dbVendor == DbVendor.Derby) {
+			if (Utilities.isNotBlank(hostname)) {
+				throw new DbCsvExportException("Derby db connections do not support the hostname parameter");
+			} else if (Utilities.isNotBlank(username)) {
+				throw new DbCsvExportException("Derby db connections do not support the username parameter");
+			} else if (Utilities.isNotBlank(password)) {
+				throw new DbCsvExportException("Derby db connections do not support the password parameter");
 			}
 		} else {
 			if (Utilities.isBlank(password)) {
@@ -350,7 +358,9 @@ public class DbCsvExportDefinition {
 			if (!DbCsvExport.CONFIGURATION_FILE.exists()) {
 				try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 					SectionedProperties configuration = new SectionedProperties(true);
-					configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", "");
+					for (DbVendor vendorToCreate : DbVendor.values()) {
+						configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
+					}
 					configuration.save(outputStream);
 				}
 			}

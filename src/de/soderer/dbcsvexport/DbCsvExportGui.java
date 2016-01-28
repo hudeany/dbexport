@@ -87,11 +87,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		JLabel dbTypeLabel = new JLabel("DB-Type");
 		dbTypePanel.add(dbTypeLabel);
 		dbTypeCombo = new JComboBox<String>();
-		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306) or PostgreSQL (default port 5432)");
-		dbTypeCombo.addItem("Oracle");
-		dbTypeCombo.addItem("MySQL");
-		dbTypeCombo.addItem("PostgreSQL");
-		dbTypeCombo.addItem("SQLite");
+		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306), PostgreSQL (default port 5432), SQLite or Derby");
+		dbTypeCombo.addItem(DbVendor.Oracle.toString());
+		dbTypeCombo.addItem(DbVendor.MySQL.toString());
+		dbTypeCombo.addItem(DbVendor.PostgreSQL.toString());
+		dbTypeCombo.addItem(DbVendor.SQLite.toString());
+		dbTypeCombo.addItem(DbVendor.Derby.toString());
 		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
 			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbCsvExportDefinition.getDbVendor()) {
 				dbTypeCombo.setSelectedIndex(i);
@@ -500,7 +501,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	}
 	
 	private void checkButtonStatus() {
-		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
+		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())
+				|| DbVendor.Derby.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
 			hostField.setEnabled(false);
 			userField.setEnabled(false);
 			passwordField.setEnabled(false);

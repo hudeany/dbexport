@@ -19,7 +19,7 @@ import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.DbUtilities.DbVendor;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.10.0";
+	public static final String VERSION = "3.11.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
@@ -30,14 +30,14 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql | oracle | postgresql | sqlite\n"
-			+ "\thostname: with optional port (not needed for sqlite)\n"
-			+ "\tusername: username (not needed for sqlite)\n"
-			+ "\tdbname: dbname or filepath for sqlite db\n"
+			+ "\tdbtype: mysql | oracle | postgresql | sqlite | derby\n"
+			+ "\thostname: with optional port (not needed for sqlite and derby)\n"
+			+ "\tusername: username (not needed for sqlite and derby)\n"
+			+ "\tdbname: dbname or filepath for sqlite db or derby db\n"
 			+ "\tstatement or list of tablepatterns: statement, encapsulate by '\n"
 			+ "\t  or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)\n"
 			+ "\toutputpath: file for single statement or directory for tablepatterns or 'console' for output to terminal\n"
-			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite)\n"
+			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite and derby)\n"
 			+ "\n"
 			+ "optional parameters\n"
 			+ "\t-gui: open a GUI\n"
@@ -52,7 +52,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
 			+ "\t-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\\t', encapsulate by '\n"
 			+ "\t-a: always quote value\n"
-			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite)\n"
+			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite and derby)\n"
 			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
 			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
 			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
@@ -163,9 +163,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				} else {
 					if (dbCsvExportDefinition.getDbVendor() == null) {
 						dbCsvExportDefinition.setDbVendor(arguments[i]);
-					} else if (dbCsvExportDefinition.getHostname() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite) {
+					} else if (dbCsvExportDefinition.getHostname() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setHostname(arguments[i]);
-					} else if (dbCsvExportDefinition.getUsername() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite) {
+					} else if (dbCsvExportDefinition.getUsername() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setUsername(arguments[i]);
 					} else if (dbCsvExportDefinition.getDbName() == null) {
 						dbCsvExportDefinition.setDbName(arguments[i]);
@@ -173,7 +173,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						dbCsvExportDefinition.setSqlStatementOrTablelist(arguments[i]);
 					} else if (dbCsvExportDefinition.getOutputpath() == null) {
 						dbCsvExportDefinition.setOutputpath(arguments[i]);
-					} else if (dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite) {
+					} else if (dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setPassword(arguments[i]);
 					} else {
 						throw new ParameterException(arguments[i], "Invalid parameter");
@@ -182,7 +182,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			}
 
 			if (!dbCsvExportDefinition.isOpenGui()) {
-				if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite) {
+				if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 					Console console = System.console();
 					if (console == null) {
 						throw new DbCsvExportException("Couldn't get Console instance");
