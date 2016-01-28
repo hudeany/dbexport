@@ -52,7 +52,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
 			+ "\t-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\\t', encapsulate by '\n"
 			+ "\t-a: always quote value\n"
-			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite and derby)\n"
+			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite)\n"
 			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
 			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
 			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
