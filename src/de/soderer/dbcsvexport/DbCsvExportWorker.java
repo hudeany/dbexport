@@ -1,6 +1,7 @@
 package de.soderer.dbcsvexport;
 
 import java.io.OutputStream;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -12,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 import de.soderer.utilities.CsvWriter;
+import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
@@ -20,6 +22,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	// Default optional parameters
 	private char separator = ';';
 	private char stringQuote = '"';
+	private String nullValueText = "";
 	private boolean alwaysQuote = false;
 	private boolean noHeaders = false;
 	
@@ -45,6 +48,10 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	public void setNoHeaders(boolean noHeaders) {
 		this.noHeaders = noHeaders;
+	}
+
+	public void setNullValueText(String nullValueText) {
+		this.nullValueText = nullValueText;
 	}
 	
 	protected void preRead(Connection connection, String sqlStatement) throws Exception {
@@ -85,32 +92,62 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 					List<String> values = new ArrayList<String>();
 					for (int i = 1; i <= metaData.getColumnCount(); i++) {
 						String valueString;
-						if (resultSet.getObject(i) == null) {
-							valueString = "";
-						} else if (metaData.getColumnType(i) == Types.BLOB) {
-							if (createBlobFiles) {
-								valueString = "Clobfile to be created later";
+						if (metaData.getColumnType(i) == Types.BLOB) {
+							Blob blob = resultSet.getBlob(i);
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							} else if (createBlobFiles) {
+								valueString = "Blobfile to be created later";
 							} else {
-								byte[] data = Utilities.toByteArray(resultSet.getBlob(i).getBinaryStream());
+								byte[] data = Utilities.toByteArray(blob.getBinaryStream());
+								valueString = Base64.getEncoder().encodeToString(data);
+							}
+						} else if (metaData.getColumnType(i) == Types.LONGVARBINARY) {
+							byte[] data = (byte[]) resultSet.getObject(i);
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							} else if (createBlobFiles) {
+								valueString = "Blobfile to be created later";
+							} else {
 								valueString = Base64.getEncoder().encodeToString(data);
 							}
 						} else if (metaData.getColumnType(i) == Types.CLOB) {
-							if (createClobFiles) {
-								valueString = "Blobfile to be created later";
+							resultSet.getClob(i);
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							} else if (createClobFiles) {
+								valueString = "Clobfile to be created later";
 							} else {
 								valueString = resultSet.getString(i);
 							}
+						} else if (dbVendor == DbVendor.Oracle && metaData.getColumnType(i) == DbUtilities.ORACLE_TIMESTAMPTZ_TYPECODE) {
+							valueString = dateFormat.format(resultSet.getTimestamp(i));
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							}
 						} else if (metaData.getColumnType(i) == Types.DATE || metaData.getColumnType(i) == Types.TIMESTAMP) {
 							valueString = dateFormat.format(resultSet.getObject(i));
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							}
 						} else if (metaData.getColumnType(i) == Types.DECIMAL || metaData.getColumnType(i) == Types.DOUBLE || metaData.getColumnType(i) == Types.FLOAT) {
 							valueString = decimalFormat.format(resultSet.getObject(i));
 							columnPaddings[i - 1] = false;
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							}
 						} else if (metaData.getColumnType(i) == Types.BIGINT || metaData.getColumnType(i) == Types.BIT || metaData.getColumnType(i) == Types.INTEGER
 								|| metaData.getColumnType(i) == Types.NUMERIC || metaData.getColumnType(i) == Types.SMALLINT || metaData.getColumnType(i) == Types.TINYINT) {
 							valueString = resultSet.getString(i);
 							columnPaddings[i - 1] = false;
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							}
 						} else {
 							valueString = resultSet.getString(i);
+							if (resultSet.wasNull()) {
+								valueString = nullValueText;
+							}
 						}
 						values.add(valueString);
 					}
@@ -206,7 +243,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void writeColumn(String columnName, Object value) throws Exception {
 		if (value == null) {
-			values.add("");
+			values.add(nullValueText);
 		} else if (value instanceof String) {
 			values.add((String) value);
 		} else if (value instanceof Date) {

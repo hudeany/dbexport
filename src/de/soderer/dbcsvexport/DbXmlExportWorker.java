@@ -16,6 +16,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private XMLStreamWriter xmlWriter = null;
 	
 	private String indentation = "\t";
+	private String nullValueText = "";
 	
 	public DbXmlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
@@ -27,6 +28,10 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	
 	public void setIndentation(char indentationCharacter) {
 		this.indentation = Character.toString(indentationCharacter);
+	}
+
+	public void setNullValueText(String nullValueText) {
+		this.nullValueText = nullValueText;
 	}
 
 	@Override
@@ -76,7 +81,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	protected void writeColumn(String columnName, Object value) throws Exception {
 		xmlWriter.writeStartElement(columnName);
 		if (value == null) {
-			xmlWriter.writeCharacters("");
+			xmlWriter.writeCharacters(nullValueText);
 		} else if (value instanceof Date) {
 			xmlWriter.writeCharacters(dateFormat.format(value));
 		} else if (value instanceof Number) {

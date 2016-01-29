@@ -26,7 +26,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
+			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] [-n 'NULL'] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
@@ -44,6 +44,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-x exportformat: Data export format, default format is CSV\n"
 			+ "\t\texportformat: CSV | JSON | XML | SQL\n"
 			+ "\t\t(don't forget to beautify json for human readable data)\n"
+			+ "\t-n 'NULL': set a string for null values (only for csv and xml, default is '')\n"
 			+ "\t-l: log export information in .log files\n"
 			+ "\t-v: progress and e.t.a. output in terminal\n"
 			+ "\t-z: output as zipfile (not for console output)\n"
@@ -100,6 +101,13 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for export format");
 					}
 					dbCsvExportDefinition.setExportType(arguments[i]);
+				} else if ("-n".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter null value string");
+					} else {
+						dbCsvExportDefinition.setNullValueString(arguments[i]);
+					}
 				} else if ("-l".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setLog(true);
 				} else if ("-v".equalsIgnoreCase(arguments[i])) {
@@ -253,6 +261,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 				((DbXmlExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
+				((DbXmlExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
 				worker = new DbSqlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
 				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
@@ -275,6 +284,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				((DbCsvExportWorker) worker).setAlwaysQuote(dbCsvExportDefinition.isAlwaysQuote());
 				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
+				((DbCsvExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
 			}
 			
 			if (dbCsvExportDefinition.isVerbose()) {

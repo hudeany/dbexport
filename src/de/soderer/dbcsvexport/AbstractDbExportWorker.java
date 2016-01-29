@@ -2,11 +2,14 @@ package de.soderer.dbcsvexport;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -35,7 +38,7 @@ import de.soderer.utilities.ZipUtilities;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
-	private DbUtilities.DbVendor dbVendor = null;
+	protected DbUtilities.DbVendor dbVendor = null;
 	private String hostname;
 	private String dbName;
 	private String username;
@@ -305,33 +308,19 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				for (int i = 1; i <= metaData.getColumnCount(); i++) {
 					String columnName = metaData.getColumnName(i);
 					Object value;
-					if (metaData.getColumnType(i) != Types.BLOB && metaData.getColumnType(i) != Types.CLOB && resultSet.getObject(i) == null) {
-						// Blobs and Clobs may only be read once
-						value = null;
-					} else if (metaData.getColumnType(i) == Types.BLOB) {
-						if (createBlobFiles) {
+					if (metaData.getColumnType(i) == Types.BLOB) {
+						Blob blob = resultSet.getBlob(i);
+						if (resultSet.wasNull()) {
+							value = null;
+						} else if (createBlobFiles) {
 							File blobOutputFile = new File(getLobFilePath(outputFilePath, "blob"));
-							try (InputStream input = resultSet.getBlob(i).getBinaryStream()) {
+							try (InputStream input = blob.getBinaryStream()) {
 								OutputStream output = null;
 								try {
-									if (zip) {
-										output = ZipUtilities.openNewZipOutputStream(new FileOutputStream(blobOutputFile));
-										String entryFileName = blobOutputFile.getName().substring(0, blobOutputFile.getName().lastIndexOf("."));
-										ZipEntry entry = new ZipEntry(entryFileName);
-										entry.setTime(new Date().getTime());
-										((ZipOutputStream) output).putNextEntry(entry);
-									} else {
-										output = new FileOutputStream(blobOutputFile);
-									}
+									output = openLobOutputStream(blobOutputFile);
 									Utilities.copy(input, output);
 								} finally {
-									if (outputStream instanceof ZipOutputStream) {
-										try {
-											((ZipOutputStream) outputStream).closeEntry();
-										} catch (Exception e) {
-											e.printStackTrace();
-										}
-									}
+									checkAndCloseZipEntry(outputStream);
 									Utilities.closeQuietly(output);
 								}
 								overallExportedDataAmount += blobOutputFile.length();
@@ -341,33 +330,46 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 								value = "Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'";
 							}
 						} else {
-							byte[] data = Utilities.toByteArray(resultSet.getBlob(i).getBinaryStream());
+							byte[] data = Utilities.toByteArray(blob.getBinaryStream());
+							value = Base64.getEncoder().encodeToString(data);
+						}
+					} else if (metaData.getColumnType(i) == Types.LONGVARBINARY) {
+						byte[] data = (byte[]) resultSet.getObject(i);
+						if (resultSet.wasNull()) {
+							value = null;
+						} else if (createBlobFiles) {
+							File blobOutputFile = new File(getLobFilePath(outputFilePath, "blob"));
+							try {
+								OutputStream output = null;
+								try {
+									output = openLobOutputStream(blobOutputFile);
+									output.write(data);
+								} finally {
+									checkAndCloseZipEntry(outputStream);
+									Utilities.closeQuietly(output);
+								}
+								overallExportedDataAmount += blobOutputFile.length();
+								value = blobOutputFile.getName();
+							} catch (Exception e) {
+								logToFile(logOutputStream, "Cannot create blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
+								value = "Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'";
+							}
+						} else {
 							value = Base64.getEncoder().encodeToString(data);
 						}
 					} else if (metaData.getColumnType(i) == Types.CLOB) {
-						if (createClobFiles) {
+						Clob clob = resultSet.getClob(i);
+						if (resultSet.wasNull()) {
+							value = null;
+						} else if (createClobFiles) {
 							File clobOutputFile = new File(getLobFilePath(outputFilePath, "clob"));
-							try (Reader input = resultSet.getClob(i).getCharacterStream()) {
+							try (Reader input = clob.getCharacterStream()) {
 								OutputStream clobOutputStream = null;
 								try {
-									if (zip) {
-										clobOutputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(clobOutputFile));
-										String entryFileName = clobOutputFile.getName().substring(0, clobOutputFile.getName().lastIndexOf("."));
-										ZipEntry entry = new ZipEntry(entryFileName);
-										entry.setTime(new Date().getTime());
-										((ZipOutputStream) clobOutputStream).putNextEntry(entry);
-									} else {
-										clobOutputStream = new FileOutputStream(clobOutputFile);
-									}
+									clobOutputStream = openLobOutputStream(clobOutputFile);
 									Utilities.copy(input, clobOutputStream, "UTF-8");
 								} finally {
-									if (outputStream instanceof ZipOutputStream) {
-										try {
-											((ZipOutputStream) outputStream).closeEntry();
-										} catch (Exception e) {
-											e.printStackTrace();
-										}
-									}
+									checkAndCloseZipEntry(outputStream);
 									Utilities.closeQuietly(clobOutputStream);
 								}
 								overallExportedDataAmount += clobOutputFile.length();
@@ -381,8 +383,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						}
 					} else if (dbVendor == DbVendor.Oracle && metaData.getColumnType(i) == DbUtilities.ORACLE_TIMESTAMPTZ_TYPECODE) {
 						value = resultSet.getTimestamp(i);
+						if (resultSet.wasNull()) {
+							value = null;
+						}
 					} else {
 						value = resultSet.getObject(i);
+						if (resultSet.wasNull()) {
+							value = null;
+						}
 					}
 					writeColumn(columnName, value);
 				}
@@ -488,6 +496,29 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		
 		if ("console".equalsIgnoreCase(outputFilePath) && outputStream != null && outputStream instanceof ByteArrayOutputStream) {
 			System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
+		}
+	}
+
+	private OutputStream openLobOutputStream(File lobOutputFile) throws IOException, FileNotFoundException {
+		if (zip) {
+			OutputStream output = ZipUtilities.openNewZipOutputStream(new FileOutputStream(lobOutputFile));
+			String entryFileName = lobOutputFile.getName().substring(0, lobOutputFile.getName().lastIndexOf("."));
+			ZipEntry entry = new ZipEntry(entryFileName);
+			entry.setTime(new Date().getTime());
+			((ZipOutputStream) output).putNextEntry(entry);
+			return output;
+		} else {
+			return new FileOutputStream(lobOutputFile);
+		}
+	}
+
+	private void checkAndCloseZipEntry(OutputStream outputStream) {
+		if (outputStream instanceof ZipOutputStream) {
+			try {
+				((ZipOutputStream) outputStream).closeEntry();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

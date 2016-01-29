@@ -30,6 +30,7 @@ public class DbCsvExportDefinition {
 	private Locale dateAndDecimalLocale = null;
 	private boolean beautify = false;
 	private boolean noHeaders = false;
+	private String nullValueString = "";
 
 	// Mandatory parameters
 	private DbUtilities.DbVendor dbVendor = null;
@@ -418,5 +419,13 @@ public class DbCsvExportDefinition {
 
 	public boolean isNoHeaders() {
 		return noHeaders;
+	}
+
+	public void setNullValueString(String nullValueString) {
+		this.nullValueString = nullValueString;
+	}
+
+	public String getNullValueString() {
+		return nullValueString;
 	}
 }
