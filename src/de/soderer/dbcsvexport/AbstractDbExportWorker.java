@@ -1,27 +1,19 @@
 package de.soderer.dbcsvexport;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -59,8 +51,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmount = 0;
+	
+	private DefaultDBValueConverter dbValueConverter;
 
-	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
+	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
@@ -69,6 +63,18 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.password = password;
 		this.sqlStatementOrTablelist = sqlStatementOrTablelist;
 		this.outputpath = outputpath;
+		
+		if (dbVendor == null) {
+			throw new Exception("Unsupported db vendor: null");
+		} else if (dbVendor == DbVendor.Oracle) {
+			dbValueConverter = new OracleDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else if (dbVendor == DbVendor.SQLite) {
+			dbValueConverter = new SQLiteDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else if (dbVendor == DbVendor.MySQL) {
+			dbValueConverter = new MySQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else {
+			dbValueConverter = new DefaultDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		}
 	}
 
 	public void setLog(boolean log) {
@@ -236,7 +242,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
 			} else {
-				outputStream = new ByteArrayOutputStream();
+				outputStream = System.out;
 			}
 
 			statement = connection.createStatement();
@@ -305,92 +311,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			// Write values
 			while (resultSet.next() && !cancel) {
 				startTableLine();
-				for (int i = 1; i <= metaData.getColumnCount(); i++) {
-					String columnName = metaData.getColumnName(i);
-					Object value;
-					if (metaData.getColumnType(i) == Types.BLOB) {
-						Blob blob = resultSet.getBlob(i);
-						if (resultSet.wasNull()) {
-							value = null;
-						} else if (createBlobFiles) {
-							File blobOutputFile = new File(getLobFilePath(outputFilePath, "blob"));
-							try (InputStream input = blob.getBinaryStream()) {
-								OutputStream output = null;
-								try {
-									output = openLobOutputStream(blobOutputFile);
-									Utilities.copy(input, output);
-								} finally {
-									checkAndCloseZipEntry(outputStream);
-									Utilities.closeQuietly(output);
-								}
-								overallExportedDataAmount += blobOutputFile.length();
-								value = blobOutputFile.getName();
-							} catch (Exception e) {
-								logToFile(logOutputStream, "Cannot create blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								value = "Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'";
-							}
-						} else {
-							byte[] data = Utilities.toByteArray(blob.getBinaryStream());
-							value = Base64.getEncoder().encodeToString(data);
-						}
-					} else if (metaData.getColumnType(i) == Types.LONGVARBINARY) {
-						byte[] data = (byte[]) resultSet.getObject(i);
-						if (resultSet.wasNull()) {
-							value = null;
-						} else if (createBlobFiles) {
-							File blobOutputFile = new File(getLobFilePath(outputFilePath, "blob"));
-							try {
-								OutputStream output = null;
-								try {
-									output = openLobOutputStream(blobOutputFile);
-									output.write(data);
-								} finally {
-									checkAndCloseZipEntry(outputStream);
-									Utilities.closeQuietly(output);
-								}
-								overallExportedDataAmount += blobOutputFile.length();
-								value = blobOutputFile.getName();
-							} catch (Exception e) {
-								logToFile(logOutputStream, "Cannot create blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								value = "Error creating blob file '" + blobOutputFile.getAbsolutePath() + "'";
-							}
-						} else {
-							value = Base64.getEncoder().encodeToString(data);
-						}
-					} else if (metaData.getColumnType(i) == Types.CLOB) {
-						Clob clob = resultSet.getClob(i);
-						if (resultSet.wasNull()) {
-							value = null;
-						} else if (createClobFiles) {
-							File clobOutputFile = new File(getLobFilePath(outputFilePath, "clob"));
-							try (Reader input = clob.getCharacterStream()) {
-								OutputStream clobOutputStream = null;
-								try {
-									clobOutputStream = openLobOutputStream(clobOutputFile);
-									Utilities.copy(input, clobOutputStream, "UTF-8");
-								} finally {
-									checkAndCloseZipEntry(outputStream);
-									Utilities.closeQuietly(clobOutputStream);
-								}
-								overallExportedDataAmount += clobOutputFile.length();
-								value = clobOutputFile.getName();
-							} catch (Exception e) {
-								logToFile(logOutputStream, "Cannot create blob file '" + clobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-								value = "Error creating blob file '" + clobOutputFile.getAbsolutePath() + "'";
-							}
-						} else {
-							value = resultSet.getString(i);
-						}
-					} else if (dbVendor == DbVendor.Oracle && metaData.getColumnType(i) == DbUtilities.ORACLE_TIMESTAMPTZ_TYPECODE) {
-						value = resultSet.getTimestamp(i);
-						if (resultSet.wasNull()) {
-							value = null;
-						}
-					} else {
-						value = resultSet.getObject(i);
-						if (resultSet.wasNull()) {
-							value = null;
-						}
+				for (int columnIndex = 1; columnIndex <= metaData.getColumnCount(); columnIndex++) {
+					String columnName = metaData.getColumnName(columnIndex);
+					Object value = dbValueConverter.convert(resultSet, columnIndex, outputFilePath);
+					if (value != null && value instanceof File) {
+						overallExportedDataAmount += ((File) value).length();
+						value = ((File) value).getName();
 					}
 					writeColumn(columnName, value);
 				}
@@ -493,50 +419,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		if (new File(outputFilePath).exists()) {
 			overallExportedDataAmount += new File(outputFilePath).length();
 		}
-		
-		if ("console".equalsIgnoreCase(outputFilePath) && outputStream != null && outputStream instanceof ByteArrayOutputStream) {
-			System.out.println(new String(((ByteArrayOutputStream) outputStream).toByteArray(), "UTF-8"));
-		}
-	}
-
-	private OutputStream openLobOutputStream(File lobOutputFile) throws IOException, FileNotFoundException {
-		if (zip) {
-			OutputStream output = ZipUtilities.openNewZipOutputStream(new FileOutputStream(lobOutputFile));
-			String entryFileName = lobOutputFile.getName().substring(0, lobOutputFile.getName().lastIndexOf("."));
-			ZipEntry entry = new ZipEntry(entryFileName);
-			entry.setTime(new Date().getTime());
-			((ZipOutputStream) output).putNextEntry(entry);
-			return output;
-		} else {
-			return new FileOutputStream(lobOutputFile);
-		}
-	}
-
-	private void checkAndCloseZipEntry(OutputStream outputStream) {
-		if (outputStream instanceof ZipOutputStream) {
-			try {
-				((ZipOutputStream) outputStream).closeEntry();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 	private static void logToFile(OutputStream logOutputStream, String message) throws Exception {
 		if (logOutputStream != null) {
 			logOutputStream.write((message + "\n").getBytes("UTF-8"));
 		}
-	}
-	
-	protected String getLobFilePath(String outputFilePath, String lobType) throws Exception {
-		String lobOutputFilePathPrefix = outputFilePath;
-		if (outputFilePath.endsWith(".zip")) {
-			outputFilePath.substring(0, outputFilePath.length() - 4);
-		}
-		if (outputFilePath.endsWith("." + getFileExtension())) {
-			outputFilePath.substring(0, outputFilePath.length() - (getFileExtension().length() + 1));
-		}
-		return File.createTempFile(lobOutputFilePathPrefix + "_", "." + lobType + (zip ? ".zip" : "")).getAbsolutePath();
 	}
 
 	public int getOverallExportedLines() {

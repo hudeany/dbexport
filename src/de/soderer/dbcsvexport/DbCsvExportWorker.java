@@ -1,19 +1,16 @@
 package de.soderer.dbcsvexport;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.sql.Blob;
 import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Statement;
-import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
+import de.soderer.utilities.CsvReader;
 import de.soderer.utilities.CsvWriter;
-import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
@@ -28,9 +25,14 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	
 	private CsvWriter csvWriter = null;
 	
+	private CsvWriter beautifiedCsvWriter = null;
+	private File temporaryUglifiedFile = null;
+	private boolean[] columnPaddings = null;
+	private int[] minimumColumnSizes = null;
+	
 	private List<String> values = null;
 	
-	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
+	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
 	}
 
@@ -52,149 +54,6 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	public void setNullValueText(String nullValueText) {
 		this.nullValueText = nullValueText;
-	}
-	
-	protected void preRead(Connection connection, String sqlStatement) throws Exception {
-		// Scan all data for column lengths
-		int[] minimumColumnSizes = null;
-		boolean[] columnPaddings = null;
-		if (beautify) {
-			Statement statement = null;
-			ResultSet resultSet = null;
-
-			try {
-				statement = connection.createStatement();
-				resultSet = statement.executeQuery(sqlStatement);
-				ResultSetMetaData metaData = resultSet.getMetaData();
-	
-				columnPaddings = new boolean[metaData.getColumnCount()];
-				for (int i = 0; i < columnPaddings.length; i++) {
-					columnPaddings[i] = true;
-				}
-	
-				// Scan headers
-				List<String> headers = new ArrayList<String>();
-				for (int i = 1; i <= metaData.getColumnCount(); i++) {
-					headers.add(metaData.getColumnName(i));
-				}
-				minimumColumnSizes = csvWriter.calculateOutputSizesOfValues(headers);
-	
-				if (currentItemName == null) {
-					itemsDone++;
-					showProgress();
-				} else {
-					subItemsDone++;
-					showItemProgress();
-				}
-	
-				// Scan values
-				while (resultSet.next() && !cancel) {
-					List<String> values = new ArrayList<String>();
-					for (int i = 1; i <= metaData.getColumnCount(); i++) {
-						String valueString;
-						if (metaData.getColumnType(i) == Types.BLOB) {
-							Blob blob = resultSet.getBlob(i);
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							} else if (createBlobFiles) {
-								valueString = "Blobfile to be created later";
-							} else {
-								byte[] data = Utilities.toByteArray(blob.getBinaryStream());
-								valueString = Base64.getEncoder().encodeToString(data);
-							}
-						} else if (metaData.getColumnType(i) == Types.LONGVARBINARY) {
-							byte[] data = (byte[]) resultSet.getObject(i);
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							} else if (createBlobFiles) {
-								valueString = "Blobfile to be created later";
-							} else {
-								valueString = Base64.getEncoder().encodeToString(data);
-							}
-						} else if (metaData.getColumnType(i) == Types.CLOB) {
-							resultSet.getClob(i);
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							} else if (createClobFiles) {
-								valueString = "Clobfile to be created later";
-							} else {
-								valueString = resultSet.getString(i);
-							}
-						} else if (dbVendor == DbVendor.Oracle && metaData.getColumnType(i) == DbUtilities.ORACLE_TIMESTAMPTZ_TYPECODE) {
-							valueString = dateFormat.format(resultSet.getTimestamp(i));
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							}
-						} else if (metaData.getColumnType(i) == Types.DATE || metaData.getColumnType(i) == Types.TIMESTAMP) {
-							valueString = dateFormat.format(resultSet.getObject(i));
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							}
-						} else if (metaData.getColumnType(i) == Types.DECIMAL || metaData.getColumnType(i) == Types.DOUBLE || metaData.getColumnType(i) == Types.FLOAT) {
-							valueString = decimalFormat.format(resultSet.getObject(i));
-							columnPaddings[i - 1] = false;
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							}
-						} else if (metaData.getColumnType(i) == Types.BIGINT || metaData.getColumnType(i) == Types.BIT || metaData.getColumnType(i) == Types.INTEGER
-								|| metaData.getColumnType(i) == Types.NUMERIC || metaData.getColumnType(i) == Types.SMALLINT || metaData.getColumnType(i) == Types.TINYINT) {
-							valueString = resultSet.getString(i);
-							columnPaddings[i - 1] = false;
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							}
-						} else {
-							valueString = resultSet.getString(i);
-							if (resultSet.wasNull()) {
-								valueString = nullValueText;
-							}
-						}
-						values.add(valueString);
-					}
-					int[] nextColumnSizes = csvWriter.calculateOutputSizesOfValues(values);
-					for (int i = 0; i < nextColumnSizes.length; i++) {
-						minimumColumnSizes[i] = Math.max(minimumColumnSizes[i], nextColumnSizes[i]);
-					}
-	
-					if (currentItemName == null) {
-						itemsDone++;
-						showProgress();
-					} else {
-						subItemsDone++;
-						showItemProgress();
-					}
-				}
-			} finally {
-				if (resultSet != null) {
-					try {
-						resultSet.close();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-
-				if (statement != null) {
-					try {
-						statement.close();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			}
-
-			resultSet.close();
-			resultSet = null;
-
-			if (currentItemName == null) {
-				itemsDone = 0;
-				showProgress();
-			} else {
-				subItemsDone = 0;
-				showItemProgress();
-			}
-		}
-		csvWriter.setColumnPaddings(columnPaddings);
-		csvWriter.setMinimumColumnSizes(minimumColumnSizes);
 	}
 
 	@Override
@@ -222,16 +81,30 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	protected void openWriter(OutputStream outputStream) throws Exception {
-		csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+		if (beautify) {
+			temporaryUglifiedFile = File.createTempFile("DbCsvExport_Uglified", ".csv", new File(System.getProperty("java.io.tmpdir")));
+			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, separator, stringQuote);
+			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+		} else {
+			csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+		}
 		csvWriter.setAlwaysQuote(alwaysQuote);
 	}
 
 	@Override
 	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
-		preRead(connection, sqlStatement);
-		
 		if (!noHeaders) {
 			csvWriter.writeValues(columnNames);
+		}
+		
+		minimumColumnSizes = new int[columnNames.size()];
+		for (int i = 0; i < columnNames.size(); i++) {
+			minimumColumnSizes[i] = csvWriter.calculateOutputSizesOfValue(columnNames.get(i));
+		}
+		
+		columnPaddings = new boolean[columnNames.size()];
+		for (int i = 0; i < columnPaddings.length; i++) {
+			columnPaddings[i] = true;
 		}
 	}
 
@@ -249,10 +122,13 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		} else if (value instanceof Date) {
 			values.add(dateFormat.format(value));
 		} else if (value instanceof Number) {
+			columnPaddings[values.size()] = false;
 			values.add(decimalFormat.format(value));
 		} else {
 			values.add(value.toString());
 		}
+		
+		minimumColumnSizes[values.size() - 1] = Math.max(minimumColumnSizes[values.size() - 1], csvWriter.calculateOutputSizesOfValue(values.get(values.size() - 1)));
 	}
 
 	@Override
@@ -276,6 +152,27 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+		}
+		
+		// Beautify data from uglified csv file
+		if (beautifiedCsvWriter != null) {
+			CsvReader csvReaderFinal = null;
+			try {
+				beautifiedCsvWriter.setColumnPaddings(columnPaddings);
+				beautifiedCsvWriter.setMinimumColumnSizes(minimumColumnSizes);
+				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, separator, stringQuote);
+				List<String> nextLine;
+				while ((nextLine = csvReaderFinal.readNextCsvLine()) != null) {
+					beautifiedCsvWriter.writeValues(nextLine);
+				}
+			} finally {
+				Utilities.closeQuietly(csvReaderFinal);
+				Utilities.closeQuietly(beautifiedCsvWriter);
+			}
+		}
+		
+		if (temporaryUglifiedFile != null) {
+			temporaryUglifiedFile.delete();
 		}
 	}
 }

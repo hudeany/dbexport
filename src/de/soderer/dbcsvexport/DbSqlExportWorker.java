@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
@@ -22,7 +23,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	
 	private List<String> values = null;
 	
-	public DbSqlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) {
+	public DbSqlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
 	}
 
@@ -76,9 +77,9 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 		} else if (value instanceof String) {
 			values.add("'" + ((String) value).replace("'", "''") + "'");
 		} else if (value instanceof Date) {
-			values.add("'" + dateFormat.format(value).replace("'", "''") + "'");
+			values.add("'" + DateUtilities.ANSI_SQL_DATETIME_FORMAT.format(value) + "'");
 		} else if (value instanceof Number) {
-			values.add(decimalFormat.format(value));
+			values.add(value.toString());
 		} else {
 			values.add("'" + value.toString().replace("'", "''") + "'");
 		}
