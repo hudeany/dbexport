@@ -30,6 +30,7 @@ public class DbCsvExportDefinition {
 	private Locale dateAndDecimalLocale = null;
 	private boolean beautify = false;
 	private boolean noHeaders = false;
+	private boolean exportStructure = false;
 	private String nullValueString = "";
 
 	// Mandatory parameters
@@ -135,7 +136,7 @@ public class DbCsvExportDefinition {
 			} else if (hostParts.length > 2) {
 				throw new Exception("Invalid hostname: " + hostname);
 			}
-		} else if (dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby) {
+		} else if (dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby && dbVendor != DbVendor.HSQL) {
 			throw new Exception("Invalid empty hostname");
 		}
 	}
@@ -288,7 +289,24 @@ public class DbCsvExportDefinition {
 			} else if (Utilities.isNotBlank(password)) {
 				throw new DbCsvExportException("Derby db connections do not support the password parameter");
 			}
+		} else if (dbVendor == DbVendor.HSQL) {
+			dbName = dbName.replace("~", System.getProperty("user.home"));
+			if (dbName.startsWith("/")) {
+				if (Utilities.isNotBlank(hostname)) {
+					throw new DbCsvExportException("HSQL file db connections do not support the hostname parameter");
+				} else if (Utilities.isNotBlank(username)) {
+					throw new DbCsvExportException("HSQL file db connections do not support the username parameter");
+				} else if (Utilities.isNotBlank(password)) {
+					throw new DbCsvExportException("HSQL file db connections do not support the password parameter");
+				}
+			}
 		} else {
+			if (Utilities.isBlank(hostname)) {
+				throw new DbCsvExportException("Missing or invalid hostname");
+			}
+			if (Utilities.isBlank(username)) {
+				throw new DbCsvExportException("Missing or invalid username");
+			}
 			if (Utilities.isBlank(password)) {
 				throw new DbCsvExportException("Missing or invalid empty password");
 			}
@@ -427,5 +445,13 @@ public class DbCsvExportDefinition {
 
 	public String getNullValueString() {
 		return nullValueString;
+	}
+
+	public void setExportStructure(boolean exportStructure) {
+		this.exportStructure = exportStructure;
+	}
+
+	public boolean isExportStructure() {
+		return exportStructure;
 	}
 }

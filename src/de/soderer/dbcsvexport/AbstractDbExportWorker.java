@@ -48,6 +48,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	protected DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
 	protected NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
 	protected boolean beautify = false;
+	protected boolean exportStructure = false;
 	
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmount = 0;
@@ -72,6 +73,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			dbValueConverter = new SQLiteDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else if (dbVendor == DbVendor.MySQL) {
 			dbValueConverter = new MySQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else if (dbVendor == DbVendor.PostgreSQL) {
+			dbValueConverter = new PostgreSQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		//} else if (dbVendor == DbVendor.HSQL) {
+		//	dbValueConverter = new HSQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else {
 			dbValueConverter = new DefaultDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		}
@@ -106,6 +111,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	public void setBeautify(boolean beautify) {
 		this.beautify = beautify;
+	}
+
+	public void setExportStructure(boolean exportStructure) {
+		this.exportStructure = exportStructure;
 	}
 
 	@Override
@@ -263,6 +272,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else if (dbVendor == DbVendor.Derby) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else if (dbVendor == DbVendor.HSQL) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else {
 				throw new Exception("Unknown db vendor");
 			}
@@ -288,8 +299,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			
 			// Scan headers
 			List<String> columnNames = new ArrayList<String>();
+			List<String> columnTypes = new ArrayList<String>();
 			for (int i = 1; i <= metaData.getColumnCount(); i++) {
 				columnNames.add(metaData.getColumnName(i));
+				columnTypes.add(metaData.getColumnTypeName(i));
 			}
 
 			if (currentItemName == null) {
@@ -306,7 +319,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				showItemProgress();
 			}
 			
-			startOutput(connection, sqlStatement, columnNames);
+			startOutput(connection, sqlStatement, columnNames, columnTypes);
 
 			// Write values
 			while (resultSet.next() && !cancel) {
@@ -441,7 +454,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	protected abstract void openWriter(OutputStream outputStream) throws Exception;
 
-	protected abstract void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception;
+	protected abstract void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception;
 
 	protected abstract void startTableLine() throws Exception;
 

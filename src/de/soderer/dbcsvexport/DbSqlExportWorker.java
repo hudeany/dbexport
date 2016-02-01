@@ -52,7 +52,9 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	}
 
 	@Override
-	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
+	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception {
+		fileWriter.write("--" + sqlStatement + "\n");
+		
 		if (sqlStatement.toUpperCase().startsWith("SELECT * FROM ")) {
 			tableName = sqlStatement.substring(14).trim();
 			if (tableName.contains(" ")) {
@@ -60,6 +62,17 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 			}
 		} else {
 			tableName = "export_tbl";
+		}
+		
+		if (exportStructure) {
+			fileWriter.write("--");
+			for (int i = 0; i < columnNames.size(); i++) {
+				if (i > 0) {
+					fileWriter.write(", ");
+				}
+				fileWriter.write(columnNames.get(i) + " " + columnTypes.get(i));
+			}
+			fileWriter.write("\n");
 		}
 	}
 

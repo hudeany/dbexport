@@ -65,11 +65,21 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	}
 
 	@Override
-	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
+	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception {
 		// Create root node
 		xmlWriter.writeStartDocument("utf-8","1.0");
 		xmlWriter.writeStartElement("table");
 		xmlWriter.writeAttribute("statement", sqlStatement);
+
+		if (exportStructure) {
+			xmlWriter.writeStartElement("structure");
+			for (int i = 0; i < columnNames.size(); i++) {
+				xmlWriter.writeStartElement(columnNames.get(i));
+				xmlWriter.writeCharacters(columnTypes.get(i));
+				xmlWriter.writeEndElement();
+			}
+			xmlWriter.writeEndElement();
+		}
 	}
 
 	@Override

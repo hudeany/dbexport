@@ -62,6 +62,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private JCheckBox clobfilesBox;
 	private JCheckBox alwaysQuoteBox;
 	private JCheckBox beautifyBox;
+	private JCheckBox exportStructureBox;
 	private JCheckBox noHeadersyBox;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
@@ -89,11 +90,9 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbTypePanel.add(dbTypeLabel);
 		dbTypeCombo = new JComboBox<String>();
 		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306), PostgreSQL (default port 5432), SQLite or Derby");
-		dbTypeCombo.addItem(DbVendor.Oracle.toString());
-		dbTypeCombo.addItem(DbVendor.MySQL.toString());
-		dbTypeCombo.addItem(DbVendor.PostgreSQL.toString());
-		dbTypeCombo.addItem(DbVendor.SQLite.toString());
-		dbTypeCombo.addItem(DbVendor.Derby.toString());
+		for (DbVendor dbVendor : DbVendor.values()) {
+			dbTypeCombo.addItem(dbVendor.toString());
+		}
 		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
 			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbCsvExportDefinition.getDbVendor()) {
 				dbTypeCombo.setSelectedIndex(i);
@@ -425,6 +424,11 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
 		optionalParametersPanel.add(noHeadersyBox);
 
+		exportStructureBox = new JCheckBox("Export structure");
+		exportStructureBox.setToolTipText("Export the tables structure and column types");
+		exportStructureBox.setSelected(dbCsvExportDefinition.isExportStructure());
+		optionalParametersPanel.add(exportStructureBox);
+
 		// Button Panel
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
@@ -507,6 +511,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbCsvExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 		dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 		dbCsvExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
+		dbCsvExportDefinition.setExportStructure(exportStructureBox.isSelected());
 		dbCsvExportDefinition.setNoHeaders(noHeadersyBox.isEnabled() ? noHeadersyBox.isSelected() : false);
 		dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
 		dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
@@ -589,40 +594,20 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			WorkerDual<Boolean> worker;
 			if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
 				worker = new DbJsonExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbJsonExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
-				((DbJsonExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
-				((DbJsonExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
-				((DbJsonExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
-				((DbJsonExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 				((DbJsonExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
 				worker = new DbXmlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbXmlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
-				((DbXmlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
-				((DbXmlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
-				((DbXmlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
-				((DbXmlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 				((DbXmlExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
 				((DbXmlExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
 			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
 				worker = new DbSqlExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbSqlExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
-				((DbSqlExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
-				((DbSqlExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
-				((DbSqlExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
-				((DbSqlExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbSqlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbSqlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
 			} else {
 				worker = new DbCsvExportWorker(null, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbCsvExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
-				((DbCsvExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
-				((DbCsvExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
-				((DbCsvExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
-				((DbCsvExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 				((DbCsvExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
 				((DbCsvExportWorker) worker).setSeparator(dbCsvExportDefinition.getSeparator());
 				((DbCsvExportWorker) worker).setStringQuote(dbCsvExportDefinition.getStringQuote());
@@ -631,6 +616,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
 				((DbCsvExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
 			}
+			((AbstractDbExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
+			((AbstractDbExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
+			((AbstractDbExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
+			((AbstractDbExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
+			((AbstractDbExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
+			((AbstractDbExportWorker) worker).setExportStructure(dbCsvExportDefinition.isExportStructure());
 			
 			DualProgressDialog<WorkerDual<Boolean>> progressDialog = new DualProgressDialog<WorkerDual<Boolean>>(dbCsvExportGui, "DbCsvExport", worker);
 			Result result = progressDialog.showDialog();
