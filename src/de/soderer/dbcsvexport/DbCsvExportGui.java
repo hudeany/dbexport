@@ -26,16 +26,23 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
+import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
+import de.soderer.dbcsvexport.worker.DbCsvExportWorker;
+import de.soderer.dbcsvexport.worker.DbJsonExportWorker;
+import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
+import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
+import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.ExceptionUtilities;
+import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerDual;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.swing.BasicUpdateableGuiApplication;
 import de.soderer.utilities.swing.DualProgressDialog;
+import de.soderer.utilities.swing.SecurePreferencesDialog;
 import de.soderer.utilities.swing.SimpleProgressDialog.Result;
 import de.soderer.utilities.swing.TextDialog;
 
@@ -64,6 +71,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private JCheckBox beautifyBox;
 	private JCheckBox exportStructureBox;
 	private JCheckBox noHeadersyBox;
+	
+	private char[] temporaryPreferencesPassword = null;
 
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		super(DbCsvExport.APPLICATION_NAME, new Version(DbCsvExport.VERSION));
@@ -86,18 +95,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		// DBType Pane
 		JPanel dbTypePanel = new JPanel();
 		dbTypePanel.setLayout(new FlowLayout());
-		JLabel dbTypeLabel = new JLabel("DB-Type");
+		JLabel dbTypeLabel = new JLabel(LangResources.get("dbtype"));
 		dbTypePanel.add(dbTypeLabel);
 		dbTypeCombo = new JComboBox<String>();
-		dbTypeCombo.setToolTipText("DB-Type: Oracle (default port 1521), MySQL (default port 3306), PostgreSQL (default port 5432), SQLite or Derby");
+		dbTypeCombo.setToolTipText(LangResources.get("dbtype_help"));
 		for (DbVendor dbVendor : DbVendor.values()) {
 			dbTypeCombo.addItem(dbVendor.toString());
-		}
-		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
-			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbCsvExportDefinition.getDbVendor()) {
-				dbTypeCombo.setSelectedIndex(i);
-				break;
-			}
 		}
 		dbTypeCombo.addItemListener(new ItemListener() {
 			@Override
@@ -111,76 +114,58 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		// Host Panel
 		JPanel hostPanel = new JPanel();
 		hostPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel hostLabel = new JLabel("Host");
+		JLabel hostLabel = new JLabel(LangResources.get("host"));
 		hostPanel.add(hostLabel);
 		hostField = new JTextField();
-		hostField.setToolTipText("Hostname and optional port like \"hostname:port\"");
+		hostField.setToolTipText(LangResources.get("host_help"));
 		hostField.setPreferredSize(new Dimension(200, hostField.getPreferredSize().height));
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname())) {
-			hostField.setText(dbCsvExportDefinition.getHostname());
-		}
 		hostPanel.add(hostField);
 		mandatoryParameterPanel.add(hostPanel);
 
 		// DB name Panel
 		JPanel dbNamePanel = new JPanel();
 		dbNamePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel dbNameLabel = new JLabel("DB-Name");
+		JLabel dbNameLabel = new JLabel(LangResources.get("dbname"));
 		dbNamePanel.add(dbNameLabel);
 		dbNameField = new JTextField();
-		dbNameField.setToolTipText("Database name or Oracle SID");
+		dbNameField.setToolTipText(LangResources.get("dbname_help"));
 		dbNameField.setPreferredSize(new Dimension(200, dbNameField.getPreferredSize().height));
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getDbName())) {
-			dbNameField.setText(dbCsvExportDefinition.getDbName());
-		}
 		dbNamePanel.add(dbNameField);
 		mandatoryParameterPanel.add(dbNamePanel);
 
 		// User Panel
 		JPanel userPanel = new JPanel();
 		userPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel userLabel = new JLabel("User");
+		JLabel userLabel = new JLabel(LangResources.get("user"));
 		userPanel.add(userLabel);
 		userField = new JTextField();
-		userField.setToolTipText("Username for db authentification");
+		userField.setToolTipText(LangResources.get("user_help"));
 		userField.setPreferredSize(new Dimension(200, userField.getPreferredSize().height));
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getUsername())) {
-			userField.setText(dbCsvExportDefinition.getUsername());
-		}
 		userPanel.add(userField);
 		mandatoryParameterPanel.add(userPanel);
 
 		// Password Panel
 		JPanel passwordPanel = new JPanel();
 		passwordPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel passwordLabel = new JLabel("Password");
+		JLabel passwordLabel = new JLabel(LangResources.get("password"));
 		passwordPanel.add(passwordLabel);
 		passwordField = new JPasswordField();
-		passwordField.setToolTipText("Password for db authentification");
+		passwordField.setToolTipText(LangResources.get("password_help"));
 		passwordField.setPreferredSize(new Dimension(200, passwordField.getPreferredSize().height));
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getPassword())) {
-			passwordField.setText(dbCsvExportDefinition.getPassword());
-		}
 		passwordPanel.add(passwordField);
 		mandatoryParameterPanel.add(passwordPanel);
 		
 		// Export type Pane
 		JPanel exportTypePanel = new JPanel();
 		exportTypePanel.setLayout(new FlowLayout());
-		JLabel exportTypeLabel = new JLabel("Export-Format");
+		JLabel exportTypeLabel = new JLabel(LangResources.get("exporttype"));
 		exportTypePanel.add(exportTypeLabel);
 		exportTypeCombo = new JComboBox<String>();
-		exportTypeCombo.setToolTipText("Export-Format: CSV, JSON, XML or SQL. Don't forget to beautify JSON for human readable data");
+		exportTypeCombo.setToolTipText(LangResources.get("exporttype_help"));
 		exportTypeCombo.addItem("CSV");
 		exportTypeCombo.addItem("JSON");
 		exportTypeCombo.addItem("XML");
 		exportTypeCombo.addItem("SQL");
-		for (int i = 0; i < exportTypeCombo.getItemCount(); i++) {
-			if (exportTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getExportType().toString())) {
-				exportTypeCombo.setSelectedIndex(i);
-				break;
-			}
-		}
 		exportTypeCombo.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
@@ -197,189 +182,109 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		// Outputpath Panel
 		JPanel outputpathPanel = new JPanel();
 		outputpathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel outputpathLabel = new JLabel("Outputpath");
+		JLabel outputpathLabel = new JLabel(LangResources.get("outputpath"));
 		outputpathPanel.add(outputpathLabel);
 		outputpathField = new JTextField();
-		outputpathField.setToolTipText("File for single statement or directory for tablepatterns or 'console' for output to terminal");
+		outputpathField.setToolTipText(LangResources.get("outputpath_help"));
 		outputpathField.setPreferredSize(new Dimension(200, outputpathField.getPreferredSize().height));
 		outputpathField.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getOutputpath())) {
-			outputpathField.setText(dbCsvExportDefinition.getOutputpath());
-		}
 		outputpathPanel.add(outputpathField);
 		mandatoryParameterPanel.add(outputpathPanel);
 
 		// Encoding Pane
 		JPanel encodingPanel = new JPanel();
 		encodingPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel encodingLabel = new JLabel("Encoding");
+		JLabel encodingLabel = new JLabel(LangResources.get("encoding"));
 		encodingPanel.add(encodingLabel);
 		encodingCombo = new JComboBox<String>();
-		encodingCombo.setToolTipText("Output encoding");
+		encodingCombo.setToolTipText(LangResources.get("encoding_help"));
 		encodingCombo.setPreferredSize(new Dimension(200, encodingCombo.getPreferredSize().height));
 		encodingCombo.addItem("UTF-8");
 		encodingCombo.addItem("ISO-8859-15");
 		encodingCombo.setEditable(true);
-		boolean foundEncoding = false;
-		for (int i = 0; i < encodingCombo.getItemCount(); i++) {
-			if (encodingCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getEncoding())) {
-				encodingCombo.setSelectedIndex(i);
-				foundEncoding = true;
-				break;
-			}
-		}
-		if (!foundEncoding) {
-			encodingCombo.setSelectedItem(dbCsvExportDefinition.getEncoding());
-		}
 		encodingPanel.add(encodingCombo);
 		mandatoryParameterPanel.add(encodingPanel);
 
 		// Separator Pane
 		JPanel separatorPanel = new JPanel();
 		separatorPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel separatorLabel = new JLabel("Separator");
+		JLabel separatorLabel = new JLabel(LangResources.get("separator"));
 		separatorPanel.add(separatorLabel);
 		separatorCombo = new JComboBox<String>();
-		separatorCombo.setToolTipText("CSV value separator");
+		separatorCombo.setToolTipText(LangResources.get("separator_help"));
 		separatorCombo.setPreferredSize(new Dimension(200, separatorCombo.getPreferredSize().height));
 		separatorCombo.addItem(";");
 		separatorCombo.addItem(",");
 		separatorCombo.setEditable(true);
-		boolean separatorEncoding = false;
-		for (int i = 0; i < separatorCombo.getItemCount(); i++) {
-			if (separatorCombo.getItemAt(i).equalsIgnoreCase("" + dbCsvExportDefinition.getSeparator())) {
-				separatorCombo.setSelectedIndex(i);
-				separatorEncoding = true;
-				break;
-			}
-		}
-		if (!separatorEncoding) {
-			separatorCombo.setSelectedItem("" + dbCsvExportDefinition.getSeparator());
-		}
 		separatorPanel.add(separatorCombo);
 		mandatoryParameterPanel.add(separatorPanel);
 
 		// StringQuote Pane
 		JPanel stringQuotePanel = new JPanel();
 		stringQuotePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel stringQuoteLabel = new JLabel("Stringquote");
+		JLabel stringQuoteLabel = new JLabel(LangResources.get("stringquote"));
 		stringQuotePanel.add(stringQuoteLabel);
 		stringQuoteCombo = new JComboBox<String>();
-		stringQuoteCombo.setToolTipText("CSV string quote for values");
+		stringQuoteCombo.setToolTipText(LangResources.get("stringquote_help"));
 		stringQuoteCombo.setPreferredSize(new Dimension(200, stringQuoteCombo.getPreferredSize().height));
 		stringQuoteCombo.addItem("\"");
 		stringQuoteCombo.addItem("'");
 		stringQuoteCombo.setEditable(true);
-		boolean stringQuoteFound = false;
-		for (int i = 0; i < stringQuoteCombo.getItemCount(); i++) {
-			if (stringQuoteCombo.getItemAt(i).equalsIgnoreCase("" + dbCsvExportDefinition.getStringQuote())) {
-				stringQuoteCombo.setSelectedIndex(i);
-				stringQuoteFound = true;
-				break;
-			}
-		}
-		if (!stringQuoteFound) {
-			stringQuoteCombo.setSelectedItem("" + dbCsvExportDefinition.getStringQuote());
-		}
 		stringQuotePanel.add(stringQuoteCombo);
 		mandatoryParameterPanel.add(stringQuotePanel);
 
 		// Indentation Pane
 		JPanel indentationPanel = new JPanel();
 		indentationPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel indentationLabel = new JLabel("Indentation");
+		JLabel indentationLabel = new JLabel(LangResources.get("indentation"));
 		indentationPanel.add(indentationLabel);
 		indentationCombo = new JComboBox<String>();
-		indentationCombo.setToolTipText("CSV string quote for values");
+		indentationCombo.setToolTipText(LangResources.get("indentation_help"));
 		indentationCombo.setPreferredSize(new Dimension(200, indentationCombo.getPreferredSize().height));
 		indentationCombo.addItem("TAB");
 		indentationCombo.addItem("BLANK");
 		indentationCombo.addItem("DOUBLEBLANK");
 		indentationCombo.setEditable(true);
-		if (dbCsvExportDefinition.getIndentation() == "\t") {
-			indentationCombo.setSelectedIndex(0);
-		} else if (dbCsvExportDefinition.getIndentation() == " ") {
-			indentationCombo.setSelectedIndex(1);
-		} else if (dbCsvExportDefinition.getIndentation() == "  ") {
-			indentationCombo.setSelectedIndex(2);
-		} else {
-			boolean indentationFound = false;
-			for (int i = 0; i < indentationCombo.getItemCount(); i++) {
-				if (indentationCombo.getItemAt(i).equalsIgnoreCase("" + dbCsvExportDefinition.getIndentation())) {
-					indentationCombo.setSelectedIndex(i);
-					indentationFound = true;
-					break;
-				}
-			}
-			if (!indentationFound) {
-				indentationCombo.setSelectedItem("" + dbCsvExportDefinition.getIndentation());
-			}
-		}
 		indentationPanel.add(indentationCombo);
 		mandatoryParameterPanel.add(indentationPanel);
 
 		// NullValueString Pane
 		JPanel nullValueStringPanel = new JPanel();
 		nullValueStringPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel nullValueStringLabel = new JLabel("Null-Value Text");
+		JLabel nullValueStringLabel = new JLabel(LangResources.get("nullvaluetext"));
 		nullValueStringPanel.add(nullValueStringLabel);
 		nullValueStringCombo = new JComboBox<String>();
-		nullValueStringCombo.setToolTipText("String text for null values in csv and xml format only");
+		nullValueStringCombo.setToolTipText(LangResources.get("nullvaluetext_help"));
 		nullValueStringCombo.setPreferredSize(new Dimension(200, nullValueStringCombo.getPreferredSize().height));
 		nullValueStringCombo.addItem("");
 		nullValueStringCombo.addItem("NULL");
 		nullValueStringCombo.addItem("Null");
 		nullValueStringCombo.addItem("null");
 		nullValueStringCombo.setEditable(true);
-		if (dbCsvExportDefinition.getNullValueString().equals("")) {
-			nullValueStringCombo.setSelectedIndex(0);
-		} else if (dbCsvExportDefinition.getNullValueString().equals("NULL")) {
-			nullValueStringCombo.setSelectedIndex(1);
-		} else if (dbCsvExportDefinition.getNullValueString().equals("Null")) {
-			nullValueStringCombo.setSelectedIndex(2);
-		} else if (dbCsvExportDefinition.getNullValueString().equals("null")) {
-			nullValueStringCombo.setSelectedIndex(3);
-		} else {
-			nullValueStringCombo.setSelectedItem("" + dbCsvExportDefinition.getNullValueString());
-		}
 		nullValueStringPanel.add(nullValueStringCombo);
 		mandatoryParameterPanel.add(nullValueStringPanel);
 
 		// Locale Panel
 		JPanel localePanel = new JPanel();
 		localePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel localeLabel = new JLabel("Locale");
+		JLabel localeLabel = new JLabel(LangResources.get("locale"));
 		localePanel.add(localeLabel);
 		localeCombo = new JComboBox<String>();
-		localeCombo.setToolTipText("Locale to format numbers and date/time values");
+		localeCombo.setToolTipText(LangResources.get("locale_help"));
 		localeCombo.setPreferredSize(new Dimension(200, localeCombo.getPreferredSize().height));
 		localeCombo.addItem("DE");
 		localeCombo.addItem("EN");
 		localeCombo.setEditable(true);
-		boolean foundLocale = false;
-		for (int i = 0; i < localeCombo.getItemCount(); i++) {
-			if (localeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage())) {
-				localeCombo.setSelectedIndex(i);
-				foundLocale = true;
-				break;
-			}
-		}
-		if (!foundLocale) {
-			localeCombo.setSelectedItem(dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage());
-		}
 		localePanel.add(localeCombo);
 		mandatoryParameterPanel.add(localePanel);
 
 		// Statement Panel
 		JPanel statementPanel = new JPanel();
 		statementPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel statementLabel = new JLabel("Statement");
+		JLabel statementLabel = new JLabel(LangResources.get("statement"));
 		statementPanel.add(statementLabel);
 		statementField = new JTextArea();
-		statementField.setToolTipText("Single SQL select statment or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)");
-		if (Utilities.isNotBlank(dbCsvExportDefinition.getSqlStatementOrTablelist())) {
-			statementField.setText(dbCsvExportDefinition.getSqlStatementOrTablelist());
-		}
+		statementField.setToolTipText(LangResources.get("statement_help"));
 		JScrollPane statementScrollpane = new JScrollPane(statementField);
 		statementScrollpane.setPreferredSize(new Dimension(200, 100));
 		statementPanel.add(statementScrollpane);
@@ -389,44 +294,36 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		JPanel optionalParametersPanel = new JPanel();
 		optionalParametersPanel.setLayout(new BoxLayout(optionalParametersPanel, BoxLayout.PAGE_AXIS));
 
-		fileLogBox = new JCheckBox("Filelog");
-		fileLogBox.setToolTipText("Create additional log files for each csv file with statistics and other information");
-		fileLogBox.setSelected(dbCsvExportDefinition.isLog());
+		fileLogBox = new JCheckBox(LangResources.get("filelog"));
+		fileLogBox.setToolTipText(LangResources.get("filelog_help"));
 		optionalParametersPanel.add(fileLogBox);
 
-		zipBox = new JCheckBox("Zip");
-		zipBox.setToolTipText("Zip exported csv files");
-		zipBox.setSelected(dbCsvExportDefinition.isZip());
+		zipBox = new JCheckBox(LangResources.get("zip"));
+		zipBox.setToolTipText(LangResources.get("zip_help"));
 		optionalParametersPanel.add(zipBox);
 
-		alwaysQuoteBox = new JCheckBox("Always quote");
-		alwaysQuoteBox.setToolTipText("Quote every csv value by the string quote character");
-		alwaysQuoteBox.setSelected(dbCsvExportDefinition.isAlwaysQuote());
+		alwaysQuoteBox = new JCheckBox(LangResources.get("alwaysquote"));
+		alwaysQuoteBox.setToolTipText(LangResources.get("alwaysquote_help"));
 		optionalParametersPanel.add(alwaysQuoteBox);
 
-		blobfilesBox = new JCheckBox("Blobfiles");
-		blobfilesBox.setToolTipText("Create a file (.blob or .blob.zip) for each blob instead of base64 encoding");
-		blobfilesBox.setSelected(dbCsvExportDefinition.isCreateBlobFiles());
+		blobfilesBox = new JCheckBox(LangResources.get("blobfiles"));
+		blobfilesBox.setToolTipText(LangResources.get("blobfiles_help"));
 		optionalParametersPanel.add(blobfilesBox);
 
-		clobfilesBox = new JCheckBox("Clobfiles");
-		clobfilesBox.setToolTipText("Create a file (.clob or .clob.zip) for each clob instead of base64 encoding");
-		clobfilesBox.setSelected(dbCsvExportDefinition.isCreateClobFiles());
+		clobfilesBox = new JCheckBox(LangResources.get("clobfiles"));
+		clobfilesBox.setToolTipText(LangResources.get("clobfiles_help"));
 		optionalParametersPanel.add(clobfilesBox);
 
-		beautifyBox = new JCheckBox("Beautify");
-		beautifyBox.setToolTipText("<html>Beautify csv output to make column values equal length (takes extra time)<br />or beautify json output to make it human readable with linebreak and indention<html>");
-		beautifyBox.setSelected(dbCsvExportDefinition.isBeautify());
+		beautifyBox = new JCheckBox(LangResources.get("beautify"));
+		beautifyBox.setToolTipText(LangResources.get("beautify_help"));
 		optionalParametersPanel.add(beautifyBox);
 
-		noHeadersyBox = new JCheckBox("No headers");
-		noHeadersyBox.setToolTipText("Do not export headers in CSV data");
-		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
+		noHeadersyBox = new JCheckBox(LangResources.get("noheaders"));
+		noHeadersyBox.setToolTipText(LangResources.get("noheaders_help"));
 		optionalParametersPanel.add(noHeadersyBox);
 
-		exportStructureBox = new JCheckBox("Export structure");
-		exportStructureBox.setToolTipText("Export the tables structure and column types");
-		exportStructureBox.setSelected(dbCsvExportDefinition.isExportStructure());
+		exportStructureBox = new JCheckBox(LangResources.get("exportstructure"));
+		exportStructureBox.setToolTipText(LangResources.get("exportstructure_help"));
 		optionalParametersPanel.add(exportStructureBox);
 
 		// Button Panel
@@ -434,16 +331,14 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
 
 		// Start Button
-		JButton startButton = new JButton("Export");
+		JButton startButton = new JButton(LangResources.get("export"));
 		startButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
-					putConfigurationInDefinition(dbCsvExportDefinition);
-					
-					export(dbCsvExportDefinition, dbCsvExportGui);
+					export(getConfigurationAsDefinition(), dbCsvExportGui);
 				} catch (Exception e) {
-					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
 				}
 			}
 		});
@@ -451,15 +346,53 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 
 		buttonPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
+		// Preferences Button
+		JButton preferencesButton = new JButton(LangResources.get("preferences"));
+		preferencesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				try {
+					SecurePreferencesDialog credentialsDialog = new SecurePreferencesDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " " + LangResources.get("preferences"), LangResources.get("preferences_text"), DbCsvExport.SECURE_PREFERENCES_FILE,
+						LangResources.get("load"),
+						LangResources.get("create"),
+						LangResources.get("update"),
+						LangResources.get("delete"),
+						LangResources.get("preferences_save"),
+						LangResources.get("cancel"),
+						LangResources.get("preferences_password_text"),
+						LangResources.get("username"),
+						LangResources.get("password"),
+						LangResources.get("ok"),
+						LangResources.get("cancel"));
+					
+					credentialsDialog.setCurrentSecureDataEntry(getConfigurationAsDefinition());
+					credentialsDialog.setPassword(temporaryPreferencesPassword);
+					credentialsDialog.showDialog();
+					if (credentialsDialog.getCurrentSecureDataEntry() != null) {
+						setConfigurationByDefinition((DbCsvExportDefinition) credentialsDialog.getCurrentSecureDataEntry());
+					}
+					
+					temporaryPreferencesPassword = credentialsDialog.getPassword();
+				} catch (Exception e) {
+					temporaryPreferencesPassword = null;
+					TextDialog textDialog = new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), Color.RED);
+					textDialog.setVisible(true);
+				}
+			}
+		});
+		buttonPanel.add(preferencesButton);
+		
+		buttonPanel.add(Box.createRigidArea(new Dimension(5, 0)));
+
 		// Update Button
-		JButton updateButton = new JButton("Check update");
+		JButton updateButton = new JButton(LangResources.get("checkupdate"));
 		updateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
 					new ApplicationUpdateHelper(DbCsvExport.APPLICATION_NAME, DbCsvExport.VERSION, DbCsvExport.VERSIONINFO_DOWNLOAD_URL, dbCsvExportGui, "-gui").executeUpdate();
 				} catch (Exception e) {
-					TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getMessage(), Color.RED);
+					TextDialog textDialog = new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), Color.RED);
 					textDialog.setVisible(true);
 				}
 			}
@@ -469,7 +402,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		buttonPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
 		// Close Button
-		JButton closeButton = new JButton("Close");
+		JButton closeButton = new JButton(LangResources.get("close"));
 		closeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -483,6 +416,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		add(parameterPanel);
 		add(buttonPanel);
 		
+		setConfigurationByDefinition(dbCsvExportDefinition);
+		
 		checkButtonStatus();
 		
 		add(Box.createRigidArea(new Dimension(0, 5)));
@@ -494,7 +429,9 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		setVisible(true);
 	}
 
-	private void putConfigurationInDefinition(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
+	private DbCsvExportDefinition getConfigurationAsDefinition() throws Exception {
+		DbCsvExportDefinition dbCsvExportDefinition = new DbCsvExportDefinition();
+		
 		dbCsvExportDefinition.setDbVendor((String) dbTypeCombo.getSelectedItem());
 		dbCsvExportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
 		dbCsvExportDefinition.setDbName(dbNameField.getText());
@@ -531,8 +468,119 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		
 		dbCsvExportDefinition.setNullValueString((String) nullValueStringCombo.getSelectedItem());
 		
-		dbCsvExportDefinition.checkParameters();
-		dbCsvExportDefinition.checkAndLoadDbDrivers();
+		return dbCsvExportDefinition;
+	}
+
+	private void setConfigurationByDefinition(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
+		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
+			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbCsvExportDefinition.getDbVendor()) {
+				dbTypeCombo.setSelectedIndex(i);
+				break;
+			}
+		}
+		
+		hostField.setText(dbCsvExportDefinition.getHostname());
+		dbNameField.setText(dbCsvExportDefinition.getDbName());
+		userField.setText(dbCsvExportDefinition.getUsername());
+		passwordField.setText(dbCsvExportDefinition.getPassword());
+		outputpathField.setText(dbCsvExportDefinition.getOutputpath());
+		statementField.setText(dbCsvExportDefinition.getSqlStatementOrTablelist());
+
+		for (int i = 0; i < exportTypeCombo.getItemCount(); i++) {
+			if (exportTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getExportType().toString())) {
+				exportTypeCombo.setSelectedIndex(i);
+				break;
+			}
+		}
+
+		fileLogBox.setSelected(dbCsvExportDefinition.isLog());
+		zipBox.setSelected(dbCsvExportDefinition.isZip());
+		alwaysQuoteBox.setSelected(dbCsvExportDefinition.isAlwaysQuote());
+		blobfilesBox.setSelected(dbCsvExportDefinition.isCreateBlobFiles());
+		clobfilesBox.setSelected(dbCsvExportDefinition.isCreateClobFiles());
+		beautifyBox.setSelected(dbCsvExportDefinition.isBeautify());
+		exportStructureBox.setSelected(dbCsvExportDefinition.isExportStructure());
+		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
+
+		boolean encodingFound = false;
+		for (int i = 0; i < encodingCombo.getItemCount(); i++) {
+			if (encodingCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getEncoding())) {
+				encodingCombo.setSelectedIndex(i);
+				encodingFound = true;
+				break;
+			}
+		}
+		if (!encodingFound) {
+			encodingCombo.setSelectedItem(dbCsvExportDefinition.getEncoding());
+		}
+		
+		boolean separatorFound = false;
+		for (int i = 0; i < separatorCombo.getItemCount(); i++) {
+			if (separatorCombo.getItemAt(i).equalsIgnoreCase(Character.toString(dbCsvExportDefinition.getSeparator()))) {
+				separatorCombo.setSelectedIndex(i);
+				separatorFound = true;
+				break;
+			}
+		}
+		if (!separatorFound) {
+			separatorCombo.setSelectedItem(Character.toString(dbCsvExportDefinition.getSeparator()));
+		}
+		
+		boolean stringQuoteFound = false;
+		for (int i = 0; i < stringQuoteCombo.getItemCount(); i++) {
+			if (stringQuoteCombo.getItemAt(i).equalsIgnoreCase(Character.toString(dbCsvExportDefinition.getStringQuote()))) {
+				stringQuoteCombo.setSelectedIndex(i);
+				stringQuoteFound = true;
+				break;
+			}
+		}
+		if (!stringQuoteFound) {
+			stringQuoteCombo.setSelectedItem(Character.toString(dbCsvExportDefinition.getStringQuote()));
+		}
+		
+		if (dbCsvExportDefinition.getIndentation().equals("\t")) {
+			indentationCombo.setSelectedIndex(0);
+		} else if (dbCsvExportDefinition.getIndentation().equals(" ")) {
+			indentationCombo.setSelectedIndex(1);
+		} else if (dbCsvExportDefinition.getIndentation().equals("  ")) {
+			indentationCombo.setSelectedIndex(2);
+		} else {
+			boolean indentationFound = false;
+			for (int i = 0; i < indentationCombo.getItemCount(); i++) {
+				if (indentationCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getIndentation())) {
+					indentationCombo.setSelectedIndex(i);
+					indentationFound = true;
+					break;
+				}
+			}
+			if (!indentationFound) {
+				indentationCombo.setSelectedItem(dbCsvExportDefinition.getIndentation());
+			}
+		}
+		
+		boolean foundLocale = false;
+		for (int i = 0; i < localeCombo.getItemCount(); i++) {
+			if (localeCombo.getItemAt(i).equalsIgnoreCase(dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage())) {
+				localeCombo.setSelectedIndex(i);
+				foundLocale = true;
+				break;
+			}
+		}
+		if (!foundLocale) {
+			localeCombo.setSelectedItem(dbCsvExportDefinition.getDateAndDecimalLocale().getLanguage());
+		}
+		
+		if (dbCsvExportDefinition.getNullValueString().equals("")) {
+			nullValueStringCombo.setSelectedIndex(0);
+		} else if (dbCsvExportDefinition.getNullValueString().equals("NULL")) {
+			nullValueStringCombo.setSelectedIndex(1);
+		} else if (dbCsvExportDefinition.getNullValueString().equals("Null")) {
+			nullValueStringCombo.setSelectedIndex(2);
+		} else if (dbCsvExportDefinition.getNullValueString().equals("null")) {
+			nullValueStringCombo.setSelectedIndex(3);
+		} else {
+			nullValueStringCombo.setSelectedItem(dbCsvExportDefinition.getNullValueString());
+		}
 	}
 	
 	private void checkButtonStatus() {
@@ -623,31 +671,31 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			((AbstractDbExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
 			((AbstractDbExportWorker) worker).setExportStructure(dbCsvExportDefinition.isExportStructure());
 			
-			DualProgressDialog<WorkerDual<Boolean>> progressDialog = new DualProgressDialog<WorkerDual<Boolean>>(dbCsvExportGui, "DbCsvExport", worker);
+			DualProgressDialog<WorkerDual<Boolean>> progressDialog = new DualProgressDialog<WorkerDual<Boolean>>(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, worker);
 			Result result = progressDialog.showDialog();
 			
 			if (result == Result.CANCELED) {
-				new TextDialog(dbCsvExportGui, "DbCsvExport", "Canceled by user", Color.YELLOW).setVisible(true);
+				new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, LangResources.get("error.canceledbyuser"), Color.YELLOW).setVisible(true);
 			} else if (result == Result.ERROR) {
 				Exception e = progressDialog.getWorker().getError();
 				if (e instanceof DbCsvExportException) {
-					TextDialog textDialog = new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + ((DbCsvExportException) e).getMessage(), Color.PINK);
+					TextDialog textDialog = new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + ((DbCsvExportException) e).getMessage(), Color.PINK);
 					textDialog.setVisible(true);
 				} else {
 					String stacktrace = ExceptionUtilities.getStackTrace(e);
-					new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + ((Exception) e).getMessage() + "\n\n" + stacktrace, Color.PINK).setVisible(true);
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + ((Exception) e).getMessage() + "\n\n" + stacktrace, Color.PINK).setVisible(true);
 				}
 			} else {
 				Date start = worker.getStartTime();
 				Date end = worker.getEndTime();
 				long itemsDone = worker.getItemsDone();
 				
-				String resultText = "Start: " + start + "\nEnd: " + end + "\nTime elapsed: " + DateUtilities.getHumanReadableTimespan(end.getTime() - start.getTime(), true);
+				String resultText = LangResources.get("start") +": " + start + "\n" + LangResources.get("end") + ": " + end + "\n" + LangResources.get("timeelapsed") + ": " + DateUtilities.getHumanReadableTimespan(end.getTime() - start.getTime(), true);
 				
 				if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
-					resultText += "\nExported 1 select";
+					resultText += "\n" + LangResources.get("exported") + " 1 select";
 				} else {
-					resultText += "\nExported tables: " + itemsDone;
+					resultText += "\n" + LangResources.get("exportedtables") + ": " + itemsDone;
 				}
 				
 				long exportedLines;
@@ -672,16 +720,16 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					exportedDataAmount = ((DbCsvExportWorker) worker).getOverallExportedDataAmount();
 				}
 				
-				resultText += "\nExported lines: " + exportedLines;
+				resultText += "\n" + LangResources.get("exportedlines") + ": " + exportedLines;
 				
 				if (!dbCsvExportDefinition.getOutputpath().toLowerCase().equalsIgnoreCase("console")) {
-					resultText += "\nExported data amount: " + Utilities.getHumanReadableNumber(exportedDataAmount, "B");
+					resultText += "\n" + LangResources.get("exporteddataamount") + ": " + Utilities.getHumanReadableNumber(exportedDataAmount, "B");
 				}
 				
-				new TextDialog(dbCsvExportGui, "DbCsvExport", "Result:\n" + resultText, Color.WHITE).setVisible(true);
+				new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, LangResources.get("result") +":\n" + resultText, Color.WHITE).setVisible(true);
 			}
 		} catch (Exception e) {
-			new TextDialog(dbCsvExportGui, "DbCsvExport ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
+			new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), Color.RED).setVisible(true);
 		}
 	}
 }

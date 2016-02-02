@@ -9,6 +9,11 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
+import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
+import de.soderer.dbcsvexport.worker.DbCsvExportWorker;
+import de.soderer.dbcsvexport.worker.DbJsonExportWorker;
+import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
+import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
@@ -19,10 +24,11 @@ import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.DbUtilities.DbVendor;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.13.0";
+	public static final String VERSION = "3.14.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
+	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.secpref");
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"

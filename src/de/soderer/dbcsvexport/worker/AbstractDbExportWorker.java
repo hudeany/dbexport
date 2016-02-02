@@ -1,4 +1,4 @@
-package de.soderer.dbcsvexport;
+package de.soderer.dbcsvexport.worker;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,6 +20,12 @@ import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.dbcsvexport.DbCsvExportException;
+import de.soderer.dbcsvexport.converter.DefaultDBValueConverter;
+import de.soderer.dbcsvexport.converter.MySQLDBValueConverter;
+import de.soderer.dbcsvexport.converter.OracleDBValueConverter;
+import de.soderer.dbcsvexport.converter.PostgreSQLDBValueConverter;
+import de.soderer.dbcsvexport.converter.SQLiteDBValueConverter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -448,7 +454,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return overallExportedDataAmount;
 	}
 	
-	protected abstract String getConfigurationLogString(String fileName, String sqlStatement);
+	public abstract String getConfigurationLogString(String fileName, String sqlStatement);
 	
 	protected abstract String getFileExtension();
 

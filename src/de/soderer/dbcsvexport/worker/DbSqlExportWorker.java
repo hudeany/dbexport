@@ -1,4 +1,4 @@
-package de.soderer.dbcsvexport;
+package de.soderer.dbcsvexport.worker;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
@@ -28,7 +28,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	}
 
 	@Override
-	protected String getConfigurationLogString(String fileName, String sqlStatement) {
+	public String getConfigurationLogString(String fileName, String sqlStatement) {
 		return
 			"File: " + fileName
 			+ "Format: " + getFileExtension().toUpperCase()

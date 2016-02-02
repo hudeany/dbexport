@@ -6,41 +6,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Locale;
 
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.SectionedProperties;
+import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
 
-public class DbCsvExportDefinition {
-	// Default optional parameters
-	private boolean openGui = false;
-	private ExportType exportType = ExportType.CSV;
-	private boolean log = false;
-	private boolean verbose = false;
-	private boolean zip = false;
-	private String encoding = "UTF-8";
-	private char separator = ';';
-	private char stringQuote = '"';
-	private String indentation = "\t";
-	private boolean alwaysQuote = false;
-	private boolean createBlobFiles = false;
-	private boolean createClobFiles = false;
-	private Locale dateAndDecimalLocale = null;
-	private boolean beautify = false;
-	private boolean noHeaders = false;
-	private boolean exportStructure = false;
-	private String nullValueString = "";
-
-	// Mandatory parameters
-	private DbUtilities.DbVendor dbVendor = null;
-	private String hostname;
-	private String dbName;
-	private String username;
-	private String sqlStatementOrTablelist;
-	private String outputpath;
-	
+public class DbCsvExportDefinition extends SecureDataEntry {
 	public enum ExportType {
 		CSV,
 		JSON,
@@ -62,9 +37,36 @@ public class DbCsvExportDefinition {
 		}
 	}
 
+	// Mandatory parameters
+	private DbUtilities.DbVendor dbVendor = null;
+	private String hostname;
+	private String dbName;
+	private String username;
+	private String sqlStatementOrTablelist;
+	private String outputpath;
+
 	// Password may be entered interactive
 	private String password;
 
+	// Default optional parameters
+	private boolean openGui = false;
+	private ExportType exportType = ExportType.CSV;
+	private boolean log = false;
+	private boolean verbose = false;
+	private boolean zip = false;
+	private String encoding = "UTF-8";
+	private char separator = ';';
+	private char stringQuote = '"';
+	private String indentation = "\t";
+	private boolean alwaysQuote = false;
+	private boolean createBlobFiles = false;
+	private boolean createClobFiles = false;
+	private Locale dateAndDecimalLocale = null;
+	private boolean beautify = false;
+	private boolean noHeaders = false;
+	private boolean exportStructure = false;
+	private String nullValueString = "";
+	
 	public void setOpenGUI(boolean openGui) {
 		this.openGui = openGui;
 	}
@@ -136,8 +138,6 @@ public class DbCsvExportDefinition {
 			} else if (hostParts.length > 2) {
 				throw new Exception("Invalid hostname: " + hostname);
 			}
-		} else if (dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby && dbVendor != DbVendor.HSQL) {
-			throw new Exception("Invalid empty hostname");
 		}
 	}
 
@@ -453,5 +453,61 @@ public class DbCsvExportDefinition {
 
 	public boolean isExportStructure() {
 		return exportStructure;
+	}
+
+	@Override
+	public Object[] getStorageData() {
+		return new Object[] {
+			dbVendor,
+			hostname,
+			dbName,
+			username,
+			password,
+			sqlStatementOrTablelist,
+			outputpath,
+			exportType,
+			log,
+			verbose,
+			zip,
+			encoding,
+			separator,
+			stringQuote,
+			indentation,
+			alwaysQuote,
+			createBlobFiles,
+			createClobFiles,
+			dateAndDecimalLocale,
+			beautify,
+			noHeaders,
+			exportStructure,
+			nullValueString
+		};
+	}
+
+	@Override
+	public void loadData(List<String> valueStrings) throws Exception {
+		dbVendor = DbVendor.getDbVendorByName(valueStrings.get(0));
+		hostname = valueStrings.get(1);
+		dbName = valueStrings.get(2);
+		username = valueStrings.get(3);
+		password = valueStrings.get(4);
+		sqlStatementOrTablelist = valueStrings.get(5);
+		outputpath = valueStrings.get(6);
+		exportType = ExportType.getFromString(valueStrings.get(7));
+		log = Utilities.interpretAsBool(valueStrings.get(8));
+		verbose = Utilities.interpretAsBool(valueStrings.get(9));
+		zip = Utilities.interpretAsBool(valueStrings.get(10));
+		encoding = valueStrings.get(11);
+		separator = valueStrings.get(12).toCharArray()[0];
+		stringQuote = valueStrings.get(13).toCharArray()[0];
+		indentation = valueStrings.get(14);
+		alwaysQuote = Utilities.interpretAsBool(valueStrings.get(15));
+		createBlobFiles = Utilities.interpretAsBool(valueStrings.get(16));
+		createClobFiles = Utilities.interpretAsBool(valueStrings.get(17));
+		dateAndDecimalLocale = new Locale(valueStrings.get(18));
+		beautify = Utilities.interpretAsBool(valueStrings.get(19));
+		noHeaders = Utilities.interpretAsBool(valueStrings.get(20));
+		exportStructure = Utilities.interpretAsBool(valueStrings.get(21));
+		nullValueString = valueStrings.get(22);
 	}
 }

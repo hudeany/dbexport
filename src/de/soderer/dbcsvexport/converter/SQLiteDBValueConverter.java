@@ -1,4 +1,4 @@
-package de.soderer.dbcsvexport;
+package de.soderer.dbcsvexport.converter;
 
 import java.io.File;
 import java.io.InputStream;
@@ -7,11 +7,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.Base64;
+import java.util.Date;
 
 import de.soderer.utilities.Utilities;
 
-public class PostgreSQLDBValueConverter extends DefaultDBValueConverter {
-	public PostgreSQLDBValueConverter(boolean zip, boolean createBlobFiles, boolean createClobFiles, String fileExtension) {
+public class SQLiteDBValueConverter extends DefaultDBValueConverter {
+	public SQLiteDBValueConverter(boolean zip, boolean createBlobFiles, boolean createClobFiles, String fileExtension) {
 		super(zip, createBlobFiles, createClobFiles, fileExtension);
 	}
 
@@ -19,8 +20,8 @@ public class PostgreSQLDBValueConverter extends DefaultDBValueConverter {
 	public Object convert(ResultSet resultSet, int columnIndex, String outputFilePath) throws Exception {
 		ResultSetMetaData metaData = resultSet.getMetaData();
 		Object value;
-		if (metaData.getColumnType(columnIndex) == Types.BINARY) {
-			// getBlob-method is not implemented by PostgreSQL JDBC
+		if (metaData.getColumnType(columnIndex) == Types.BLOB) {
+			// getBlob-method is not implemented by SQLite JDBC
 			resultSet.getObject(columnIndex);
 			if (resultSet.wasNull()) {
 				value = null;
@@ -49,6 +50,19 @@ public class PostgreSQLDBValueConverter extends DefaultDBValueConverter {
 					}
 				} finally {
 					Utilities.closeQuietly(blobStream);
+				}
+			}
+		} else if (metaData.getColumnType(columnIndex) == Types.INTEGER || metaData.getColumnType(columnIndex) == Types.DATE) {
+			value = resultSet.getObject(columnIndex);
+			if (resultSet.wasNull()) {
+				value = null;
+			} else if (value instanceof Long) {
+				try {
+					Date dateValue = new Date();
+					dateValue.setTime((long) value);
+					value = dateValue;
+				} catch (Exception e) {
+					// Do nothing and keep the value
 				}
 			}
 		} else {

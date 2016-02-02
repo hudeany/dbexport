@@ -1,4 +1,4 @@
-package de.soderer.dbcsvexport;
+package de.soderer.dbcsvexport.converter;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

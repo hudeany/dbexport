@@ -1,4 +1,4 @@
-package de.soderer.dbcsvexport;
+package de.soderer.dbcsvexport.converter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
