@@ -458,6 +458,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	@Override
 	public Object[] getStorageData() {
 		return new Object[] {
+			getEntryName(),
 			dbVendor,
 			hostname,
 			dbName,
@@ -486,28 +487,30 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 
 	@Override
 	public void loadData(List<String> valueStrings) throws Exception {
-		dbVendor = DbVendor.getDbVendorByName(valueStrings.get(0));
-		hostname = valueStrings.get(1);
-		dbName = valueStrings.get(2);
-		username = valueStrings.get(3);
-		password = valueStrings.get(4);
-		sqlStatementOrTablelist = valueStrings.get(5);
-		outputpath = valueStrings.get(6);
-		exportType = ExportType.getFromString(valueStrings.get(7));
-		log = Utilities.interpretAsBool(valueStrings.get(8));
-		verbose = Utilities.interpretAsBool(valueStrings.get(9));
-		zip = Utilities.interpretAsBool(valueStrings.get(10));
-		encoding = valueStrings.get(11);
-		separator = valueStrings.get(12).toCharArray()[0];
-		stringQuote = valueStrings.get(13).toCharArray()[0];
-		indentation = valueStrings.get(14);
-		alwaysQuote = Utilities.interpretAsBool(valueStrings.get(15));
-		createBlobFiles = Utilities.interpretAsBool(valueStrings.get(16));
-		createClobFiles = Utilities.interpretAsBool(valueStrings.get(17));
-		dateAndDecimalLocale = new Locale(valueStrings.get(18));
-		beautify = Utilities.interpretAsBool(valueStrings.get(19));
-		noHeaders = Utilities.interpretAsBool(valueStrings.get(20));
-		exportStructure = Utilities.interpretAsBool(valueStrings.get(21));
-		nullValueString = valueStrings.get(22);
+		int i = 0;
+		setEntryName(valueStrings.get(i++));
+		dbVendor = DbVendor.getDbVendorByName(valueStrings.get(i++));
+		hostname = valueStrings.get(i++);
+		dbName = valueStrings.get(i++);
+		username = valueStrings.get(i++);
+		password = valueStrings.get(i++);
+		sqlStatementOrTablelist = valueStrings.get(i++);
+		outputpath = valueStrings.get(i++);
+		exportType = ExportType.getFromString(valueStrings.get(i++));
+		log = Utilities.interpretAsBool(valueStrings.get(i++));
+		verbose = Utilities.interpretAsBool(valueStrings.get(i++));
+		zip = Utilities.interpretAsBool(valueStrings.get(i++));
+		encoding = valueStrings.get(i++);
+		separator = valueStrings.get(i++).toCharArray()[0];
+		stringQuote = valueStrings.get(i++).toCharArray()[0];
+		indentation = valueStrings.get(i++);
+		alwaysQuote = Utilities.interpretAsBool(valueStrings.get(i++));
+		createBlobFiles = Utilities.interpretAsBool(valueStrings.get(i++));
+		createClobFiles = Utilities.interpretAsBool(valueStrings.get(i++));
+		dateAndDecimalLocale = new Locale(valueStrings.get(i++));
+		beautify = Utilities.interpretAsBool(valueStrings.get(i++));
+		noHeaders = Utilities.interpretAsBool(valueStrings.get(i++));
+		exportStructure = Utilities.interpretAsBool(valueStrings.get(i++));
+		nullValueString = valueStrings.get(i++);
 	}
 }
