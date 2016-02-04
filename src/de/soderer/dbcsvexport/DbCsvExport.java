@@ -5,6 +5,7 @@ import java.io.Console;
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
@@ -17,18 +18,19 @@ import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
-import de.soderer.utilities.DbUtilities.DbVendor;
 
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String VERSION = "3.14.0";
 	public static final String APPLICATION_NAME = "DbCsvExport";
-	public static final String VERSIONINFO_DOWNLOAD_URL = "http://downloads.sourceforge.net/project/dbcsvexport/Versions.xml?r=&ts=<time_seconds>&use_mirror=master";
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
 	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.secpref");
+	
+	public static String VERSION = null;
+	public static String VERSIONINFO_DOWNLOAD_URL = null;
 
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
@@ -76,12 +78,25 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	private WorkerDual<Boolean> worker;
 
 	public static void main(String[] arguments) {
+		try {
+			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream("/version.txt"), "UTF-8");
+			VERSION = versionInfoLines.get(0);
+			VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
+		} catch (Exception e) {
+			System.err.println("Invalid version.txt");
+			System.exit(1);
+		}
+		
 		DbCsvExportDefinition dbCsvExportDefinition = new DbCsvExportDefinition();
 
 		try {
 			if (arguments.length == 0) {
-				System.out.println(USAGE_MESSAGE);
-				System.exit(1);
+				if (GraphicsEnvironment.isHeadless()) {
+					System.out.println(USAGE_MESSAGE);
+					System.exit(1);
+				} else {
+					arguments = new String[] { "-gui" };
+				}
 			}
 
 			for (int i = 0; i < arguments.length; i++) {
