@@ -1,27 +1,44 @@
 package de.soderer.dbcsvexport;
 
-import java.io.Console;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Locale;
 
+import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
+import de.soderer.dbcsvexport.worker.DbCsvExportWorker;
+import de.soderer.dbcsvexport.worker.DbJsonExportWorker;
+import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
+import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
-import de.soderer.utilities.SectionedProperties;
 import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.WorkerDual;
+import de.soderer.utilities.WorkerParentDual;
 
+/**
+ * The Class DbCsvExportDefinition.
+ */
 public class DbCsvExportDefinition extends SecureDataEntry {
+
+	/**
+	 * The Enum ExportType.
+	 */
 	public enum ExportType {
 		CSV,
 		JSON,
 		XML,
 		SQL;
 
+		/**
+		 * Gets the string representation of export type.
+		 *
+		 * @param exportType
+		 *            the export type
+		 * @return the from string
+		 * @throws Exception
+		 *             the exception
+		 */
 		public static ExportType getFromString(String exportType) throws Exception {
 			if ("CSV".equalsIgnoreCase(exportType)) {
 				return ExportType.CSV;
@@ -29,7 +46,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				return ExportType.JSON;
 			} else if ("XML".equalsIgnoreCase(exportType)) {
 				return ExportType.XML;
-			}  else if ("SQL".equalsIgnoreCase(exportType)) {
+			} else if ("SQL".equalsIgnoreCase(exportType)) {
 				return ExportType.SQL;
 			} else {
 				throw new Exception("Invalid export format: " + exportType);
@@ -38,97 +55,239 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	}
 
 	// Mandatory parameters
+	
+	/** The db vendor. */
 	private DbUtilities.DbVendor dbVendor = null;
+
+	/** The hostname. */
 	private String hostname;
+
+	/** The db name. */
 	private String dbName;
+
+	/** The username. */
 	private String username;
+
+	/** The sql statement or tablelist. */
 	private String sqlStatementOrTablelist;
+
+	/** The outputpath. */
 	private String outputpath;
 
-	// Password may be entered interactive
+	/** The password, may be entered interactive */
 	private String password;
 
 	// Default optional parameters
-	private boolean openGui = false;
-	private ExportType exportType = ExportType.CSV;
-	private boolean log = false;
-	private boolean verbose = false;
-	private boolean zip = false;
-	private String encoding = "UTF-8";
-	private char separator = ';';
-	private char stringQuote = '"';
-	private String indentation = "\t";
-	private boolean alwaysQuote = false;
-	private boolean createBlobFiles = false;
-	private boolean createClobFiles = false;
-	private Locale dateAndDecimalLocale = null;
-	private boolean beautify = false;
-	private boolean noHeaders = false;
-	private boolean exportStructure = false;
-	private String nullValueString = "";
 	
+	/** The open gui. */
+	private boolean openGui = false;
+
+	/** The export type. */
+	private ExportType exportType = ExportType.CSV;
+
+	/** The log. */
+	private boolean log = false;
+
+	/** The verbose. */
+	private boolean verbose = false;
+
+	/** The zip. */
+	private boolean zip = false;
+
+	/** The encoding. */
+	private String encoding = "UTF-8";
+
+	/** The separator. */
+	private char separator = ';';
+
+	/** The string quote. */
+	private char stringQuote = '"';
+
+	/** The indentation. */
+	private String indentation = "\t";
+
+	/** The always quote. */
+	private boolean alwaysQuote = false;
+
+	/** The create blob files. */
+	private boolean createBlobFiles = false;
+
+	/** The create clob files. */
+	private boolean createClobFiles = false;
+
+	/** The date and decimal locale. */
+	private Locale dateAndDecimalLocale = null;
+
+	/** The beautify. */
+	private boolean beautify = false;
+
+	/** The no headers. */
+	private boolean noHeaders = false;
+
+	/** The export structure. */
+	private boolean exportStructure = false;
+
+	/** The null value string. */
+	private String nullValueString = "";
+
+	/**
+	 * Sets the open gui.
+	 *
+	 * @param openGui
+	 *            the new open gui
+	 */
 	public void setOpenGUI(boolean openGui) {
 		this.openGui = openGui;
 	}
-	
+
+	/**
+	 * Sets the export type.
+	 *
+	 * @param exportType
+	 *            the new export type
+	 */
 	public void setExportType(ExportType exportType) {
 		this.exportType = exportType;
 		if (this.exportType == null) {
 			this.exportType = ExportType.CSV;
 		}
 	}
-	
+
+	/**
+	 * Sets the export type.
+	 *
+	 * @param exportType
+	 *            the new export type
+	 * @throws Exception
+	 *             the exception
+	 */
 	public void setExportType(String exportType) throws Exception {
 		this.exportType = ExportType.getFromString(exportType);
 	}
 
+	/**
+	 * Sets the log.
+	 *
+	 * @param log
+	 *            the new log
+	 */
 	public void setLog(boolean log) {
 		this.log = log;
 	}
 
+	/**
+	 * Sets the zip.
+	 *
+	 * @param zip
+	 *            the new zip
+	 */
 	public void setZip(boolean zip) {
 		this.zip = zip;
 	}
 
+	/**
+	 * Sets the encoding.
+	 *
+	 * @param encoding
+	 *            the new encoding
+	 */
 	public void setEncoding(String encoding) {
 		this.encoding = encoding;
 	}
 
+	/**
+	 * Sets the separator.
+	 *
+	 * @param separator
+	 *            the new separator
+	 */
 	public void setSeparator(char separator) {
 		this.separator = separator;
 	}
 
+	/**
+	 * Sets the string quote.
+	 *
+	 * @param stringQuote
+	 *            the new string quote
+	 */
 	public void setStringQuote(char stringQuote) {
 		this.stringQuote = stringQuote;
 	}
 
+	/**
+	 * Sets the indentation.
+	 *
+	 * @param indentation
+	 *            the new indentation
+	 */
 	public void setIndentation(String indentation) {
 		this.indentation = indentation;
 	}
 
+	/**
+	 * Sets the always quote.
+	 *
+	 * @param alwaysQuote
+	 *            the new always quote
+	 */
 	public void setAlwaysQuote(boolean alwaysQuote) {
 		this.alwaysQuote = alwaysQuote;
 	}
 
+	/**
+	 * Sets the creates the blob files.
+	 *
+	 * @param createBlobFiles
+	 *            the new creates the blob files
+	 */
 	public void setCreateBlobFiles(boolean createBlobFiles) {
 		this.createBlobFiles = createBlobFiles;
 	}
 
+	/**
+	 * Sets the creates the clob files.
+	 *
+	 * @param createClobFiles
+	 *            the new creates the clob files
+	 */
 	public void setCreateClobFiles(boolean createClobFiles) {
 		this.createClobFiles = createClobFiles;
 	}
 
+	/**
+	 * Sets the db vendor.
+	 *
+	 * @param dbVendor
+	 *            the new db vendor
+	 * @throws Exception
+	 *             the exception
+	 */
 	public void setDbVendor(String dbVendor) throws Exception {
 		this.dbVendor = DbUtilities.DbVendor.getDbVendorByName(dbVendor);
 	}
 
+	/**
+	 * Sets the db vendor.
+	 *
+	 * @param dbVendor
+	 *            the new db vendor
+	 */
 	public void setDbVendor(DbVendor dbVendor) {
 		this.dbVendor = dbVendor;
 	}
 
+	/**
+	 * Sets the hostname and optional port ("hostname:port")
+	 *
+	 * @param hostname
+	 *            the new hostname
+	 * @throws Exception
+	 *             the exception
+	 */
 	public void setHostname(String hostname) throws Exception {
 		this.hostname = hostname;
-		
+
 		if (Utilities.isNotBlank(hostname)) {
 			String[] hostParts = this.hostname.split(":");
 			if (hostParts.length == 2) {
@@ -141,26 +300,62 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		}
 	}
 
+	/**
+	 * Sets the db name.
+	 *
+	 * @param dbName
+	 *            the new db name
+	 */
 	public void setDbName(String dbName) {
 		this.dbName = dbName;
 	}
 
+	/**
+	 * Sets the username.
+	 *
+	 * @param username
+	 *            the new username
+	 */
 	public void setUsername(String username) {
 		this.username = username;
 	}
 
+	/**
+	 * Sets the date and decimal locale.
+	 *
+	 * @param dateAndDecimalLocale
+	 *            the new date and decimal locale
+	 */
 	public void setDateAndDecimalLocale(Locale dateAndDecimalLocale) {
 		this.dateAndDecimalLocale = dateAndDecimalLocale;
 	}
 
+	/**
+	 * Sets the password.
+	 *
+	 * @param password
+	 *            the new password
+	 */
 	public void setPassword(String password) {
 		this.password = password;
 	}
 
+	/**
+	 * Sets the sql statement or tablelist.
+	 *
+	 * @param sqlStatementOrTablelist
+	 *            the new sql statement or tablelist
+	 */
 	public void setSqlStatementOrTablelist(String sqlStatementOrTablelist) {
 		this.sqlStatementOrTablelist = sqlStatementOrTablelist;
 	}
 
+	/**
+	 * Sets the outputpath.
+	 *
+	 * @param outputpath
+	 *            the new outputpath
+	 */
 	public void setOutputpath(String outputpath) {
 		this.outputpath = outputpath;
 		if (this.outputpath != null) {
@@ -172,78 +367,173 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		}
 	}
 
+	/**
+	 * Gets the db vendor.
+	 *
+	 * @return the db vendor
+	 */
 	public DbVendor getDbVendor() {
 		return dbVendor;
 	}
 
+	/**
+	 * Gets the hostname.
+	 *
+	 * @return the hostname
+	 */
 	public String getHostname() {
 		return hostname;
 	}
 
+	/**
+	 * Gets the db name.
+	 *
+	 * @return the db name
+	 */
 	public String getDbName() {
 		return dbName;
 	}
 
+	/**
+	 * Gets the username.
+	 *
+	 * @return the username
+	 */
 	public String getUsername() {
 		return username;
 	}
 
+	/**
+	 * Gets the sql statement or tablelist.
+	 *
+	 * @return the sql statement or tablelist
+	 */
 	public String getSqlStatementOrTablelist() {
 		return sqlStatementOrTablelist;
 	}
 
+	/**
+	 * Gets the outputpath.
+	 *
+	 * @return the outputpath
+	 */
 	public String getOutputpath() {
 		return outputpath;
 	}
 
+	/**
+	 * Gets the password.
+	 *
+	 * @return the password
+	 */
 	public String getPassword() {
 		return password;
 	}
 
+	/**
+	 * Checks if is open gui.
+	 *
+	 * @return true, if is open gui
+	 */
 	public boolean isOpenGui() {
 		return openGui;
 	}
 
+	/**
+	 * Gets the export type.
+	 *
+	 * @return the export type
+	 */
 	public ExportType getExportType() {
 		return exportType;
 	}
 
+	/**
+	 * Checks if is log.
+	 *
+	 * @return true, if is log
+	 */
 	public boolean isLog() {
 		return log;
 	}
 
+	/**
+	 * Checks if is zip.
+	 *
+	 * @return true, if is zip
+	 */
 	public boolean isZip() {
 		return zip;
 	}
 
+	/**
+	 * Gets the encoding.
+	 *
+	 * @return the encoding
+	 */
 	public String getEncoding() {
 		return encoding;
 	}
 
+	/**
+	 * Gets the separator.
+	 *
+	 * @return the separator
+	 */
 	public char getSeparator() {
 		return separator;
 	}
 
+	/**
+	 * Gets the string quote.
+	 *
+	 * @return the string quote
+	 */
 	public char getStringQuote() {
 		return stringQuote;
 	}
 
+	/**
+	 * Gets the indentation.
+	 *
+	 * @return the indentation
+	 */
 	public String getIndentation() {
 		return indentation;
 	}
 
+	/**
+	 * Checks if is always quote.
+	 *
+	 * @return true, if is always quote
+	 */
 	public boolean isAlwaysQuote() {
 		return alwaysQuote;
 	}
 
+	/**
+	 * Checks if is creates the blob files.
+	 *
+	 * @return true, if is creates the blob files
+	 */
 	public boolean isCreateBlobFiles() {
 		return createBlobFiles;
 	}
 
+	/**
+	 * Checks if is creates the clob files.
+	 *
+	 * @return true, if is creates the clob files
+	 */
 	public boolean isCreateClobFiles() {
 		return createClobFiles;
 	}
-	
+
+	/**
+	 * Gets the date and decimal locale.
+	 *
+	 * @return the date and decimal locale
+	 */
 	public Locale getDateAndDecimalLocale() {
 		if (dateAndDecimalLocale == null) {
 			return Locale.getDefault();
@@ -252,6 +542,12 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		}
 	}
 
+	/**
+	 * Check parameters.
+	 *
+	 * @throws Exception
+	 *             the exception
+	 */
 	public void checkParameters() throws Exception {
 		if (outputpath == null) {
 			throw new DbCsvExportException("Outputpath is missing");
@@ -311,150 +607,123 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				throw new DbCsvExportException("Missing or invalid empty password");
 			}
 		}
-		
+
 		if (alwaysQuote && exportType != ExportType.CSV) {
 			throw new DbCsvExportException("AlwaysQuote is not supported for export format " + exportType);
 		}
-		
+
 		if (noHeaders && exportType != ExportType.CSV) {
 			throw new DbCsvExportException("NoHeaders is not supported for export format " + exportType);
 		}
-		
+
 		if (beautify && exportType != ExportType.CSV && exportType != ExportType.JSON && exportType != ExportType.XML) {
 			throw new DbCsvExportException("Beautify is not supported for export format " + exportType);
 		}
 	}
-	
-	public void checkAndLoadDbDrivers() throws Exception {
-		if (dbVendor != null) {
-			// Check if driver is included in jar/classpath
-			try {
-				Class.forName(dbVendor.getDriverClassName());
-			} catch (ClassNotFoundException e) {
-				// Driver is missing, so use the configured one
-				SectionedProperties configuration = new SectionedProperties(true);
-				if (DbCsvExport.CONFIGURATION_FILE.exists()) {
-					try (InputStream inputStream = new FileInputStream(DbCsvExport.CONFIGURATION_FILE)) {
-						configuration.load(inputStream);
-					}
-				}
-				String driverFile = configuration.getValue(dbVendor.toString().toLowerCase(), "driver_location");
-				if (driverFile != null) {
-					driverFile = driverFile.replace("~", System.getProperty("user.home"));
-				}
-				if (Utilities.isNotBlank(driverFile)) {
-					try {
-						if (!new File(driverFile).exists()) {
-							System.out.println("File " + driverFile + " not found");
-							throw new Exception("File " + driverFile + " not found");
-						}
-						Utilities.addFileToClasspath(driverFile);
-						Class.forName(dbVendor.getDriverClassName());
-					} catch (Exception e1) {
-						String newDriverFile = aquireNewDriver();
-						configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", newDriverFile);
-						try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
-							configuration.save(outputStream);
-						}
-					}
-				} else {
-					String newDriverFile = aquireNewDriver();
-					configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", newDriverFile);
-					try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
-						configuration.save(outputStream);
-					}
-				}
-			} catch (Throwable e) {
-				throw new Exception("Cannot load db driver: " + e.getMessage());
-			}
-		} else {
-			throw new Exception("Invalid empty db vendor");
-		}
-	}
 
-	private String aquireNewDriver() throws Exception {
-		if (isOpenGui()) {
-			if (!DbCsvExport.CONFIGURATION_FILE.exists()) {
-				try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
-					SectionedProperties configuration = new SectionedProperties(true);
-					for (DbVendor vendorToCreate : DbVendor.values()) {
-						configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
-					}
-					configuration.save(outputStream);
-				}
-			}
-			throw new Exception("Driver for " + dbVendor.toString() + " is missing. Please configure in " + DbCsvExport.CONFIGURATION_FILE);
-		} else {
-			System.out.println("Driver for " + dbVendor.toString() + " is missing");
-			Console console = System.console();
-			if (console == null) {
-				throw new Exception("Cannot get Console instance for user driver input");
-			}
-			
-			while (true) {
-				String newFilePath = console.readLine("Please enter driverfilepath (empty for cancel): ");
-				if (newFilePath != null) {
-					newFilePath = newFilePath.replace("~", System.getProperty("user.home"));
-				}
-				if (Utilities.isBlank(newFilePath)) {
-					throw new Exception("Driver input canceled by user");
-				} else if (!new File(newFilePath).exists()) {
-					System.out.println("File " + newFilePath + " not found");
-					System.out.println();
-				} else {
-					try {
-						Utilities.addFileToClasspath(newFilePath);
-						Class.forName(dbVendor.getDriverClassName());
-						return newFilePath;
-					} catch (Exception e) {
-						System.out.println("File " + newFilePath + " does not contain a " + dbVendor.toString() + " driver");
-						System.out.println();
-					}
-				}
-			}
-		}
-	}
-
+	/**
+	 * Sets the beautify.
+	 *
+	 * @param beautify
+	 *            the new beautify
+	 */
 	public void setBeautify(boolean beautify) {
 		this.beautify = beautify;
 	}
 
+	/**
+	 * Checks if is beautify.
+	 *
+	 * @return true, if is beautify
+	 */
 	public boolean isBeautify() {
 		return beautify;
 	}
 
+	/**
+	 * Checks if is verbose.
+	 *
+	 * @return true, if is verbose
+	 */
 	public boolean isVerbose() {
 		return verbose;
 	}
 
+	/**
+	 * Sets the verbose.
+	 *
+	 * @param verbose
+	 *            the new verbose
+	 */
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
 	}
 
+	/**
+	 * Sets the no headers.
+	 *
+	 * @param noHeaders
+	 *            the new no headers
+	 */
 	public void setNoHeaders(boolean noHeaders) {
 		this.noHeaders = noHeaders;
 	}
 
+	/**
+	 * Checks if is no headers.
+	 *
+	 * @return true, if is no headers
+	 */
 	public boolean isNoHeaders() {
 		return noHeaders;
 	}
 
+	/**
+	 * Sets the null value string.
+	 *
+	 * @param nullValueString
+	 *            the new null value string
+	 */
 	public void setNullValueString(String nullValueString) {
 		this.nullValueString = nullValueString;
 	}
 
+	/**
+	 * Gets the null value string.
+	 *
+	 * @return the null value string
+	 */
 	public String getNullValueString() {
 		return nullValueString;
 	}
 
+	/**
+	 * Sets the export structure.
+	 *
+	 * @param exportStructure
+	 *            the new export structure
+	 */
 	public void setExportStructure(boolean exportStructure) {
 		this.exportStructure = exportStructure;
 	}
 
+	/**
+	 * Checks if is export structure.
+	 *
+	 * @return true, if is export structure
+	 */
 	public boolean isExportStructure() {
 		return exportStructure;
 	}
 
+	/**
+	 * Get the array containing all relevant configuration data to store it in a SecureKeyStore
+	 */
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see de.soderer.utilities.SecureDataEntry#getStorageData()
+	 */
 	@Override
 	public Object[] getStorageData() {
 		return new Object[] {
@@ -481,10 +750,17 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 			beautify,
 			noHeaders,
 			exportStructure,
-			nullValueString
-		};
+			nullValueString };
 	}
-
+	
+	/**
+	 * Read the array given from a SecureKeyStore to get all relevant configuration data that was stored
+	 */
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see de.soderer.utilities.SecureDataEntry#loadData(java.util.List)
+	 */
 	@Override
 	public void loadData(List<String> valueStrings) throws Exception {
 		int i = 0;
@@ -512,5 +788,76 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		noHeaders = Utilities.interpretAsBool(valueStrings.get(i++));
 		exportStructure = Utilities.interpretAsBool(valueStrings.get(i++));
 		nullValueString = valueStrings.get(i++);
+	}
+
+	/**
+	 * Create and configure a worker according to the current configuration
+	 * 
+	 * @param parent
+	 * @return
+	 * @throws Exception
+	 */
+	public WorkerDual<Boolean> getConfiguredWorker(WorkerParentDual parent) throws Exception {
+		WorkerDual<Boolean> worker;
+		if (getExportType() == ExportType.JSON) {
+			worker = new DbJsonExportWorker(parent,
+				getDbVendor(),
+				getHostname(),
+				getDbName(),
+				getUsername(),
+				getPassword(),
+				getSqlStatementOrTablelist(),
+				getOutputpath());
+			((DbJsonExportWorker) worker).setBeautify(isBeautify());
+			((DbJsonExportWorker) worker).setIndentation(getIndentation());
+		} else if (getExportType() == ExportType.XML) {
+			worker = new DbXmlExportWorker(parent,
+				getDbVendor(),
+				getHostname(),
+				getDbName(),
+				getUsername(),
+				getPassword(),
+				getSqlStatementOrTablelist(),
+				getOutputpath());
+			((DbXmlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbXmlExportWorker) worker).setBeautify(isBeautify());
+			((DbXmlExportWorker) worker).setIndentation(getIndentation());
+			((DbXmlExportWorker) worker).setNullValueText(getNullValueString());
+		} else if (getExportType() == ExportType.SQL) {
+			worker = new DbSqlExportWorker(parent,
+				getDbVendor(),
+				getHostname(),
+				getDbName(),
+				getUsername(),
+				getPassword(),
+				getSqlStatementOrTablelist(),
+				getOutputpath());
+			((DbSqlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbSqlExportWorker) worker).setBeautify(isBeautify());
+		} else {
+			worker = new DbCsvExportWorker(parent,
+				getDbVendor(),
+				getHostname(),
+				getDbName(),
+				getUsername(),
+				getPassword(),
+				getSqlStatementOrTablelist(),
+				getOutputpath());
+			((DbCsvExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbCsvExportWorker) worker).setSeparator(getSeparator());
+			((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
+			((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
+			((DbCsvExportWorker) worker).setBeautify(isBeautify());
+			((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
+			((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
+		}
+		((AbstractDbExportWorker) worker).setLog(isLog());
+		((AbstractDbExportWorker) worker).setZip(isZip());
+		((AbstractDbExportWorker) worker).setEncoding(getEncoding());
+		((AbstractDbExportWorker) worker).setCreateBlobFiles(isCreateBlobFiles());
+		((AbstractDbExportWorker) worker).setCreateClobFiles(isCreateClobFiles());
+		((AbstractDbExportWorker) worker).setExportStructure(isExportStructure());
+		
+		return worker;
 	}
 }

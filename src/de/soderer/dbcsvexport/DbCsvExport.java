@@ -9,12 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
-import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
 import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
-import de.soderer.dbcsvexport.worker.DbCsvExportWorker;
-import de.soderer.dbcsvexport.worker.DbJsonExportWorker;
-import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
-import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
@@ -24,14 +19,27 @@ import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 
+/**
+ * The Main-Class of DbCsvExport.
+ */
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	public static final String APPLICATION_NAME = "DbCsvExport";
-	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
-	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.secpref");
 	
+	/** The Constant APPLICATION_NAME. */
+	public static final String APPLICATION_NAME = "DbCsvExport";
+	
+	/** The Constant CONFIGURATION_FILE. */
+	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
+	
+	/** The Constant SECURE_PREFERENCES_FILE. */
+	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.secpref");
+
+	/** The version is filled in at application start from the version.txt file. */
 	public static String VERSION = null;
+	
+	/** The versioninfo download url is filled in at application start from the version.txt file. */
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
 
+	/** The usage message. */
 	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
 			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] [-n 'NULL'] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
@@ -73,24 +81,35 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-help: show this help manual\n"
 			+ "\t-version: show current local version of this tool\n"
 			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
-	
+
+	/** The db csv export definition. */
 	private DbCsvExportDefinition dbCsvExportDefinition;
+	
+	/** The worker. */
 	private WorkerDual<Boolean> worker;
 
+	/**
+	 * The main method.
+	 *
+	 * @param arguments the arguments
+	 */
 	public static void main(String[] arguments) {
 		try {
+			// Try to fill the version and versioninfo download url
 			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream("/version.txt"), "UTF-8");
 			VERSION = versionInfoLines.get(0);
 			VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
 		} catch (Exception e) {
+			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
 			System.exit(1);
 		}
-		
+
 		DbCsvExportDefinition dbCsvExportDefinition = new DbCsvExportDefinition();
 
 		try {
 			if (arguments.length == 0) {
+				// If started without any parameter we check for headless mode and show the usage help or the GUI
 				if (GraphicsEnvironment.isHeadless()) {
 					System.out.println(USAGE_MESSAGE);
 					System.exit(1);
@@ -99,6 +118,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				}
 			}
 
+			// Read the parameters
 			for (int i = 0; i < arguments.length; i++) {
 				if ("-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
 						|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
@@ -166,7 +186,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						dbCsvExportDefinition.setIndentation("\t");
 					} else if ("BLANK".equalsIgnoreCase(arguments[i])) {
 						dbCsvExportDefinition.setIndentation(" ");
-					}  else if ("DOUBLEBLANK".equalsIgnoreCase(arguments[i])) {
+					} else if ("DOUBLEBLANK".equalsIgnoreCase(arguments[i])) {
 						dbCsvExportDefinition.setIndentation("  ");
 					} else {
 						dbCsvExportDefinition.setIndentation(arguments[i]);
@@ -197,7 +217,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						dbCsvExportDefinition.setDbVendor(arguments[i]);
 					} else if (dbCsvExportDefinition.getHostname() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setHostname(arguments[i]);
-					} else if (dbCsvExportDefinition.getUsername() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
+					} else if (dbCsvExportDefinition.getUsername() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setUsername(arguments[i]);
 					} else if (dbCsvExportDefinition.getDbName() == null) {
 						dbCsvExportDefinition.setDbName(arguments[i]);
@@ -205,7 +225,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						dbCsvExportDefinition.setSqlStatementOrTablelist(arguments[i]);
 					} else if (dbCsvExportDefinition.getOutputpath() == null) {
 						dbCsvExportDefinition.setOutputpath(arguments[i]);
-					} else if (dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
+					} else if (dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvExportDefinition.setPassword(arguments[i]);
 					} else {
 						throw new ParameterException(arguments[i], "Invalid parameter");
@@ -213,19 +233,25 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				}
 			}
 
+			// If started without GUI we may enter the missing password via the terminal
 			if (!dbCsvExportDefinition.isOpenGui()) {
-				if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null && dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
+				if (Utilities.isNotBlank(dbCsvExportDefinition.getHostname()) && dbCsvExportDefinition.getPassword() == null
+						&& dbCsvExportDefinition.getDbVendor() != DbVendor.SQLite
+						&& dbCsvExportDefinition.getDbVendor() != DbVendor.Derby) {
 					Console console = System.console();
 					if (console == null) {
-						throw new DbCsvExportException("Couldn't get Console instance");
+						throw new Exception("Couldn't get Console instance");
 					}
-	
+
 					char[] passwordArray = console.readPassword("Please enter db password: ");
 					dbCsvExportDefinition.setPassword(new String(passwordArray));
 				}
 
+				// Validdate all given parameters
 				dbCsvExportDefinition.checkParameters();
-				dbCsvExportDefinition.checkAndLoadDbDrivers();
+				if (!new DbCsvExportDriverSupplier(null, dbCsvExportDefinition.getDbVendor()).supplyDriver()) {
+					throw new Exception("Cannot aquire db driver for db vendor: " + dbCsvExportDefinition.getDbVendor());
+				}
 			}
 		} catch (ParameterException e) {
 			System.err.println(e.getMessage());
@@ -238,6 +264,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 
 		if (dbCsvExportDefinition.isOpenGui()) {
+			// open the preconfifured GUI
 			try {
 				new DbCsvExportGui(dbCsvExportDefinition);
 			} catch (Exception e) {
@@ -245,6 +272,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				System.exit(1);
 			}
 		} else {
+			// Start the export worker for terminal output 
 			try {
 				new DbCsvExport().export(dbCsvExportDefinition);
 				// System.exit(0); // Do not exit so junit tests can be executed
@@ -257,51 +285,33 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			}
 		}
 	}
-	
+
+	/**
+	 * Instantiates a new db csv export.
+	 *
+	 * @throws Exception the exception
+	 */
 	public DbCsvExport() throws Exception {
 		super(APPLICATION_NAME, new Version(VERSION));
 	}
 
+	/**
+	 * Export.
+	 *
+	 * @param dbCsvExportDefinition the db csv export definition
+	 * @throws Exception the exception
+	 */
 	private void export(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		this.dbCsvExportDefinition = dbCsvExportDefinition;
 
 		try {
-			if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
-				worker = new DbJsonExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbJsonExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
-				((DbJsonExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
-			} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
-				worker = new DbXmlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbXmlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
-				((DbXmlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
-				((DbXmlExportWorker) worker).setIndentation(dbCsvExportDefinition.getIndentation());
-				((DbXmlExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
-			} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
-				worker = new DbSqlExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbSqlExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
-				((DbSqlExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
-			} else {
-				worker = new DbCsvExportWorker(this, dbCsvExportDefinition.getDbVendor(), dbCsvExportDefinition.getHostname(), dbCsvExportDefinition.getDbName(), dbCsvExportDefinition.getUsername(), dbCsvExportDefinition.getPassword(), dbCsvExportDefinition.getSqlStatementOrTablelist(), dbCsvExportDefinition.getOutputpath());
-				((DbCsvExportWorker) worker).setDateAndDecimalLocale(dbCsvExportDefinition.getDateAndDecimalLocale());
-				((DbCsvExportWorker) worker).setSeparator(dbCsvExportDefinition.getSeparator());
-				((DbCsvExportWorker) worker).setStringQuote(dbCsvExportDefinition.getStringQuote());
-				((DbCsvExportWorker) worker).setAlwaysQuote(dbCsvExportDefinition.isAlwaysQuote());
-				((DbCsvExportWorker) worker).setBeautify(dbCsvExportDefinition.isBeautify());
-				((DbCsvExportWorker) worker).setNoHeaders(dbCsvExportDefinition.isNoHeaders());
-				((DbCsvExportWorker) worker).setNullValueText(dbCsvExportDefinition.getNullValueString());
-			}
-			((AbstractDbExportWorker) worker).setLog(dbCsvExportDefinition.isLog());
-			((AbstractDbExportWorker) worker).setZip(dbCsvExportDefinition.isZip());
-			((AbstractDbExportWorker) worker).setEncoding(dbCsvExportDefinition.getEncoding());
-			((AbstractDbExportWorker) worker).setCreateBlobFiles(dbCsvExportDefinition.isCreateBlobFiles());
-			((AbstractDbExportWorker) worker).setCreateClobFiles(dbCsvExportDefinition.isCreateClobFiles());
-			((AbstractDbExportWorker) worker).setExportStructure(dbCsvExportDefinition.isExportStructure());
-			
+			worker = dbCsvExportDefinition.getConfiguredWorker(this);
+
 			if (dbCsvExportDefinition.isVerbose()) {
 				System.out.println(((AbstractDbExportWorker) worker).getConfigurationLogString(new File(dbCsvExportDefinition.getOutputpath()).getName(), dbCsvExportDefinition.getSqlStatementOrTablelist()));
 				System.out.println();
 			}
-			
+
 			worker.setShowProgressAfterMilliseconds(2000);
 			worker.run();
 
@@ -318,16 +328,25 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentSimple#showUnlimitedProgress()
+	 */
 	@Override
 	public void showUnlimitedProgress() {
 		// Do nothing
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentDual#showUnlimitedSubProgress()
+	 */
 	@Override
 	public void showUnlimitedSubProgress() {
 		// Do nothing
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
+	 */
 	@Override
 	public void showProgress(Date start, long itemsToDo, long itemsDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
@@ -340,6 +359,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentDual#showItemStart(java.lang.String)
+	 */
 	@Override
 	public void showItemStart(String itemName) {
 		if (itemName.equals("Scanning tables ...")) {
@@ -349,6 +371,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentDual#showItemProgress(java.util.Date, long, long)
+	 */
 	@Override
 	public void showItemProgress(Date itemStart, long subItemToDo, long subItemDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
@@ -356,21 +381,25 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentDual#showItemDone(java.util.Date, java.util.Date, long)
+	 */
 	@Override
 	public void showItemDone(Date itemStart, Date itemEnd, long subItemsDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
-			System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(subItemsDone - 1) + " lines in "
-					+ DateUtilities.getShortHumanReadableTimespan(itemEnd.getTime() - itemStart.getTime(), false), 80));
+			System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(subItemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(itemEnd.getTime() - itemStart.getTime(), false), 80));
 			System.out.println();
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentSimple#showDone(java.util.Date, java.util.Date, long)
+	 */
 	@Override
 	public void showDone(Date start, Date end, long itemsDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
 			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
-				System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in "
-						+ DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
+				System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
 				System.out.println();
 				System.out.println();
 			} else {
@@ -381,11 +410,19 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see de.soderer.utilities.WorkerParentSimple#cancel()
+	 */
 	@Override
 	public void cancel() {
 		System.out.println("Canceled");
 	}
 
+	/**
+	 * Update application.
+	 *
+	 * @throws Exception the exception
+	 */
 	private void updateApplication() throws Exception {
 		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null).executeUpdate();
 	}
