@@ -36,7 +36,6 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 			+ "Encoding: " + encoding
 			+ "SqlStatement: " + sqlStatement
 			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
-			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
 			+ "CreateBlobFiles: " + createBlobFiles
 			+ "CreateClobFiles: " + createClobFiles;
 	}

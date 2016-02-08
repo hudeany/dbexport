@@ -22,6 +22,7 @@ import java.util.zip.ZipOutputStream;
 
 import de.soderer.dbcsvexport.DbCsvExportException;
 import de.soderer.dbcsvexport.converter.DefaultDBValueConverter;
+import de.soderer.dbcsvexport.converter.FirebirdDBValueConverter;
 import de.soderer.dbcsvexport.converter.MySQLDBValueConverter;
 import de.soderer.dbcsvexport.converter.OracleDBValueConverter;
 import de.soderer.dbcsvexport.converter.PostgreSQLDBValueConverter;
@@ -81,8 +82,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			dbValueConverter = new MySQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else if (dbVendor == DbVendor.PostgreSQL) {
 			dbValueConverter = new PostgreSQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
-		//} else if (dbVendor == DbVendor.HSQL) {
-		//	dbValueConverter = new HSQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else if (dbVendor == DbVendor.Firebird) {
+			dbValueConverter = new FirebirdDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else {
 			dbValueConverter = new DefaultDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		}
@@ -279,6 +280,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else if (dbVendor == DbVendor.Derby) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else if (dbVendor == DbVendor.HSQL) {
+				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
+			} else if (dbVendor == DbVendor.Firebird) {
 				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
 			} else {
 				throw new Exception("Unknown db vendor");

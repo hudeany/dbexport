@@ -56,19 +56,18 @@ public class DbCsvExportDriverSupplier {
 	
 	private String aquireDriverFileFromUser() throws Exception {
 		if (parent == null) {
-			System.out.println("Driver for " + dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ") is missing.");
-			System.out.println("You may configure the local driverfile now or later in " + DbCsvExport.CONFIGURATION_FILE);
-			System.out.println("Leave empty for cancel");
+			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")", DbCsvExport.CONFIGURATION_FILE));
+			System.out.println(LangResources.get("emptyForCancel"));
 			Console console = System.console();
 			if (console == null) {
 				throw new Exception("Couldn't get Console instance");
 			}
 
-			return console.readLine("Please enter local driver file path: ");
+			return console.readLine(LangResources.get("enterDriverFile") + ": ");
 		} else {
-			new TextDialog(parent, DbCsvExport.APPLICATION_NAME + " DB driver", "Driver for " + dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ") is missing.\nYou may configure the local driverfile now or later in " + DbCsvExport.CONFIGURATION_FILE, LangResources.get("ok")).setVisible(true);
+			new TextDialog(parent, DbCsvExport.APPLICATION_NAME + " DB driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")", DbCsvExport.CONFIGURATION_FILE), LangResources.get("ok")).setVisible(true);
 			JFileChooser fileChooser = new JFileChooser();
-			fileChooser.setDialogTitle(DbCsvExport.APPLICATION_NAME + " DB driver file configuration for " + dbVendor.toString());
+			fileChooser.setDialogTitle(DbCsvExport.APPLICATION_NAME + " " + LangResources.get("driverFileSelectTitle", dbVendor.toString()));
 			if (JFileChooser.APPROVE_OPTION == fileChooser.showOpenDialog(parent)) {
 				return fileChooser.getSelectedFile().toString();
 			} else {
@@ -124,7 +123,7 @@ public class DbCsvExportDriverSupplier {
 		if (!DbCsvExport.CONFIGURATION_FILE.exists()) {
 			// Create prefilled configuration file
 			for (DbVendor vendorToCreate : DbVendor.values()) {
-				configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
+				configuration.setValue(vendorToCreate.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
 			}
 			try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 				configuration.save(outputStream);
@@ -135,10 +134,10 @@ public class DbCsvExportDriverSupplier {
 			try (InputStream inputStream = new FileInputStream(DbCsvExport.CONFIGURATION_FILE)) {
 				configuration.load(inputStream);
 			}
-			String driverFile = configuration.getValue(dbVendor.toString().toLowerCase(), "driver_location");
+			String driverFile = configuration.getValue(dbVendor.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME);
 			if (driverFile == null) {
 				// Create the missing entry with an empty value
-				configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", "");
+				configuration.setValue(dbVendor.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
 				try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 					configuration.save(outputStream);
 				}
@@ -164,9 +163,9 @@ public class DbCsvExportDriverSupplier {
 			// Create prefilled configuration file
 			for (DbVendor vendorToCreate : DbVendor.values()) {
 				if (vendorToCreate == dbVendor) {
-					configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", driverFilePath);
+					configuration.setValue(vendorToCreate.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, driverFilePath);
 				} else {
-					configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
+					configuration.setValue(vendorToCreate.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
 				}
 			}
 			try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
@@ -177,7 +176,7 @@ public class DbCsvExportDriverSupplier {
 			try (InputStream inputStream = new FileInputStream(DbCsvExport.CONFIGURATION_FILE)) {
 				configuration.load(inputStream);
 			}
-			configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", driverFilePath);
+			configuration.setValue(dbVendor.toString().toLowerCase(), DbCsvExport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, driverFilePath);
 			try (OutputStream outputStream = new FileOutputStream(DbCsvExport.CONFIGURATION_FILE)) {
 				configuration.save(outputStream);
 			}

@@ -68,7 +68,6 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			+ "AlwaysQuote: " + alwaysQuote
 			+ "SqlStatement: " + sqlStatement
 			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
-			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
 			+ "CreateBlobFiles: " + createBlobFiles
 			+ "CreateClobFiles: " + createClobFiles
 			+ "Beautify: " + beautify;

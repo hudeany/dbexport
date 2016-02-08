@@ -14,6 +14,7 @@ import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerDual;
@@ -23,12 +24,15 @@ import de.soderer.utilities.WorkerParentDual;
  * The Main-Class of DbCsvExport.
  */
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
-	
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbCsvExport";
 	
+	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
+	public static final String VERSION_RESOURCE_FILE = "/version.txt";
+	
 	/** The Constant CONFIGURATION_FILE. */
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
+	public static final String CONFIGURATION_DRIVERLOCATIONPROPERTYNAME = "driver_location";
 	
 	/** The Constant SECURE_PREFERENCES_FILE. */
 	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.secpref");
@@ -46,7 +50,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
 			+ "\n"
 			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql | oracle | postgresql | sqlite | derby | hsql\n"
+			+ "\tdbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql\n"
 			+ "\thostname: with optional port (not needed for sqlite and derby)\n"
 			+ "\tusername: username (not needed for sqlite and derby)\n"
 			+ "\tdbname: dbname or filepath for sqlite db or derby db\n"
@@ -96,7 +100,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	public static void main(String[] arguments) {
 		try {
 			// Try to fill the version and versioninfo download url
-			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream("/version.txt"), "UTF-8");
+			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
 			VERSION = versionInfoLines.get(0);
 			VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
 		} catch (Exception e) {
@@ -243,7 +247,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						throw new Exception("Couldn't get Console instance");
 					}
 
-					char[] passwordArray = console.readPassword("Please enter db password: ");
+					char[] passwordArray = console.readPassword(LangResources.get("enterDbPassword") + ": ");
 					dbCsvExportDefinition.setPassword(new String(passwordArray));
 				}
 
