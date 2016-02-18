@@ -2,7 +2,6 @@ package de.soderer.dbcsvexport.worker;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -14,6 +13,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -125,18 +125,13 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	@Override
-	public void run() {
-		startTime = new Date();
-
+	public Boolean work() throws Exception {
 		Connection connection = null;
 		try {
 			overallExportedLines = 0;
 			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
 
 			if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
-				itemsToDo = 0;
-				itemsDone = 0;
-
 				if (!"console".equalsIgnoreCase(outputpath)) {
 					if (!new File(outputpath).exists()) {
 						int lastSeparator = Math.max(outputpath.lastIndexOf("/"), outputpath.lastIndexOf("\\"));
@@ -154,7 +149,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				export(connection, sqlStatementOrTablelist, outputpath);
 
-				result = !cancel;
+				return !cancel;
 			} else {
 				showItemStart("Scanning tables ...");
 				showUnlimitedProgress();
@@ -164,48 +159,47 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
-				boolean success = true;
-				for (int i = 0; i < tablesToExport.size() && success && !cancel; i++) {
+				for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
 					showProgress(true);
 					String tableName = tablesToExport.get(i);
 					subItemsToDo = 0;
 					subItemsDone = 0;
-					String keyColumn = DbUtilities.getPrimaryKeyColumn(connection, tableName);
 					showItemStart(tableName);
 
-					try {
-						String nextOutputFilePath = outputpath;
-						if (!"console".equalsIgnoreCase(outputpath)) {
-							nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
-						} else {
-							System.out.println("Table: " + tableName);
-						}
-						export(connection, "SELECT * FROM " + tableName + (Utilities.isNotEmpty(keyColumn) ? " ORDER BY " + keyColumn : ""), nextOutputFilePath);
-					} catch (Exception e) {
-						error = e;
-						success = false;
+					String nextOutputFilePath = outputpath;
+					if (!"console".equalsIgnoreCase(outputpath)) {
+						nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
+					} else {
+						System.out.println("Table: " + tableName);
 					}
+					List<String> columnNames = DbUtilities.getColumnNames(connection, tableName);
+					Collections.sort(columnNames);
+					List<String> keyColumnNames = DbUtilities.getPrimaryKeyColumns(connection, tableName);
+					Collections.sort(keyColumnNames);
+					List<String> readoutColumns = new ArrayList<String>();
+					readoutColumns.addAll(keyColumnNames);
+					for (String columnName : columnNames) {
+						if (!readoutColumns.contains(columnName)) {
+							readoutColumns.add(columnName);
+						}
+					}
+					String orderPart = "";
+					if (!keyColumnNames.isEmpty()) {
+						orderPart = " ORDER BY " + Utilities.join(keyColumnNames, ", ");
+					}
+					export(connection, "SELECT " + Utilities.join(readoutColumns, ", ") + " FROM " + tableName + orderPart, nextOutputFilePath);
 
 					showItemDone();
 
 					itemsDone++;
 				}
-				result = success && !cancel;
+				return !cancel;
 			}
 		} catch (Exception e) {
-			error = e;
-			result = false;
+			throw e;
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			Utilities.closeQuietly(connection);
 		}
-		
-		showDone();
 	}
 
 	private void export(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
@@ -239,7 +233,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 
 				if (currentItemName == null) {
-					logToFile(logOutputStream, "Start: " + DateFormat.getDateTimeInstance().format(startTime));
+					logToFile(logOutputStream, "Start: " + DateFormat.getDateTimeInstance().format(getStartTime()));
 				} else {
 					logToFile(logOutputStream, "Start: " + DateFormat.getDateTimeInstance().format(startTimeSub));
 				}
@@ -269,23 +263,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				showUnlimitedSubProgress();
 			}
 
-			if (dbVendor == DbVendor.Oracle) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ")");
-			} else if (dbVendor == DbVendor.MySQL) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else if (dbVendor == DbVendor.PostgreSQL) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else if (dbVendor == DbVendor.SQLite) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else if (dbVendor == DbVendor.Derby) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else if (dbVendor == DbVendor.HSQL) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else if (dbVendor == DbVendor.Firebird) {
-				resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") AS data");
-			} else {
-				throw new Exception("Unknown db vendor");
-			}
+			resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") data");
 			resultSet.next();
 			int linesToExport = resultSet.getInt(1);
 			logToFile(logOutputStream, "Lines to export: " + linesToExport);
@@ -362,7 +340,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 
 			if (currentItemName == null) {
-				endTime = new Date();
+				setEndTime(new Date());
 			} else {
 				endTimeSub = new Date();
 			}
@@ -372,7 +350,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				int elapsedTimeInSeconds;
 				if (currentItemName == null) {
-					elapsedTimeInSeconds = (int) (endTime.getTime() - startTime.getTime()) / 1000;
+					elapsedTimeInSeconds = (int) (getEndTime().getTime() - getStartTime().getTime()) / 1000;
 				} else {
 					elapsedTimeInSeconds = (int) (endTimeSub.getTime() - startTimeSub.getTime()) / 1000;
 				}
@@ -389,8 +367,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 
 			if (currentItemName == null) {
-				logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(endTime));
-				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(endTime.getTime() - startTime.getTime(), true));
+				logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(getEndTime()));
+				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(getEndTime().getTime() - getStartTime().getTime(), true));
 			} else {
 				logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(endTimeSub));
 				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(endTimeSub.getTime() - startTimeSub.getTime(), true));
@@ -407,35 +385,13 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 			throw e;
 		} finally {
-			if (resultSet != null) {
-				try {
-					resultSet.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-
-			if (statement != null) {
-				try {
-					statement.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			Utilities.closeQuietly(resultSet);
+			Utilities.closeQuietly(statement);
 
 			closeWriter();
-
-			if (outputStream != null) {
-				outputStream.close();
-			}
-
-			if (logOutputStream != null) {
-				try {
-					logOutputStream.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+			
+			Utilities.closeQuietly(outputStream);
+			Utilities.closeQuietly(logOutputStream);
 		}
 
 		if (new File(outputFilePath).exists()) {

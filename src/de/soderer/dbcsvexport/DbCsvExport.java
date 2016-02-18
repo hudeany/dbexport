@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
+import javax.swing.SwingUtilities;
+
 import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
@@ -17,7 +19,6 @@ import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
-import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 
 /**
@@ -90,7 +91,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	private DbCsvExportDefinition dbCsvExportDefinition;
 	
 	/** The worker. */
-	private WorkerDual<Boolean> worker;
+	private AbstractDbExportWorker worker;
+
 
 	/**
 	 * The main method.
@@ -98,6 +100,19 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	 * @param arguments the arguments
 	 */
 	public static void main(String[] arguments) {
+		int returnCode = _main(arguments);
+		if (returnCode >= 0) {
+			System.exit(returnCode);
+		}
+	}
+	
+	/**
+	 * Method used for main but with no System.exit call to make it junit testable
+	 * 
+	 * @param arguments
+	 * @return
+	 */
+	protected static int _main(String[] arguments) {
 		try {
 			// Try to fill the version and versioninfo download url
 			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
@@ -106,7 +121,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		} catch (Exception e) {
 			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
-			System.exit(1);
+			return 1;
 		}
 
 		DbCsvExportDefinition dbCsvExportDefinition = new DbCsvExportDefinition();
@@ -116,7 +131,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				// If started without any parameter we check for headless mode and show the usage help or the GUI
 				if (GraphicsEnvironment.isHeadless()) {
 					System.out.println(USAGE_MESSAGE);
-					System.exit(1);
+					return 1;
 				} else {
 					arguments = new String[] { "-gui" };
 				}
@@ -127,13 +142,13 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 				if ("-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
 						|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
 					System.out.println(USAGE_MESSAGE);
-					System.exit(1);
+					return 1;
 				} else if ("-version".equalsIgnoreCase(arguments[i])) {
 					System.out.println(VERSION);
-					System.exit(1);
+					return 1;
 				} else if ("-update".equalsIgnoreCase(arguments[i])) {
 					new DbCsvExport().updateApplication();
-					System.exit(1);
+					return 1;
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					if (GraphicsEnvironment.isHeadless()) {
 						throw new DbCsvExportException("GUI can only be shown on a non-headless environment");
@@ -145,8 +160,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						throw new ParameterException(arguments[i - 1], "Missing parameter for export format");
 					} else if (Utilities.isBlank(arguments[i])) {
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for export format");
+					} else {
+						dbCsvExportDefinition.setExportType(arguments[i]);
 					}
-					dbCsvExportDefinition.setExportType(arguments[i]);
 				} else if ("-n".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
@@ -162,23 +178,31 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					dbCsvExportDefinition.setZip(true);
 				} else if ("-e".equalsIgnoreCase(arguments[i])) {
 					i++;
-					dbCsvExportDefinition.setEncoding(arguments[i]);
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter encoding");
+					} else if (Utilities.isBlank(arguments[i])) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter encoding");
+					} else {
+						dbCsvExportDefinition.setEncoding(arguments[i]);
+					}
 				} else if ("-s".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
 						throw new ParameterException(arguments[i - 1], "Missing parameter separator character");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter separator character");
+					} else {
+						dbCsvExportDefinition.setSeparator(arguments[i].charAt(0));
 					}
-					dbCsvExportDefinition.setSeparator(arguments[i].charAt(0));
 				} else if ("-q".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
 						throw new ParameterException(arguments[i - 1], "Missing parameter stringquote character");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote character");
+					} else {
+						dbCsvExportDefinition.setStringQuote(arguments[i].charAt(0));
 					}
-					dbCsvExportDefinition.setStringQuote(arguments[i].charAt(0));
 				} else if ("-i".equalsIgnoreCase(arguments[i])) {
 					i++;
 					if (i >= arguments.length) {
@@ -203,9 +227,9 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 						throw new ParameterException(arguments[i - 1], "Missing parameter format locale");
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter format locale");
+					} else {
+						dbCsvExportDefinition.setDateAndDecimalLocale(new Locale(arguments[i]));
 					}
-					Locale locale = new Locale(arguments[i]);
-					dbCsvExportDefinition.setDateAndDecimalLocale(locale);
 				} else if ("-blobfiles".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setCreateBlobFiles(true);
 				} else if ("-clobfiles".equalsIgnoreCase(arguments[i])) {
@@ -261,31 +285,38 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			System.err.println(e.getMessage());
 			System.err.println();
 			System.err.println(USAGE_MESSAGE);
-			System.exit(1);
+			return 1;
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
-			System.exit(1);
+			return 1;
 		}
 
 		if (dbCsvExportDefinition.isOpenGui()) {
-			// open the preconfifured GUI
+			// open the preconfigured GUI
 			try {
-				new DbCsvExportGui(dbCsvExportDefinition);
+				DbCsvExportGui dbCsvExportGui = new DbCsvExportGui(dbCsvExportDefinition);
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						dbCsvExportGui.setVisible(true);
+					}
+				});
+				return -1;
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.exit(1);
+				return 1;
 			}
 		} else {
 			// Start the export worker for terminal output 
 			try {
 				new DbCsvExport().export(dbCsvExportDefinition);
-				// System.exit(0); // Do not exit so junit tests can be executed
+				return 0;
 			} catch (DbCsvExportException e) {
 				System.err.println(e.getMessage());
-				System.exit(1);
+				return 1;
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.exit(1);
+				return 1;
 			}
 		}
 	}
@@ -312,7 +343,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			worker = dbCsvExportDefinition.getConfiguredWorker(this);
 
 			if (dbCsvExportDefinition.isVerbose()) {
-				System.out.println(((AbstractDbExportWorker) worker).getConfigurationLogString(new File(dbCsvExportDefinition.getOutputpath()).getName(), dbCsvExportDefinition.getSqlStatementOrTablelist()));
+				System.out.println(worker.getConfigurationLogString(new File(dbCsvExportDefinition.getOutputpath()).getName(), dbCsvExportDefinition.getSqlStatementOrTablelist()));
 				System.out.println();
 			}
 

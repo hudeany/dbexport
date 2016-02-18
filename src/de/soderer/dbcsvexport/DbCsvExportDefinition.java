@@ -13,7 +13,6 @@ import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 
 /**
@@ -39,18 +38,13 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		 * @throws Exception
 		 *             the exception
 		 */
-		public static ExportType getFromString(String exportType) throws Exception {
-			if ("CSV".equalsIgnoreCase(exportType)) {
-				return ExportType.CSV;
-			} else if ("JSON".equalsIgnoreCase(exportType)) {
-				return ExportType.JSON;
-			} else if ("XML".equalsIgnoreCase(exportType)) {
-				return ExportType.XML;
-			} else if ("SQL".equalsIgnoreCase(exportType)) {
-				return ExportType.SQL;
-			} else {
-				throw new Exception("Invalid export format: " + exportType);
+		public static ExportType getFromString(String exportTypeString) throws Exception {
+			for (ExportType exportType : ExportType.values()) {
+				if (exportType.toString().equalsIgnoreCase(exportTypeString)) {
+					return exportType;
+				}
 			}
+			throw new Exception("Invalid export format: " + exportTypeString);
 		}
 	}
 
@@ -74,18 +68,18 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	/** The outputpath. */
 	private String outputpath;
 
-	/** The password, may be entered interactive */
+	/** The password, may be entered interactivly */
 	private String password;
 
 	// Default optional parameters
 	
-	/** The open gui. */
+	/** Open a gui. */
 	private boolean openGui = false;
 
 	/** The export type. */
 	private ExportType exportType = ExportType.CSV;
 
-	/** The log. */
+	/** Log activation. */
 	private boolean log = false;
 
 	/** The verbose. */
@@ -291,7 +285,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		if (Utilities.isNotBlank(hostname)) {
 			String[] hostParts = this.hostname.split(":");
 			if (hostParts.length == 2) {
-				if (!Utilities.isNumber(hostParts[1])) {
+				if (!Utilities.isInteger(hostParts[1])) {
 					throw new Exception("Invalid port in hostname: " + hostname);
 				}
 			} else if (hostParts.length > 2) {
@@ -725,32 +719,33 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 * @see de.soderer.utilities.SecureDataEntry#getStorageData()
 	 */
 	@Override
-	public Object[] getStorageData() {
-		return new Object[] {
+	public String[] getStorageData() {
+		return new String[] {
 			getEntryName(),
-			dbVendor,
+			dbVendor.toString(),
 			hostname,
 			dbName,
 			username,
 			password,
 			sqlStatementOrTablelist,
 			outputpath,
-			exportType,
-			log,
-			verbose,
-			zip,
+			exportType.toString(),
+			Boolean.toString(log),
+			Boolean.toString(verbose),
+			Boolean.toString(zip),
 			encoding,
-			separator,
-			stringQuote,
+			Character.toString(separator),
+			Character.toString(stringQuote),
 			indentation,
-			alwaysQuote,
-			createBlobFiles,
-			createClobFiles,
-			dateAndDecimalLocale,
-			beautify,
-			noHeaders,
-			exportStructure,
-			nullValueString };
+			Boolean.toString(alwaysQuote),
+			Boolean.toString(createBlobFiles),
+			Boolean.toString(createClobFiles),
+			dateAndDecimalLocale.getLanguage(),
+			Boolean.toString(beautify),
+			Boolean.toString(noHeaders),
+			Boolean.toString(exportStructure),
+			nullValueString
+		};
 	}
 	
 	/**
@@ -797,8 +792,8 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 * @return
 	 * @throws Exception
 	 */
-	public WorkerDual<Boolean> getConfiguredWorker(WorkerParentDual parent) throws Exception {
-		WorkerDual<Boolean> worker;
+	public AbstractDbExportWorker getConfiguredWorker(WorkerParentDual parent) throws Exception {
+		AbstractDbExportWorker worker;
 		if (getExportType() == ExportType.JSON) {
 			worker = new DbJsonExportWorker(parent,
 				getDbVendor(),
@@ -851,12 +846,12 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 			((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
 			((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
 		}
-		((AbstractDbExportWorker) worker).setLog(isLog());
-		((AbstractDbExportWorker) worker).setZip(isZip());
-		((AbstractDbExportWorker) worker).setEncoding(getEncoding());
-		((AbstractDbExportWorker) worker).setCreateBlobFiles(isCreateBlobFiles());
-		((AbstractDbExportWorker) worker).setCreateClobFiles(isCreateClobFiles());
-		((AbstractDbExportWorker) worker).setExportStructure(isExportStructure());
+		worker.setLog(isLog());
+		worker.setZip(isZip());
+		worker.setEncoding(getEncoding());
+		worker.setCreateBlobFiles(isCreateBlobFiles());
+		worker.setCreateClobFiles(isCreateClobFiles());
+		worker.setExportStructure(isExportStructure());
 		
 		return worker;
 	}

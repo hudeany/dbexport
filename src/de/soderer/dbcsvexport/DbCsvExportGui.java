@@ -26,10 +26,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import de.soderer.dbcsvexport.DbCsvExportDefinition.ExportType;
-import de.soderer.dbcsvexport.worker.DbCsvExportWorker;
-import de.soderer.dbcsvexport.worker.DbJsonExportWorker;
-import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
-import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
+import de.soderer.dbcsvexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
@@ -38,7 +35,6 @@ import de.soderer.utilities.ExceptionUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
-import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.swing.BasicUpdateableGuiApplication;
 import de.soderer.utilities.swing.DualProgressDialog;
 import de.soderer.utilities.swing.SecurePreferencesDialog;
@@ -116,8 +112,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	/** The export structure box. */
 	private JCheckBox exportStructureBox;
 
-	/** The no headersy box. */
-	private JCheckBox noHeadersyBox;
+	/** The no headers box. */
+	private JCheckBox noHeadersBox;
 
 	/** The temporary preferences password. */
 	private char[] temporaryPreferencesPassword = null;
@@ -218,10 +214,9 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		exportTypePanel.add(exportTypeLabel);
 		exportTypeCombo = new JComboBox<String>();
 		exportTypeCombo.setToolTipText(LangResources.get("exporttype_help"));
-		exportTypeCombo.addItem("CSV");
-		exportTypeCombo.addItem("JSON");
-		exportTypeCombo.addItem("XML");
-		exportTypeCombo.addItem("SQL");
+		for (ExportType exportType : ExportType.values()) {
+			exportTypeCombo.addItem(exportType.toString());
+		}
 		exportTypeCombo.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
@@ -255,6 +250,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		encodingCombo.setToolTipText(LangResources.get("encoding_help"));
 		encodingCombo.setPreferredSize(new Dimension(200, encodingCombo.getPreferredSize().height));
 		encodingCombo.addItem("UTF-8");
+		encodingCombo.addItem("ISO-8859-1");
 		encodingCombo.addItem("ISO-8859-15");
 		encodingCombo.setEditable(true);
 		encodingPanel.add(encodingCombo);
@@ -373,9 +369,9 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		beautifyBox.setToolTipText(LangResources.get("beautify_help"));
 		optionalParametersPanel.add(beautifyBox);
 
-		noHeadersyBox = new JCheckBox(LangResources.get("noheaders"));
-		noHeadersyBox.setToolTipText(LangResources.get("noheaders_help"));
-		optionalParametersPanel.add(noHeadersyBox);
+		noHeadersBox = new JCheckBox(LangResources.get("noheaders"));
+		noHeadersBox.setToolTipText(LangResources.get("noheaders_help"));
+		optionalParametersPanel.add(noHeadersBox);
 
 		exportStructureBox = new JCheckBox(LangResources.get("exportstructure"));
 		exportStructureBox.setToolTipText(LangResources.get("exportstructure_help"));
@@ -473,7 +469,6 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 
 		setLocationRelativeTo(null);
 		setResizable(false);
-		setVisible(true);
 	}
 
 	/**
@@ -503,7 +498,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbCsvExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 		dbCsvExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
 		dbCsvExportDefinition.setExportStructure(exportStructureBox.isSelected());
-		dbCsvExportDefinition.setNoHeaders(noHeadersyBox.isEnabled() ? noHeadersyBox.isSelected() : false);
+		dbCsvExportDefinition.setNoHeaders(noHeadersBox.isEnabled() ? noHeadersBox.isSelected() : false);
 		dbCsvExportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
 		dbCsvExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
 		dbCsvExportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
@@ -562,7 +557,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		clobfilesBox.setSelected(dbCsvExportDefinition.isCreateClobFiles());
 		beautifyBox.setSelected(dbCsvExportDefinition.isBeautify());
 		exportStructureBox.setSelected(dbCsvExportDefinition.isExportStructure());
-		noHeadersyBox.setSelected(dbCsvExportDefinition.isNoHeaders());
+		noHeadersBox.setSelected(dbCsvExportDefinition.isNoHeaders());
 
 		boolean encodingFound = false;
 		for (int i = 0; i < encodingCombo.getItemCount(); i++) {
@@ -643,6 +638,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		} else {
 			nullValueStringCombo.setSelectedItem(dbCsvExportDefinition.getNullValueString());
 		}
+		
+		checkButtonStatus();
 	}
 
 	/**
@@ -663,7 +660,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			separatorCombo.setEnabled(true);
 			stringQuoteCombo.setEnabled(true);
 			alwaysQuoteBox.setEnabled(true);
-			noHeadersyBox.setEnabled(true);
+			noHeadersBox.setEnabled(true);
 			beautifyBox.setEnabled(true);
 			indentationCombo.setEnabled(false);
 			nullValueStringCombo.setEnabled(true);
@@ -671,7 +668,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			alwaysQuoteBox.setEnabled(false);
-			noHeadersyBox.setEnabled(false);
+			noHeadersBox.setEnabled(false);
 			beautifyBox.setEnabled(true);
 			indentationCombo.setEnabled(true);
 			nullValueStringCombo.setEnabled(false);
@@ -679,7 +676,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			alwaysQuoteBox.setEnabled(false);
-			noHeadersyBox.setEnabled(false);
+			noHeadersBox.setEnabled(false);
 			beautifyBox.setEnabled(true);
 			indentationCombo.setEnabled(true);
 			nullValueStringCombo.setEnabled(true);
@@ -687,7 +684,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			alwaysQuoteBox.setEnabled(false);
-			noHeadersyBox.setEnabled(false);
+			noHeadersBox.setEnabled(false);
 			beautifyBox.setEnabled(false);
 			indentationCombo.setEnabled(false);
 			nullValueStringCombo.setEnabled(false);
@@ -716,9 +713,9 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			}
 			
 			// The worker parent is set later by the opened DualProgressDialog
-			WorkerDual<Boolean> worker = dbCsvExportDefinition.getConfiguredWorker(null);
+			AbstractDbExportWorker worker = dbCsvExportDefinition.getConfiguredWorker(null);
 
-			DualProgressDialog<WorkerDual<Boolean>> progressDialog = new DualProgressDialog<WorkerDual<Boolean>>(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, worker);
+			DualProgressDialog<AbstractDbExportWorker> progressDialog = new DualProgressDialog<AbstractDbExportWorker>(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, worker);
 			Result result = progressDialog.showDialog();
 
 			if (result == Result.CANCELED) {
@@ -746,31 +743,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 					resultText += "\n" + LangResources.get("exportedtables") + ": " + itemsDone;
 				}
 
-				long exportedLines;
-				if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
-					exportedLines = ((DbJsonExportWorker) worker).getOverallExportedLines();
-				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
-					exportedLines = ((DbXmlExportWorker) worker).getOverallExportedLines();
-				} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
-					exportedLines = ((DbSqlExportWorker) worker).getOverallExportedLines();
-				} else {
-					exportedLines = ((DbCsvExportWorker) worker).getOverallExportedLines();
-				}
-
-				long exportedDataAmount;
-				if (dbCsvExportDefinition.getExportType() == ExportType.JSON) {
-					exportedDataAmount = ((DbJsonExportWorker) worker).getOverallExportedDataAmount();
-				} else if (dbCsvExportDefinition.getExportType() == ExportType.XML) {
-					exportedDataAmount = ((DbXmlExportWorker) worker).getOverallExportedDataAmount();
-				} else if (dbCsvExportDefinition.getExportType() == ExportType.SQL) {
-					exportedDataAmount = ((DbSqlExportWorker) worker).getOverallExportedDataAmount();
-				} else {
-					exportedDataAmount = ((DbCsvExportWorker) worker).getOverallExportedDataAmount();
-				}
+				long exportedLines = worker.getOverallExportedLines();
 
 				resultText += "\n" + LangResources.get("exportedlines") + ": " + exportedLines;
 
 				if (!dbCsvExportDefinition.getOutputpath().toLowerCase().equalsIgnoreCase("console")) {
+					long exportedDataAmount = worker.getOverallExportedDataAmount();
 					resultText += "\n" + LangResources.get("exporteddataamount") + ": " + Utilities.getHumanReadableNumber(exportedDataAmount, "B");
 				}
 

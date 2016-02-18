@@ -1,6 +1,6 @@
 package de.soderer.dbcsvexport;
 
-import java.awt.Frame;
+import java.awt.Window;
 import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,10 +17,10 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.swing.TextDialog;
 
 public class DbCsvExportDriverSupplier {
-	private Frame parent;
+	private Window parent;
 	private DbVendor dbVendor;
 	
-	public DbCsvExportDriverSupplier(Frame parent, DbVendor dbVendor) throws Exception {
+	public DbCsvExportDriverSupplier(Window parent, DbVendor dbVendor) throws Exception {
 		if (dbVendor == null) {
 			throw new Exception("Invalid empty db vendor");
 		}
