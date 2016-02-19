@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build_jar" name="Create all Jars for Project DbCsvImport">
+	<property name="version" value="1.0.0" />
+	
+	<property name="projectsPath" value="${user.home}/git" />
+	<echo message="projectsPath: ${projectsPath}" />
+	
+	<property name="buildPath" value="build" />
+	<echo message="buildPath: ${buildPath}" />
+	<property name="buildSubDir" value="" />
+	<echo message="buildSubDir: ${buildSubDir}" />
+
+	<target name="build_jar" depends="cleanup_before, create_jar, create_versioninfo, cleanup_after" />
+
+	<target name="cleanup_before">
+		<delete dir="${buildPath}${buildSubDir}" />
+		<delete dir="${buildPath}/bin" />
+		<mkdir dir="${buildPath}/bin" />
+	</target>
+
+	<target name="compile">
+		<!-- Compile JarInJarLoader -->
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="${projectsPath}/JavaUtilities/src/main/java/de/soderer/utilities/jarinjarloader" includeantruntime="false" encoding="UTF-8" />
+
+		<!-- Compile DbCsvImport -->
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*" />
+		
+		<copy todir="${buildPath}/bin">
+			<fileset dir="src">
+				<include name="**/LanguageProperties*.properties"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="create_versionfile">
+		<delete file="${buildPath}/bin/version.txt" />
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}Unknown version URL</echo>
+	</target>
+	
+	<target name="create_jar" depends="compile, create_versionfile">
+		<jar destfile="${buildPath}${buildSubDir}/DbCsvImport-${version}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvimport.DbCsvImport" />
+			</manifest>
+
+			<fileset dir="${buildPath}/bin" />
+			
+			<zipfileset dir="lib" includes="JavaUtilities-*.jar" />
+		</jar>
+		
+		<jar destfile="${buildPath}${buildSubDir}/DbCsvImport-${version}_sources.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvimport.DbCsvImport" />
+			</manifest>
+			
+		    <fileset dir="src" includes="**/*.java"/>
+		</jar>
+
+		<tstamp>
+			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
+		</tstamp>
+		<checksum file="${buildPath}${buildSubDir}/DbCsvImport-${version}.jar" property="checksumMD5" />
+	</target>
+	
+	<target name="create_versioninfo">		
+	</target>
+	
+	<target name="cleanup_after">
+		<delete dir="${buildPath}/bin" />
+	</target>
+</project>

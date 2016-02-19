@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build_jar" name="Create all Jars for Project DbCsvImport">
+	<property name="buildSubDir" value="/homebase" />
+	
+	<import file="build.xml" />
+
+	<target name="create_versionfile">
+		<delete file="${buildPath}/bin/version.txt" />
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}http://www.soderer.de/index.php?download=Versions.xml</echo>
+	</target>
+	
+	<target name="create_jar" depends="compile, create_versionfile">
+		<jar destfile="${buildPath}${buildSubDir}/DbCsvImport.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvimport.DbCsvImport" />
+			</manifest>
+
+			<fileset dir="${buildPath}/bin" />
+			
+			<zipfileset dir="lib" includes="JavaUtilities-*.jar" />
+			
+			<zipfileset dir="lib_db" includes="*.jar" />
+		</jar>
+
+		<tstamp>
+			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
+		</tstamp>
+		<checksum file="${buildPath}${buildSubDir}/DbCsvImport.jar" property="checksumMD5" />
+	</target>
+	
+	<target name="create_versioninfo">
+		<echo file="${buildPath}${buildSubDir}/Versions.xml" message="&lt;?xml version=&apos;1.0&apos; encoding=&apos;utf-8&apos; standalone=&apos;yes&apos;?>${line.separator}&lt;ApplicationVersions creationDate=&apos;${buildTime}&apos;>${line.separator}&#9;&lt;DbCsvImport version=&apos;${version}&apos; md5CheckSum=&apos;${checksumMD5}&apos;>http://www.soderer.de/index.php?download=DbCsvImport.jar&amp;amp;username=&amp;lt;username>&amp;amp;password=&amp;lt;password>&lt;/DbCsvImport>${line.separator}&lt;/ApplicationVersions>" />
+	</target>
+</project>
