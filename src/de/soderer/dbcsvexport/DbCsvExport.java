@@ -45,7 +45,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
 
 	/** The usage message. */
-	private static String USAGE_MESSAGE = "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
+	private static String getUsageMessage() {
+		return "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
 			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] [-n 'NULL'] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
 			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
@@ -86,6 +87,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-help: show this help manual\n"
 			+ "\t-version: show current local version of this tool\n"
 			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
+	}
 
 	/** The db csv export definition. */
 	private DbCsvExportDefinition dbCsvExportDefinition;
@@ -130,7 +132,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			if (arguments.length == 0) {
 				// If started without any parameter we check for headless mode and show the usage help or the GUI
 				if (GraphicsEnvironment.isHeadless()) {
-					System.out.println(USAGE_MESSAGE);
+					System.out.println(getUsageMessage());
 					return 1;
 				} else {
 					arguments = new String[] { "-gui" };
@@ -141,7 +143,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			for (int i = 0; i < arguments.length; i++) {
 				if ("-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
 						|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
-					System.out.println(USAGE_MESSAGE);
+					System.out.println(getUsageMessage());
 					return 1;
 				} else if ("-version".equalsIgnoreCase(arguments[i])) {
 					System.out.println(VERSION);
@@ -284,7 +286,7 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 		} catch (ParameterException e) {
 			System.err.println(e.getMessage());
 			System.err.println();
-			System.err.println(USAGE_MESSAGE);
+			System.err.println(getUsageMessage());
 			return 1;
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
