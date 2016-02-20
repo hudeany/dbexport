@@ -46,6 +46,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected String password;
 	protected String tableName;
 	protected boolean createTableIfNotExists = false;
+	protected boolean tableWasCreated = false;
 	protected String importFilePath;
 	protected boolean commitOnFullSuccessOnly = true;
 	
@@ -65,10 +66,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	private int ignoredDuplicates = 0;
 	private int insertedItems = 0;
 	private int itemsForUpdateInImportData = 0;
-	private int updatedItemsInDb = 0;
 
-	private String additionalInsertValues = null;
-	private String additionalUpdateValues = null;
+	protected String additionalInsertValues = null;
+	protected String additionalUpdateValues = null;
+	
+	private boolean logErrorneousData = false;
+	protected File errorneousDataFile = null;
 
 	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
 		super(parent);
@@ -125,6 +128,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		this.createTableIfNotExists = createTableIfNotExists;
 	}
 
+	public void setLogErrorneousData(boolean logErrorneousData) {
+		this.logErrorneousData = logErrorneousData;
+	}
+
 	@Override
 	public Boolean work() throws Exception {
 		OutputStream logOutputStream = null;
@@ -146,7 +153,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	
 			try {
 				if (log) {
-					logOutputStream = new FileOutputStream(new File(importFilePath + "." + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date()) + ".import.log"));
+					logOutputStream = new FileOutputStream(new File(importFilePath + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
 					
 					logToFile(logOutputStream, getConfigurationLogString());
 				}
@@ -157,9 +164,9 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				
 				if (!DbUtilities.checkTableExist(connection, tableName)) {
 					if (createTableIfNotExists) {
-						Map<String, SimpleDataType> importDataTypes = scanDataPropertyTypes();
-						Map<String, SimpleDataType> dbDataTypes = new HashMap<String, SimpleDataType>();
-						for (Entry<String, SimpleDataType> importDataType : importDataTypes.entrySet()) {
+						Map<String, DbColumnType> importDataTypes = scanDataPropertyTypes();
+						Map<String, DbColumnType> dbDataTypes = new HashMap<String, DbColumnType>();
+						for (Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
 							if (mapping != null) {
 								for (Entry<String,Tuple<String,String>> mappingEntry : mapping.entrySet()) {
 									if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
@@ -168,7 +175,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 									}
 								}
 							} else {
-								if (!Pattern.matches("[a-zA-Z0-9_]{1, 30}", importDataType.getKey())) {
+								if (!Pattern.matches("[_a-zA-Z0-9]{1,30}", importDataType.getKey())) {
 									throw new DbCsvImportException("cannot create table without mapping for data propertyname: " + importDataType.getKey());
 								}
 								dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
@@ -178,7 +185,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 							// Close a maybe open transaction to allow DDL-statement
 							connection.rollback();
 						}
-						DbUtilities.createTable(connection, tableName, dbDataTypes, keyColumns);
+						try {
+							DbUtilities.createTable(connection, tableName, dbDataTypes, keyColumns);
+							tableWasCreated = true;
+						} catch (Exception e) {
+							throw new DbCsvImportException("Cannot create new table '" + tableName + "': " + e.getMessage(), e);
+						}
 						if (dbVendor == DbVendor.PostgreSQL) {
 							// Commit DDL-statement
 							connection.commit();
@@ -248,7 +260,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					statement = connection.createStatement();
 					
 					// Create temp table
-					String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
+					String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(getStartTime());
 					String tempTableName = "tmp_" + dateSuffix;
 					int i = 0;
 					while (DbUtilities.checkTableExist(connection, tempTableName) && i < 10) {
@@ -278,6 +290,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					// Insert in temp table
 					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn);
 					
+					showUnlimitedProgress();
+					
 					if (importMode == ImportMode.CLEARINSERT) {
 						markTrailingDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
 						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
@@ -289,12 +303,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
 					} else if (importMode == ImportMode.UPDATE) {
 						itemsForUpdateInImportData = getUpdateableItemsInTable(connection, tempTableName, tableName, keyColumns);
-						updatedItemsInDb = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
+						updatedItems = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
 						// Update destination table
 						updateExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, itemIndexColumn, updateWithNullValues, additionalUpdateValues);
 					} else if (importMode == ImportMode.UPSERT) {
 						itemsForUpdateInImportData = getUpdateableItemsInTable(connection, tempTableName, tableName, keyColumns);
-						updatedItemsInDb = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
+						updatedItems = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
 						
 						// Update destination table
 						updateExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, itemIndexColumn, updateWithNullValues, additionalUpdateValues);
@@ -312,6 +326,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					if (DbUtilities.checkTableExist(connection, tempTableName) && i < 10) {
 						statement.execute("DROP TABLE " + tempTableName);
 					}
+				}
+				
+				if (logErrorneousData & notImportedItems.size() > 0) {
+					errorneousDataFile = filterDataItems(notImportedItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
 				}
 				
 				setEndTime(new Date());
@@ -356,7 +374,6 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 	}
 
-
 	private int getUpdateableItemsInTable(Connection connection, String intoTableName, String fromTableName, List<String> keyColumns) throws Exception {
 		Statement statement = null;
 		try {
@@ -390,9 +407,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				errorList.add("...");
 			}
 			statistics.append("Not imported items indices: " + Utilities.join(errorList, ", ") + "\n");
+			if (errorneousDataFile != null) {
+				statistics.append("Errorneous data logged in file: " + errorneousDataFile + "\n");
+			}
 		}
 		
-		statistics.append("Imported data amount: " + Utilities.getHumanReadableNumber(importedDataAmount, "B") + "\n");
+		statistics.append("Imported data amount: " + Utilities.getHumanReadableNumber(importedDataAmount, "Byte") + "\n");
 
 		if (importMode == ImportMode.CLEARINSERT) {
 			statistics.append("Deleted items: " + deletedItems + "\n");
@@ -543,8 +563,9 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					preparedStatement.addBatch();
 					
 					importedItems++;
+					showProgress();
 				} catch (Exception e) {
-					notImportedItems.add(importedItems);
+					notImportedItems.add((int) itemsDone + 1);
 					if (commitOnFullSuccessOnly) {
 						connection.rollback();
 						throw new DbCsvImportException(e.getClass().getSimpleName() + " error in item index " + (itemsDone + 1) + ": " + e.getMessage(), e);
@@ -747,7 +768,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 
 	private static void logToFile(OutputStream logOutputStream, String message) throws Exception {
 		if (logOutputStream != null) {
-			logOutputStream.write((message + "\n").getBytes("UTF-8"));
+			logOutputStream.write((message.trim() + "\n").getBytes("UTF-8"));
 		}
 	}
 
@@ -779,12 +800,24 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		return insertedItems;
 	}
 	
-	public int getUpdatedItemsInDb() {
-		return updatedItemsInDb;
-	}
-	
 	public int getItemsForUpdateInImportData() {
 		return itemsForUpdateInImportData;
+	}
+	
+	public static String convertMappingToString(Map<String, Tuple<String, String>> mapping) {
+		StringBuilder returnValue = new StringBuilder();
+		
+		if (mapping != null) {
+			for (Entry<String, Tuple<String, String>> entry : mapping.entrySet()) {
+				returnValue.append(entry.getKey() + "=\"" + entry.getValue().getFirst() + "\"");
+				if (Utilities.isNotBlank(entry.getValue().getSecond())) {
+					returnValue.append(" " + entry.getValue().getSecond());
+				}
+				returnValue.append("\n");
+			}
+		}
+		
+		return returnValue.toString().trim();
 	}
 
 	public abstract String getConfigurationLogString();
@@ -799,5 +832,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 
 	protected abstract void closeReader() throws Exception;
 
-	protected abstract Map<String, SimpleDataType> scanDataPropertyTypes() throws Exception;
+	protected abstract Map<String, DbColumnType> scanDataPropertyTypes() throws Exception;
+	
+	protected abstract File filterDataItems(List<Integer> indexList, String fileSuffix) throws Exception;
 }

@@ -49,7 +49,8 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
 
 	/** The usage message. */
-	private static String USAGE_MESSAGE = "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
+	private static String getUsageMessage() {
+		return "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
 			+ "Usage: java -jar DbCsvImport.jar [-gui] [optional parameters] dbtype hostname[:port] username dbname tablename importfilepath [password]\n"
 			+ "\n"
@@ -86,12 +87,14 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-insvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for inserts. E.g.: id=test_seq.NEXTVAL;flag='abc'\n"
 			+ "\t-updvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for updates. E.g.: create=current_timestamp;flag='abc'\n"
 			+ "\t-create: scan data and create suitable table, if not exists\n"
+			+ "\t-logerrors: log error data items in file\n"
 			+ "\n"
 			+ "global/single parameters\n"
 			+ "\t-help: show this help manual\n"
 			+ "\t-gui: open a GUI\n"
 			+ "\t-version: show current local version of this tool\n"
 			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
+	}
 
 	/** The db csv import definition. */
 	private DbCsvImportDefinition dbCsvImportDefinition;
@@ -135,7 +138,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			if (arguments.length == 0) {
 				// If started without any parameter we check for headless mode and show the usage help or the GUI
 				if (GraphicsEnvironment.isHeadless()) {
-					System.out.println(USAGE_MESSAGE);
+					System.out.println(getUsageMessage());
 					return 1;
 				} else {
 					arguments = new String[] { "-gui" };
@@ -146,7 +149,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			for (int i = 0; i < arguments.length; i++) {
 				if ("-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
 						|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
-					System.out.println(USAGE_MESSAGE);
+					System.out.println(getUsageMessage());
 					return 1;
 				} else if ("-version".equalsIgnoreCase(arguments[i])) {
 					System.out.println(VERSION);
@@ -274,6 +277,8 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					}
 				} else if ("-create".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setCreateTable(true);
+				} else if ("-logerrors".equalsIgnoreCase(arguments[i])) {
+					dbCsvImportDefinition.setLogErrorneousData(true);
 				} else if ("-noheaders".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setNoHeaders(true);
 				} else if ("-c".equalsIgnoreCase(arguments[i])) {
@@ -322,7 +327,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 		} catch (ParameterException e) {
 			System.err.println(e.getMessage());
 			System.err.println();
-			System.err.println(USAGE_MESSAGE);
+			System.err.println(getUsageMessage());
 			return 1;
 		} catch (Exception e) {
 			System.err.println(e.getMessage());
@@ -410,7 +415,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			System.out.println("Imported items: " + worker.getImportedItems());
 			
 			if (dbCsvImportDefinition.isVerbose()) {
-				System.out.println("Imported data amount: " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "B"));
+				System.out.println(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "Byte"));
 			}
 		} catch (ExecutionException e) {
 			if (e.getCause() instanceof Exception) {

@@ -131,6 +131,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	private String additionalInsertValues = null;
 	
 	private String additionalUpdateValues = null;
+	
+	private boolean logErrorneousData = false;
 
 	public DbUtilities.DbVendor getDbVendor() {
 		return dbVendor;
@@ -347,6 +349,14 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		return additionalUpdateValues;
 	}
 
+	public boolean isLogErrorneousData() {
+		return logErrorneousData;
+	}
+
+	public void setLogErrorneousData(boolean logErrorneousData) {
+		this.logErrorneousData = logErrorneousData;
+	}
+
 	public void checkParameters() throws DbCsvImportException {
 		if (importFilePath == null) {
 			throw new DbCsvImportException("ImportFilePath is missing");
@@ -442,7 +452,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			mapping,
 			Boolean.toString(trimData),
 			additionalInsertValues,
-			additionalUpdateValues
+			additionalUpdateValues,
+			Boolean.toString(logErrorneousData)
 		};
 	}
 	
@@ -482,6 +493,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		trimData = Utilities.interpretAsBool(valueStrings.get(i++));
 		additionalInsertValues = valueStrings.get(i++);
 		additionalUpdateValues = valueStrings.get(i++);
+		logErrorneousData = Utilities.interpretAsBool(valueStrings.get(i++));
 	}
 
 	/**
@@ -538,6 +550,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
 		worker.setUpdateNullData(isUpdateNullData());
 		worker.setCreateTableIfNotExists(isCreateTable());
+		worker.setLogErrorneousData(isLogErrorneousData());
 		
 		return worker;
 	}

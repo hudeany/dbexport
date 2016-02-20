@@ -2,22 +2,31 @@ package de.soderer.dbcsvimport.worker;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import de.soderer.dbcsvimport.DbCsvImportException;
 import de.soderer.utilities.CsvDataException;
 import de.soderer.utilities.CsvReader;
+import de.soderer.utilities.CsvWriter;
+import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
+import de.soderer.utilities.ZipUtilities;
 
 public class DbCsvImportWorker extends AbstractDbImportWorker {
 	// Default optional parameters
@@ -30,7 +39,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	
 	private CsvReader csvReader = null;
 	private List<String> columnNames = null;
-	private Map<String, SimpleDataType> dataTypes = null;
+	private Map<String, DbColumnType> dataTypes = null;
 	private Integer itemsAmount = null;
 	
 	public DbCsvImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
@@ -64,22 +73,29 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	@Override
 	public String getConfigurationLogString() {
 		return
-			"File: " + importFilePath
-			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePath, ".zip")
-			+ "Format: CSV"
-			+ "Encoding: " + encoding
-			+ "Separator: " + separator
-			+ "StringQuote: " + stringQuote
-			+ "AllowUnderfilledLines: " + allowUnderfilledLines
-			+ "TrimData: " + trimData
-			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly
-			+ "Null value text: " + nullValueText
-			+ "Table name: " + tableName
-			+ "Import file path: " + importFilePath;
+			"File: " + importFilePath + "\n"
+			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePath, ".zip") + "\n"
+			+ "Format: CSV" + "\n"
+			+ "Encoding: " + encoding + "\n"
+			+ "Separator: " + separator + "\n"
+			+ "StringQuote: " + stringQuote + "\n"
+			+ "AllowUnderfilledLines: " + allowUnderfilledLines + "\n"
+			+ "TrimData: " + trimData + "\n"
+			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
+			+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n"
+			+ "Table name: " + tableName + "\n"
+			+ "Import file path: " + importFilePath + "\n"
+			+ "Import mode: " + importMode + "\n"
+			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
+			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
+			+ "Mapping: " + convertMappingToString(mapping) + "\n"
+			+ "Additional insert values: " + additionalInsertValues + "\n"
+			+ "Additional update values: " + additionalUpdateValues + "\n"
+			+ "Update with null values: " + updateWithNullValues + "\n";
 	}
 	
 	@Override
-	public Map<String, SimpleDataType> scanDataPropertyTypes() throws Exception {
+	public Map<String, DbColumnType> scanDataPropertyTypes() throws Exception {
 		if (dataTypes == null) {
 			CsvReader csvReader = null;
 			InputStream inputStream = null;
@@ -99,7 +115,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 					columnNames = csvReader.readNextCsvLine();
 				}
 				
-				dataTypes = new HashMap<String, SimpleDataType>();
+				dataTypes = new HashMap<String, DbColumnType>();
 				
 				// Scan all data for maximum
 				List<String> values;
@@ -107,36 +123,38 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 					for (int i = 0; i < values.size(); i++) {
 						String columnName = (columnNames == null || columnNames.size() <= i  ? Integer.toString(i) : columnNames.get(i));
 						String formatInfo = null;
-						for (Tuple<String, String> mappingValue : mapping.values()) {
-							if (mappingValue.getFirst().equals(columnName)) {
-								if (formatInfo == null && Utilities.isNotBlank(mappingValue.getSecond())) {
-									formatInfo = mappingValue.getSecond();
-									break;
+						if (mapping != null) {
+							for (Tuple<String, String> mappingValue : mapping.values()) {
+								if (mappingValue.getFirst().equals(columnName)) {
+									if (formatInfo == null && Utilities.isNotBlank(mappingValue.getSecond())) {
+										formatInfo = mappingValue.getSecond();
+										break;
+									}
 								}
 							}
 						}
 						
-						SimpleDataType currentType = dataTypes.get(columnName);
+						SimpleDataType currentType = dataTypes.get(columnName) == null ? null : dataTypes.get(columnName).getSimpleDataType();
 						if (currentType != SimpleDataType.Blob) {
 							String currentValue = values.get(i);
 							if (Utilities.isEmpty(currentValue)) {
 								dataTypes.put(columnName, null);
 							} else if ("file".equalsIgnoreCase(formatInfo) || currentValue.length() > 4000) {
-								dataTypes.put(columnName, SimpleDataType.Blob);
+								dataTypes.put(columnName, new DbColumnType("BLOB", -1, -1, -1, true));
 							} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file")) {
 								try {
 									new SimpleDateFormat(formatInfo).parse(currentValue.trim());
-									dataTypes.put(columnName, SimpleDataType.Date);
+									dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
 								} catch (Exception e) {
-									dataTypes.put(columnName, SimpleDataType.String);
+									dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.length()), -1, -1, true));
 								}
-								dataTypes.put(columnName, SimpleDataType.Date);
+								dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
 							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && Utilities.isInteger(currentValue)) {
-								dataTypes.put(columnName, SimpleDataType.Integer);
+								dataTypes.put(columnName, new DbColumnType("INTEGER", -1, -1, -1, true));
 							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && Utilities.isDouble(currentValue)) {
-								dataTypes.put(columnName, SimpleDataType.Double);
+								dataTypes.put(columnName, new DbColumnType("DOUBLE", -1, -1, -1, true));
 							} else {
-								dataTypes.put(columnName, SimpleDataType.String);
+								dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.length()), -1, -1, true));
 							}
 						}
 					}
@@ -285,5 +303,57 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	@Override
 	protected void closeReader() throws Exception {
 		Utilities.closeQuietly(csvReader);
+	}
+
+	@Override
+	protected File filterDataItems(List<Integer> indexList, String fileSuffix) throws Exception {
+		OutputStream outputStream = null;
+		CsvWriter csvWriter = null;
+		try {
+			openReader();
+			
+			File filteredDataFile;
+			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
+				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".csv.zip");
+				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile);
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePath + "." + fileSuffix + ".csv").getName()));
+			} else {
+				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".csv");
+				outputStream = new FileOutputStream(filteredDataFile);
+			}
+			
+			csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+			
+			csvWriter.writeValues(columnNames);
+			
+			Map<String, Object> item;
+			int itemIndex = 0;
+			while ((item = getNextItemData()) != null) {
+				itemIndex++;
+				if (indexList.contains(itemIndex)) {
+					List<String> values = new ArrayList<String>();
+					for (String columnName : columnNames) {
+						if (item.get(columnName) == null) {
+							values.add(nullValueText);
+						} else if (item.get(columnName) instanceof String) {
+							values.add((String) item.get(columnName));
+						} else if (item.get(columnName) instanceof Date) {
+							values.add(DateUtilities.YYYY_MM_DD_HHMMSS.format(item.get(columnName)));
+						} else if (item.get(columnName)  instanceof Number) {
+							values.add(item.get(columnName).toString());
+						} else {
+							values.add(item.get(columnName).toString());
+						}
+					}
+					csvWriter.writeValues(values);
+				}
+			}
+			
+			return filteredDataFile;
+		} finally {
+			closeReader();
+			Utilities.closeQuietly(csvWriter);
+			Utilities.closeQuietly(outputStream);
+		}
 	}
 }

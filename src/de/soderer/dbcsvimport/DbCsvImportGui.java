@@ -124,6 +124,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	
 	private JCheckBox trimDataBox;
 	
+	private JCheckBox logErrorneousDataBox;
+	
 	private JComboBox<String> importModeCombo;
 	
 	private JButton mappingButton;
@@ -438,6 +440,10 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		trimDataBox = new JCheckBox(LangResources.get("trimData"));
 		trimDataBox.setToolTipText(LangResources.get("trimData_help"));
 		optionalParametersPanel.add(trimDataBox);
+		
+		logErrorneousDataBox = new JCheckBox(LangResources.get("logErrorneousData"));
+		logErrorneousDataBox.setToolTipText(LangResources.get("logErrorneousData_help"));
+		optionalParametersPanel.add(logErrorneousDataBox);
 
 		// Button Panel 1
 		JPanel buttonPanel1 = new JPanel();
@@ -613,6 +619,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		dbCsvImportDefinition.setMapping(mappingField.getText());
 		dbCsvImportDefinition.setAdditionalInsertValues(additionalInsertValuesField.getText());
 		dbCsvImportDefinition.setAdditionalUpdateValues(additionalUpdateValuesField.getText());
+		dbCsvImportDefinition.setTrimData(trimDataBox.isSelected());
+		dbCsvImportDefinition.setLogErrorneousData(logErrorneousDataBox.isSelected());
 		
 		return dbCsvImportDefinition;
 	}
@@ -726,6 +734,10 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		additionalInsertValuesField.setText(dbCsvImportDefinition.getAdditionalInsertValues());
 		
 		additionalUpdateValuesField.setText(dbCsvImportDefinition.getAdditionalUpdateValues());
+		
+		trimDataBox.setSelected(dbCsvImportDefinition.isTrimData());
+		
+		logErrorneousDataBox.setSelected(dbCsvImportDefinition.isLogErrorneousData());
 		
 		checkButtonStatus();
 	}
