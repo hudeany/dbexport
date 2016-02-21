@@ -781,10 +781,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			ImportMode.CLEARINSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
 			|| ImportMode.INSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
 			|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		additionalInsertValuesField.setBackground(additionalInsertValuesField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 		
 		additionalUpdateValuesField.setEnabled(
 			ImportMode.UPDATE.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
 			|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		additionalUpdateValuesField.setBackground(additionalUpdateValuesField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 	}
 
 	/**
