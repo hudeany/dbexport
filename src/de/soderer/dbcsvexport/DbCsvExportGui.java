@@ -41,8 +41,6 @@ import de.soderer.utilities.swing.SecurePreferencesDialog;
 import de.soderer.utilities.swing.SimpleProgressDialog.Result;
 import de.soderer.utilities.swing.TextDialog;
 
-//TODO: Repair Firebird test
-
 /**
  * The GUI for DbCsvExport.
  */
