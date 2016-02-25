@@ -255,7 +255,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				
 				if ((importMode == ImportMode.CLEARINSERT || importMode == ImportMode.INSERT) && Utilities.isEmpty(keyColumns)) {
 					// Just import in the destination table
-					insertIntoTable(connection, tableName, dbColumns, null);
+					insertIntoTable(connection, tableName, dbColumns, null, additionalInsertValues);
 				} else {
 					statement = connection.createStatement();
 					
@@ -278,6 +278,9 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 						// Close a maybe open transaction to allow DDL-statement
 						connection.rollback();
 						statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
+					} else if (dbVendor == DbVendor.Firebird) {
+						// There is no "create table as select"-statmenet in firebird
+						DbUtilities.createTable(connection, tempTableName, DbUtilities.getColumnDataTypes(connection, tableName), null);
 					} else {
 						statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
 					}
@@ -287,8 +290,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					statement.execute("CREATE INDEX " + tempTableName + "_idx2 ON " + tempTableName + " (" + itemIndexColumn + ")");
 					statement.execute("CREATE INDEX " + tempTableName + "_idx3 ON " + tempTableName + " (" + duplicateIndexColumn + ")");
 					
+					if (dbVendor == DbVendor.PostgreSQL || dbVendor == DbVendor.Firebird) {
+						connection.commit();
+					}
+					
 					// Insert in temp table
-					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn);
+					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn, null);
 					
 					showUnlimitedProgress();
 					
@@ -525,15 +532,26 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 	}
 
-	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn) throws SQLException, Exception {
+	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn, String additionalInsertValues) throws SQLException, Exception {
 		PreparedStatement preparedStatement = null;
 		List<Closeable> itemsToCloseAfterwards = new ArrayList<Closeable>();
 		try {
+			String additionalInsertValuesSqlColumns = "";
+			String additionalInsertValuesSqlValues = "";
+			if (Utilities.isNotBlank(additionalInsertValues)) {
+				for (String line : Utilities.splitAndTrimListQuoted(additionalInsertValues, '\n', '\r', ';')) {
+					String columnName = line.substring(0, line.indexOf("=")).trim();
+					String columnvalue = line.substring(line.indexOf("=") + 1).trim();
+					additionalInsertValuesSqlColumns += columnName + ", ";
+					additionalInsertValuesSqlValues += columnvalue + ", ";
+				}
+			}
+			
 			String statementString;
 			if (Utilities.isBlank(itemIndexColumn)) {
-				statementString = "INSERT INTO " + tableName + " (" + Utilities.join(dbTableColumnsListToInsert, ", ") + ") VALUES (" + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
+				statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(dbTableColumnsListToInsert, ", ") + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
 			} else {
-				statementString = "INSERT INTO " + tableName + " (" + Utilities.join(dbTableColumnsListToInsert, ", ") + ", " + itemIndexColumn + ") VALUES (" + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
+				statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(dbTableColumnsListToInsert, ", ") + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
 			}
 			
 			preparedStatement = connection.prepareStatement(statementString);
@@ -582,24 +600,30 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				}
 				itemsDone++;
 				
-				if (itemsDone % batchBlockSize == 0) {
-					int[] results = preparedStatement.executeBatch();
-					for (Closeable itemToClose : itemsToCloseAfterwards) {
-						Utilities.closeQuietly(itemToClose);
-					}
-					itemsToCloseAfterwards.clear();
-					for (int i = 0; i < results.length; i++) {
-						if (results[i] != 1 && results[i] != Statement.SUCCESS_NO_INFO) {
-							notImportedItems.add((int) (itemsDone - batchBlockSize) + i);
+				if (importedItems > 0) {
+					if (importedItems % batchBlockSize == 0) {
+						int[] results = preparedStatement.executeBatch();
+						for (Closeable itemToClose : itemsToCloseAfterwards) {
+							Utilities.closeQuietly(itemToClose);
 						}
+						itemsToCloseAfterwards.clear();
+						for (int i = 0; i < results.length; i++) {
+							if (results[i] != 1 && results[i] != Statement.SUCCESS_NO_INFO) {
+								notImportedItems.add((int) (itemsDone - batchBlockSize) + i);
+							}
+						}
+						if (!commitOnFullSuccessOnly) {
+							connection.commit();
+							if (dbVendor == DbVendor.Firebird) {
+								preparedStatement.close();
+								preparedStatement = connection.prepareStatement(statementString);
+							}
+						}
+						hasUnexecutedData = false;
+						showProgress();
+					} else {
+						hasUnexecutedData = true;
 					}
-					if (!commitOnFullSuccessOnly) {
-						connection.commit();
-					}
-					hasUnexecutedData = false;
-					showProgress();
-				} else {
-					hasUnexecutedData = true;
 				}
 			}
 			

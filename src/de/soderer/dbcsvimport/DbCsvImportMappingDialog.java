@@ -136,7 +136,7 @@ public class DbCsvImportMappingDialog extends JDialog {
 		}
 		
 		JScrollPane mappingScrollpane = new JScrollPane(mappingPanel);
-		mappingScrollpane.setPreferredSize(new Dimension(mappingPanel.getPreferredSize().width + 20, 500));
+		mappingScrollpane.setPreferredSize(new Dimension(533, Utilities.limitValue(100, mappingPanel.getPreferredSize().height, 500)));
 		
 		panel.add(mappingScrollpane);
 		

@@ -49,11 +49,6 @@ import de.soderer.utilities.swing.SimpleProgressDialog.Result;
 import de.soderer.utilities.swing.TextDialog;
 
 /**
- * TODO
- * Tests for DBs: Firebird
- */
-
-/**
  * The GUI for DbCsvImport.
  */
 public class DbCsvImportGui extends BasicUpdateableGuiApplication {

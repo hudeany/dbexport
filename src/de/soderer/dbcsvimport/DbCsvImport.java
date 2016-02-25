@@ -402,7 +402,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				if (worker.getNotImportedItems().size() > 0) {
 					List<String> errorList = new ArrayList<String>();
 					for (int i = 0; i < Math.min(10, worker.getNotImportedItems().size()); i++) {
-						errorList.add(Integer.toString(worker.getNotImportedItems().get(i) + 1));
+						errorList.add(Integer.toString(worker.getNotImportedItems().get(i)));
 					}
 					if (worker.getNotImportedItems().size() > 10) {
 						errorList.add("...");
