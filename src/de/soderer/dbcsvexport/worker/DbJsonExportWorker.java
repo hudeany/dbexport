@@ -6,7 +6,6 @@ import java.util.List;
 
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.WorkerParentDual;
-import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonWriter;
 
 public class DbJsonExportWorker extends AbstractDbExportWorker {
@@ -50,16 +49,8 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	}
 
 	@Override
-	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception {
+	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
 		jsonWriter.openJsonArray();
-		
-		if (exportStructure) {
-			JsonObject typesObject = new JsonObject();
-			for (int i = 0; i < columnNames.size(); i++) {
-				typesObject.add(columnNames.get(i), columnTypes.get(i));
-			}
-			jsonWriter.add(typesObject);
-		}
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package de.soderer.dbcsvexport;
 
 import java.awt.GraphicsEnvironment;
+
 import java.io.Console;
 import java.io.File;
 import java.text.NumberFormat;

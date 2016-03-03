@@ -91,13 +91,9 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	}
 
 	@Override
-	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception {
+	protected void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception {
 		if (!noHeaders) {
 			csvWriter.writeValues(columnNames);
-		}
-		
-		if (exportStructure) {
-			csvWriter.writeValues(columnTypes);
 		}
 		
 		minimumColumnSizes = new int[columnNames.size()];

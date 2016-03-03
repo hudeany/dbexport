@@ -554,10 +554,12 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
 			}
 		} else {
-			if (!new File(outputpath).exists()) {
-				throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
-			} else if (!new File(outputpath).isDirectory()) {
-				throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
+			if (!exportStructure) {
+				if (!new File(outputpath).exists()) {
+					throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
+				} else if (!new File(outputpath).isDirectory()) {
+					throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
+				}
 			}
 		}
 

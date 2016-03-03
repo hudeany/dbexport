@@ -10,6 +10,7 @@ import java.io.OutputStream;
 
 import javax.swing.JFileChooser;
 
+import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.SectionedProperties;
@@ -56,7 +57,7 @@ public class DbCsvExportDriverSupplier {
 	
 	private String aquireDriverFileFromUser() throws Exception {
 		if (parent == null) {
-			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")", DbCsvExport.CONFIGURATION_FILE));
+			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), DbCsvExport.CONFIGURATION_FILE));
 			System.out.println(LangResources.get("emptyForCancel"));
 			Console console = System.console();
 			if (console == null) {
@@ -65,7 +66,7 @@ public class DbCsvExportDriverSupplier {
 
 			return console.readLine(LangResources.get("enterDriverFile") + ": ");
 		} else {
-			new TextDialog(parent, DbCsvExport.APPLICATION_NAME + " DB driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")", DbCsvExport.CONFIGURATION_FILE), LangResources.get("ok")).setVisible(true);
+			new TextDialog(parent, DbCsvExport.APPLICATION_NAME + " DB driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), DbCsvExport.CONFIGURATION_FILE), LangResources.get("ok")).setVisible(true);
 			JFileChooser fileChooser = new JFileChooser();
 			fileChooser.setDialogTitle(DbCsvExport.APPLICATION_NAME + " " + LangResources.get("driverFileSelectTitle", dbVendor.toString()));
 			if (JFileChooser.APPROVE_OPTION == fileChooser.showOpenDialog(parent)) {

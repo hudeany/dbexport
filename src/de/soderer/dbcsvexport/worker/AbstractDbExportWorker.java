@@ -28,12 +28,14 @@ import de.soderer.dbcsvexport.converter.OracleDBValueConverter;
 import de.soderer.dbcsvexport.converter.PostgreSQLDBValueConverter;
 import de.soderer.dbcsvexport.converter.SQLiteDBValueConverter;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.ZipUtilities;
+import de.soderer.utilities.collection.CaseInsensitiveMap;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
@@ -146,8 +148,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						outputpath = outputpath + File.separator + "export_" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
 					}
 				}
-
-				export(connection, sqlStatementOrTablelist, outputpath);
+								
+				if (exportStructure) {
+					exportDbStructure(connection, sqlStatementOrTablelist, outputpath);
+				} else {
+					export(connection, sqlStatementOrTablelist, outputpath);
+				}
 
 				return !cancel;
 			} else {
@@ -159,39 +165,46 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
-				for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
-					showProgress(true);
-					String tableName = tablesToExport.get(i);
-					subItemsToDo = 0;
-					subItemsDone = 0;
-					showItemStart(tableName);
-
-					String nextOutputFilePath = outputpath;
-					if (!"console".equalsIgnoreCase(outputpath)) {
-						nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
-					} else {
-						System.out.println("Table: " + tableName);
+				if (exportStructure) {
+					if (new File(outputpath).exists() && new File(outputpath).isDirectory()) {
+						outputpath = outputpath + File.separator + "dbstructure_" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
 					}
-					List<String> columnNames = DbUtilities.getColumnNames(connection, tableName);
-					Collections.sort(columnNames);
-					List<String> keyColumnNames = DbUtilities.getPrimaryKeyColumns(connection, tableName);
-					Collections.sort(keyColumnNames);
-					List<String> readoutColumns = new ArrayList<String>();
-					readoutColumns.addAll(keyColumnNames);
-					for (String columnName : columnNames) {
-						if (!readoutColumns.contains(columnName)) {
-							readoutColumns.add(columnName);
+					exportDbStructure(connection, tablesToExport, outputpath);
+				} else {
+					for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
+						showProgress(true);
+						String tableName = tablesToExport.get(i);
+						subItemsToDo = 0;
+						subItemsDone = 0;
+						showItemStart(tableName);
+	
+						String nextOutputFilePath = outputpath;
+						if (!"console".equalsIgnoreCase(outputpath)) {
+							nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
+						} else {
+							System.out.println("Table: " + tableName);
 						}
+						List<String> columnNames = DbUtilities.getColumnNames(connection, tableName);
+						Collections.sort(columnNames);
+						List<String> keyColumnNames = DbUtilities.getPrimaryKeyColumns(connection, tableName);
+						Collections.sort(keyColumnNames);
+						List<String> readoutColumns = new ArrayList<String>();
+						readoutColumns.addAll(keyColumnNames);
+						for (String columnName : columnNames) {
+							if (!readoutColumns.contains(columnName)) {
+								readoutColumns.add(columnName);
+							}
+						}
+						String orderPart = "";
+						if (!keyColumnNames.isEmpty()) {
+							orderPart = " ORDER BY " + Utilities.join(keyColumnNames, ", ");
+						}
+						export(connection, "SELECT " + Utilities.join(readoutColumns, ", ") + " FROM " + tableName + orderPart, nextOutputFilePath);
+	
+						showItemDone();
+	
+						itemsDone++;
 					}
-					String orderPart = "";
-					if (!keyColumnNames.isEmpty()) {
-						orderPart = " ORDER BY " + Utilities.join(keyColumnNames, ", ");
-					}
-					export(connection, "SELECT " + Utilities.join(readoutColumns, ", ") + " FROM " + tableName + orderPart, nextOutputFilePath);
-
-					showItemDone();
-
-					itemsDone++;
 				}
 				return !cancel;
 			}
@@ -199,6 +212,152 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			throw e;
 		} finally {
 			Utilities.closeQuietly(connection);
+		}
+	}
+
+	private void exportDbStructure(Connection connection, List<String> tablesToExport, String outputFilePath) throws Exception {
+		OutputStream outputStream = null;
+
+		try {
+			if (!"console".equalsIgnoreCase(outputFilePath)) {
+				if (zip) {
+					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
+						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
+							outputFilePath = outputFilePath + ".txt";
+						}
+						
+						outputFilePath = outputFilePath + ".zip";
+					}
+				} else if (!outputFilePath.toLowerCase().endsWith(".txt")) {
+					outputFilePath = outputFilePath + ".txt";
+				}
+
+				if (new File(outputFilePath).exists()) {
+					throw new DbCsvExportException("Outputfile already exists: " + outputFilePath);
+				}
+
+				if (zip) {
+					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
+					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
+					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
+					if (!entryFileName.toLowerCase().endsWith(".txt")) {
+						entryFileName += ".txt";
+					}
+					ZipEntry entry = new ZipEntry(entryFileName);
+					entry.setTime(new Date().getTime());
+					((ZipOutputStream) outputStream).putNextEntry(entry);
+				} else {
+					outputStream = new FileOutputStream(new File(outputFilePath));
+				}
+			} else {
+				outputStream = System.out;
+			}
+
+			showProgress();
+
+			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
+				if (i > 0) {
+					outputStream.write(("\n").getBytes("UTF-8"));
+				}
+				
+				// Tablename
+				outputStream.write(("Table " + tablesToExport.get(i).toLowerCase() + ":\n").getBytes("UTF-8"));
+
+				List<String> keyColumnsCamelCase = DbUtilities.getPrimaryKeyColumns(connection, tablesToExport.get(i));
+				Collections.sort(keyColumnsCamelCase);
+				List<String> keyColumns = new ArrayList<String>();
+				for (String keyColumnCamelCase : keyColumnsCamelCase) {
+					keyColumns.add(keyColumnCamelCase.toLowerCase());
+				}
+				CaseInsensitiveMap<DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tablesToExport.get(i));
+				List<List<String>> foreignKeys = DbUtilities.getForeignKeys(connection, tablesToExport.get(i));
+				
+				// Columns (primary key columns first)
+				for (String keyColumn : keyColumns) {
+					outputStream.write(("\t" + keyColumn + " " + dbColumns.get(keyColumn).getTypeName() + " (Simple: " + dbColumns.get(keyColumn).getSimpleDataType() + ")\n").getBytes("UTF-8"));
+				}
+				List<String> columnNames = new ArrayList<String>(dbColumns.keySet());
+				Collections.sort(columnNames);
+				for (String columnName : columnNames) {
+					if (!keyColumns.contains(columnName)) {
+						outputStream.write(("\t" + columnName.toLowerCase() + " " + dbColumns.get(columnName).getTypeName() + " (Simple: " + dbColumns.get(columnName).getSimpleDataType() + ")\n").getBytes("UTF-8"));
+					}
+				}
+				
+				// Primary key
+				if (!keyColumns.isEmpty()) {
+					outputStream.write("Primary key:\n".getBytes("UTF-8"));
+					outputStream.write(("\t" + Utilities.join(keyColumns, ", ").toLowerCase() + "\n").getBytes("UTF-8"));
+				}
+
+				// Foreign keys
+				if (!foreignKeys.isEmpty()) {
+					outputStream.write("Foreign keys:\n".getBytes("UTF-8"));
+					for (List<String> foreignKey : foreignKeys) {
+						outputStream.write(("\t" + foreignKey.get(1) + " => " + foreignKey.get(2) + "." + foreignKey.get(3) + "\n").toLowerCase().getBytes("UTF-8"));
+					}
+				}
+
+				itemsDone++;
+				showProgress();
+			}
+		} finally {
+			Utilities.closeQuietly(outputStream);
+		}
+	}
+
+	private void exportDbStructure(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
+		OutputStream outputStream = null;
+		Statement statement = null;
+		ResultSet resultSet = null;
+
+		try {
+			if (!"console".equalsIgnoreCase(outputFilePath)) {
+				if (zip) {
+					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
+						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
+							outputFilePath = outputFilePath + ".txt";
+						}
+						
+						outputFilePath = outputFilePath + ".zip";
+					}
+				} else if (!outputFilePath.toLowerCase().endsWith(".txt")) {
+					outputFilePath = outputFilePath + ".txt";
+				}
+
+				if (new File(outputFilePath).exists()) {
+					throw new DbCsvExportException("Outputfile already exists: " + outputFilePath);
+				}
+
+				if (zip) {
+					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
+					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
+					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
+					if (!entryFileName.toLowerCase().endsWith(".txt")) {
+						entryFileName += ".txt";
+					}
+					ZipEntry entry = new ZipEntry(entryFileName);
+					entry.setTime(new Date().getTime());
+					((ZipOutputStream) outputStream).putNextEntry(entry);
+				} else {
+					outputStream = new FileOutputStream(new File(outputFilePath));
+				}
+			} else {
+				outputStream = System.out;
+			}
+
+			statement = connection.createStatement();
+			resultSet = statement.executeQuery(sqlStatement);
+			ResultSetMetaData metaData = resultSet.getMetaData();
+			
+			outputStream.write((sqlStatement + "\n\n").getBytes("UTF-8"));
+			for (int i = 1; i <= metaData.getColumnCount(); i ++) {
+				outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes("UTF-8"));
+			}
+		} finally {
+			Utilities.closeQuietly(resultSet);
+			Utilities.closeQuietly(statement);
+			Utilities.closeQuietly(outputStream);
 		}
 	}
 
@@ -306,7 +465,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				showItemProgress();
 			}
 			
-			startOutput(connection, sqlStatement, columnNames, columnTypes);
+			startOutput(connection, sqlStatement, columnNames);
 
 			// Write values
 			while (resultSet.next() && !cancel) {
@@ -419,7 +578,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	protected abstract void openWriter(OutputStream outputStream) throws Exception;
 
-	protected abstract void startOutput(Connection connection, String sqlStatement, List<String> columnNames, List<String> columnTypes) throws Exception;
+	protected abstract void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception;
 
 	protected abstract void startTableLine() throws Exception;
 
