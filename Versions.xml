@@ -1,4 +1,4 @@
 <?xml version='1.0' encoding='utf-8' standalone='yes'?>
-<ApplicationVersions creationDate='2016/02/25 05:52:33'>
-	<DbCsvExport version='3.19.0' md5CheckSum='5dacac3fe2d91ce08fd1ca5eb0018fac'>https://github.com/hudeany/dbcsvexport/releases/download/3.19.0/DbCsvExport-3.19.0.jar</DbCsvExport>
+<ApplicationVersions creationDate='2016/03/03 05:13:07'>
+	<DbCsvExport version='3.20.0' md5CheckSum='bf350e3fc97d19b9a08d91aef54c66c9'>https://github.com/hudeany/dbcsvexport/releases/download/3.20.0/DbCsvExport-3.20.0.jar</DbCsvExport>
 </ApplicationVersions>
