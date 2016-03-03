@@ -47,7 +47,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected String tableName;
 	protected boolean createTableIfNotExists = false;
 	protected boolean tableWasCreated = false;
-	protected String importFilePath;
+	protected boolean isInlineData;
+	protected String importFilePathOrData;
 	protected boolean commitOnFullSuccessOnly = true;
 	
 	protected List<String> dbTableColumnsListToInsert;
@@ -58,22 +59,22 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected String encoding = "UTF-8";
 	protected boolean updateWithNullValues = true;
 	
-	private int importedItems = 0;
-	private List<Integer> notImportedItems = new ArrayList<Integer>();
-	private long importedDataAmount = 0;
-	private int deletedItems = 0;
-	private int updatedItems = 0;
-	private int ignoredDuplicates = 0;
-	private int insertedItems = 0;
-	private int itemsForUpdateInImportData = 0;
+	protected int importedItems = 0;
+	protected List<Integer> notImportedItems = new ArrayList<Integer>();
+	protected long importedDataAmount = 0;
+	protected int deletedItems = 0;
+	protected int updatedItems = 0;
+	protected int ignoredDuplicates = 0;
+	protected int insertedItems = 0;
+	protected int itemsForUpdateInImportData = 0;
 
 	protected String additionalInsertValues = null;
 	protected String additionalUpdateValues = null;
 	
-	private boolean logErrorneousData = false;
+	protected boolean logErrorneousData = false;
 	protected File errorneousDataFile = null;
 
-	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
+	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
 		super(parent);
 		
 		this.dbVendor = dbVendor;
@@ -82,7 +83,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		this.username = username;
 		this.password = password;
 		this.tableName = tableName;
-		this.importFilePath = importFilePath;
+		this.isInlineData = isInlineData;
+		this.importFilePathOrData = importFilePathOrData;
 	}
 
 	public void setLog(boolean log) {
@@ -139,10 +141,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		PreparedStatement preparedStatement = null;
 		Statement statement = null;
 		try {
-			if (!new File(importFilePath).exists()) {
-				throw new DbCsvImportException("Import file does not exist: " + importFilePath);
-			} else if (new File(importFilePath).isDirectory()) {
-				throw new DbCsvImportException("Import path is a directory: " + importFilePath);
+			if (!isInlineData) {
+				if (!new File(importFilePathOrData).exists()) {
+					throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
+				} else if (new File(importFilePathOrData).isDirectory()) {
+					throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
+				}
 			}
 			
 			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
@@ -152,8 +156,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 			notImportedItems = new ArrayList<Integer>();
 	
 			try {
-				if (log) {
-					logOutputStream = new FileOutputStream(new File(importFilePath + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
+				if (log && !isInlineData) {
+					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
 					
 					logToFile(logOutputStream, getConfigurationLogString());
 				}
@@ -162,73 +166,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 
 				showUnlimitedProgress();
 				
-				if (!DbUtilities.checkTableExist(connection, tableName)) {
-					if (createTableIfNotExists) {
-						Map<String, DbColumnType> importDataTypes = scanDataPropertyTypes();
-						Map<String, DbColumnType> dbDataTypes = new HashMap<String, DbColumnType>();
-						for (Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
-							if (mapping != null) {
-								for (Entry<String,Tuple<String,String>> mappingEntry : mapping.entrySet()) {
-									if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
-										dbDataTypes.put(mappingEntry.getKey(), importDataTypes.get(importDataType.getKey()));
-										break;
-									}
-								}
-							} else {
-								if (!Pattern.matches("[_a-zA-Z0-9]{1,30}", importDataType.getKey())) {
-									throw new DbCsvImportException("cannot create table without mapping for data propertyname: " + importDataType.getKey());
-								}
-								dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
-							}
-						}
-						if (dbVendor == DbVendor.PostgreSQL) {
-							// Close a maybe open transaction to allow DDL-statement
-							connection.rollback();
-						}
-						try {
-							DbUtilities.createTable(connection, tableName, dbDataTypes, keyColumns);
-							tableWasCreated = true;
-						} catch (Exception e) {
-							throw new DbCsvImportException("Cannot create new table '" + tableName + "': " + e.getMessage(), e);
-						}
-						if (dbVendor == DbVendor.PostgreSQL) {
-							// Commit DDL-statement
-							connection.commit();
-						}
-					} else {
-						throw new DbCsvImportException("Table does not exist: " + tableName);
-					}
-				}
+				createTableIfNeeded(connection, tableName);
 
 				Map<String, DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tableName);
-				List<String> dataPropertyNames = getAvailableDataPropertyNames();
-				if (mapping != null) {
-					// Check mapping
-					for (String dbColumnToInsert : dbTableColumnsListToInsert) {
-						if (!dbColumns.containsKey(dbColumnToInsert)) {
-							throw new DbCsvImportException("DB table does not contain mapped column: " + dbColumnToInsert);
-						}
-					}
-					
-					for (Entry<String, Tuple<String, String>> mappingEntry : mapping.entrySet()) {
-						if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
-							throw new DbCsvImportException("Data does not contain mapped property: " + mappingEntry.getValue().getFirst());
-						}
-					}
-				} else {
-					// Create default mapping
-					mapping = new HashMap<String, Tuple<String, String>>();
-					dbTableColumnsListToInsert = new ArrayList<String>();
-					for (String dbColumn : dbColumns.keySet()) {
-						for (String dataPropertyName : dataPropertyNames) {
-							if (dbColumn.equalsIgnoreCase(dataPropertyName)) {
-								mapping.put(dbColumn, new Tuple<String, String>(dataPropertyName, ""));
-								dbTableColumnsListToInsert.add(dbColumn);
-								break;
-							}
-						}
-					}
-				}
+				checkMapping(dbColumns);
 				
 				if (dbTableColumnsListToInsert.size() == 0) {
 					throw new DbCsvImportException("Invalid empty mapping");
@@ -255,7 +196,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				
 				if ((importMode == ImportMode.CLEARINSERT || importMode == ImportMode.INSERT) && Utilities.isEmpty(keyColumns)) {
 					// Just import in the destination table
-					insertIntoTable(connection, tableName, dbColumns, null, additionalInsertValues);
+					insertIntoTable(connection, tableName, dbColumns, null, additionalInsertValues, mapping);
 				} else {
 					statement = connection.createStatement();
 					
@@ -271,31 +212,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					}
 					String itemIndexColumn = "import_item_" + dateSuffix;
 					String duplicateIndexColumn = "import_dupl_" + dateSuffix;
-					
-					if (dbVendor == DbVendor.HSQL || dbVendor == DbVendor.Derby) {
-						statement.execute("CREATE TABLE " + tempTableName + " AS (SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + ") WITH NO DATA");
-					} else if (dbVendor == DbVendor.PostgreSQL) {
-						// Close a maybe open transaction to allow DDL-statement
-						connection.rollback();
-						statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
-					} else if (dbVendor == DbVendor.Firebird) {
-						// There is no "create table as select"-statmenet in firebird
-						DbUtilities.createTable(connection, tempTableName, DbUtilities.getColumnDataTypes(connection, tableName), null);
-					} else {
-						statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
-					}
-					statement.execute("ALTER TABLE " + tempTableName + " ADD " + itemIndexColumn + " INTEGER");
-					statement.execute("ALTER TABLE " + tempTableName + " ADD " + duplicateIndexColumn + " INTEGER");
-					statement.execute("CREATE INDEX " + tempTableName + "_idx1 ON " + tempTableName + " (" + Utilities.join(keyColumns, ", ") + ")");
-					statement.execute("CREATE INDEX " + tempTableName + "_idx2 ON " + tempTableName + " (" + itemIndexColumn + ")");
-					statement.execute("CREATE INDEX " + tempTableName + "_idx3 ON " + tempTableName + " (" + duplicateIndexColumn + ")");
-					
-					if (dbVendor == DbVendor.PostgreSQL || dbVendor == DbVendor.Firebird) {
-						connection.commit();
-					}
+					createTempTable(connection, statement, tempTableName, itemIndexColumn, duplicateIndexColumn);
 					
 					// Insert in temp table
-					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn, null);
+					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn, null, mapping);
 					
 					showUnlimitedProgress();
 					
@@ -341,7 +261,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				
 				setEndTime(new Date());
 				
-				importedDataAmount += new File(importFilePath).length();
+				importedDataAmount += isInlineData ? importFilePathOrData.length() : new File(importFilePathOrData).length();
 				
 				logToFile(logOutputStream, getResultStatistics());
 				
@@ -378,6 +298,101 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				connection.rollback();
 			}
 			Utilities.closeQuietly(connection);
+		}
+	}
+
+	private void createTableIfNeeded(Connection connection, String tableName) throws Exception, DbCsvImportException, SQLException {
+		if (!DbUtilities.checkTableExist(connection, tableName)) {
+			if (createTableIfNotExists) {
+				Map<String, DbColumnType> importDataTypes = scanDataPropertyTypes();
+				Map<String, DbColumnType> dbDataTypes = new HashMap<String, DbColumnType>();
+				for (Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
+					if (mapping != null) {
+						for (Entry<String,Tuple<String,String>> mappingEntry : mapping.entrySet()) {
+							if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
+								dbDataTypes.put(mappingEntry.getKey(), importDataTypes.get(importDataType.getKey()));
+								break;
+							}
+						}
+					} else {
+						if (!Pattern.matches("[_a-zA-Z0-9]{1,30}", importDataType.getKey())) {
+							throw new DbCsvImportException("cannot create table without mapping for data propertyname: " + importDataType.getKey());
+						}
+						dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
+					}
+				}
+				if (dbVendor == DbVendor.PostgreSQL) {
+					// Close a maybe open transaction to allow DDL-statement
+					connection.rollback();
+				}
+				try {
+					DbUtilities.createTable(connection, tableName, dbDataTypes, keyColumns);
+					tableWasCreated = true;
+				} catch (Exception e) {
+					throw new DbCsvImportException("Cannot create new table '" + tableName + "': " + e.getMessage(), e);
+				}
+				if (dbVendor == DbVendor.PostgreSQL) {
+					// Commit DDL-statement
+					connection.commit();
+				}
+			} else {
+				throw new DbCsvImportException("Table does not exist: " + tableName);
+			}
+		}
+	}
+
+	private void checkMapping(Map<String, DbColumnType> dbColumns) throws Exception, DbCsvImportException {
+		List<String> dataPropertyNames = getAvailableDataPropertyNames();
+		if (mapping != null) {
+			// Check mapping
+			for (String dbColumnToInsert : dbTableColumnsListToInsert) {
+				if (!dbColumns.containsKey(dbColumnToInsert)) {
+					throw new DbCsvImportException("DB table does not contain mapped column: " + dbColumnToInsert);
+				}
+			}
+			
+			for (Entry<String, Tuple<String, String>> mappingEntry : mapping.entrySet()) {
+				if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
+					throw new DbCsvImportException("Data does not contain mapped property: " + mappingEntry.getValue().getFirst());
+				}
+			}
+		} else {
+			// Create default mapping
+			mapping = new HashMap<String, Tuple<String, String>>();
+			dbTableColumnsListToInsert = new ArrayList<String>();
+			for (String dbColumn : dbColumns.keySet()) {
+				for (String dataPropertyName : dataPropertyNames) {
+					if (dbColumn.equalsIgnoreCase(dataPropertyName)) {
+						mapping.put(dbColumn, new Tuple<String, String>(dataPropertyName, ""));
+						dbTableColumnsListToInsert.add(dbColumn);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	private void createTempTable(Connection connection, Statement statement, String tempTableName, String itemIndexColumn, String duplicateIndexColumn) throws SQLException, Exception {
+		if (dbVendor == DbVendor.HSQL || dbVendor == DbVendor.Derby) {
+			statement.execute("CREATE TABLE " + tempTableName + " AS (SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + ") WITH NO DATA");
+		} else if (dbVendor == DbVendor.PostgreSQL) {
+			// Close a maybe open transaction to allow DDL-statement
+			connection.rollback();
+			statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
+		} else if (dbVendor == DbVendor.Firebird) {
+			// There is no "create table as select"-statmenet in firebird
+			DbUtilities.createTable(connection, tempTableName, DbUtilities.getColumnDataTypes(connection, tableName), null);
+		} else {
+			statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
+		}
+		statement.execute("ALTER TABLE " + tempTableName + " ADD " + itemIndexColumn + " INTEGER");
+		statement.execute("ALTER TABLE " + tempTableName + " ADD " + duplicateIndexColumn + " INTEGER");
+		statement.execute("CREATE INDEX " + tempTableName + "_idx1 ON " + tempTableName + " (" + Utilities.join(keyColumns, ", ") + ")");
+		statement.execute("CREATE INDEX " + tempTableName + "_idx2 ON " + tempTableName + " (" + itemIndexColumn + ")");
+		statement.execute("CREATE INDEX " + tempTableName + "_idx3 ON " + tempTableName + " (" + duplicateIndexColumn + ")");
+		
+		if (dbVendor == DbVendor.PostgreSQL || dbVendor == DbVendor.Firebird) {
+			connection.commit();
 		}
 	}
 
@@ -532,7 +547,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 	}
 
-	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn, String additionalInsertValues) throws SQLException, Exception {
+	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn, String additionalInsertValues, Map<String, Tuple<String, String>> mapping) throws SQLException, Exception {
 		PreparedStatement preparedStatement = null;
 		List<Closeable> itemsToCloseAfterwards = new ArrayList<Closeable>();
 		try {
@@ -790,7 +805,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		return itemToCloseAfterwards;
 	}
 
-	private static void logToFile(OutputStream logOutputStream, String message) throws Exception {
+	protected static void logToFile(OutputStream logOutputStream, String message) throws Exception {
 		if (logOutputStream != null) {
 			logOutputStream.write((message.trim() + "\n").getBytes("UTF-8"));
 		}

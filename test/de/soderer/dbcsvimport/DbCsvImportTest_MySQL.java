@@ -769,4 +769,24 @@ public class DbCsvImportTest_MySQL {
 			Utilities.closeQuietly(jsonWriter);
 		}
 	}
+	
+	@Test
+	public void testCsvImportInlineData() {
+		try {
+			createEmptyTestTable();
+			prefillTestTable();
+			
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "not needed", "-x", "SQL", "-data", "INSERT INTO test_tbl (column_varchar) VALUES ('Inline Insert');INSERT INTO test_tbl (column_varchar) VALUES ('Inline Insert')", PASSWORD }));
+			Assert.assertEquals(
+				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
+				+ "1;;;;;1;;\"<test_text>_1\"\n"
+				+ "2;;;;;3;;\"<test_text>_3\"\n"
+				+ "3;;;;;999;;\"<test_text>_999\"\n"
+				+ "4;;;;;;;Inline Insert\n"
+				+ "5;;;;;;;Inline Insert\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
 }

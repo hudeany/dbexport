@@ -1,5 +1,6 @@
 package de.soderer.dbcsvimport.worker;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -42,8 +43,8 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	private Map<String, DbColumnType> dataTypes = null;
 	private Integer itemsAmount = null;
 	
-	public DbCsvImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, importFilePath);
+	public DbCsvImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
 	}
 
 	public void setSeparator(char separator) {
@@ -72,9 +73,15 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 
 	@Override
 	public String getConfigurationLogString() {
+		String dataPart;
+		if (isInlineData) {
+			dataPart = "Data: " + importFilePathOrData + "\n";
+		} else {
+			dataPart = "File: " + importFilePathOrData + "\n"
+			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
+		}
 		return
-			"File: " + importFilePath + "\n"
-			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePath, ".zip") + "\n"
+			dataPart
 			+ "Format: CSV" + "\n"
 			+ "Encoding: " + encoding + "\n"
 			+ "Separator: " + separator + "\n"
@@ -84,7 +91,6 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
 			+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n"
 			+ "Table name: " + tableName + "\n"
-			+ "Import file path: " + importFilePath + "\n"
 			+ "Import mode: " + importMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
@@ -100,10 +106,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			CsvReader csvReader = null;
 			InputStream inputStream = null;
 			try {
-				inputStream = new FileInputStream(new File(importFilePath));
-				if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-					inputStream = new ZipInputStream(inputStream);
-					((ZipInputStream) inputStream).getNextEntry();
+				if (!isInlineData) {
+					inputStream = new FileInputStream(new File(importFilePathOrData));
+					if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+						inputStream = new ZipInputStream(inputStream);
+						((ZipInputStream) inputStream).getNextEntry();
+					}
+				} else {
+					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
 				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
@@ -176,10 +186,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			CsvReader csvReader = null;
 			InputStream inputStream = null;
 			try {
-				inputStream = new FileInputStream(new File(importFilePath));
-				if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-					inputStream = new ZipInputStream(inputStream);
-					((ZipInputStream) inputStream).getNextEntry();
+				if (!isInlineData) {
+					inputStream = new FileInputStream(new File(importFilePathOrData));
+					if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+						inputStream = new ZipInputStream(inputStream);
+						((ZipInputStream) inputStream).getNextEntry();
+					}
+				} else {
+					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
 				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
@@ -228,10 +242,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			CsvReader csvReader = null;
 			InputStream inputStream = null;
 			try {
-				inputStream = new FileInputStream(new File(importFilePath));
-				if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-					inputStream = new ZipInputStream(inputStream);
-					((ZipInputStream) inputStream).getNextEntry();
+				if (!isInlineData) {
+					inputStream = new FileInputStream(new File(importFilePathOrData));
+					if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+						inputStream = new ZipInputStream(inputStream);
+						((ZipInputStream) inputStream).getNextEntry();
+					}
+				} else {
+					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
 				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
@@ -258,10 +276,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	protected void openReader() throws Exception {
 		InputStream inputStream = null;
 		try {
-			inputStream = new FileInputStream(new File(importFilePath));
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				inputStream = new ZipInputStream(inputStream);
-				((ZipInputStream) inputStream).getNextEntry();
+			if (!isInlineData) {
+				inputStream = new FileInputStream(new File(importFilePathOrData));
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+					inputStream = new ZipInputStream(inputStream);
+					((ZipInputStream) inputStream).getNextEntry();
+				}
+			} else {
+				inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 			}
 			csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
 			csvReader.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
@@ -313,12 +335,12 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			openReader();
 			
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".csv.zip");
+			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".csv.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePath + "." + fileSuffix + ".csv").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".csv").getName()));
 			} else {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".csv");
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".csv");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 			

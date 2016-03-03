@@ -52,7 +52,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	private static String getUsageMessage() {
 		return "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
 			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvImport.jar [-gui] [optional parameters] dbtype hostname[:port] username dbname tablename importfilepath [password]\n"
+			+ "Usage: java -jar DbCsvImport.jar [-gui] [optional parameters] dbtype hostname[:port] username dbname tablename [-data] importfilepathOrData [password]\n"
 			+ "\n"
 			+ "mandatory parameters\n"
 			+ "\tdbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql\n"
@@ -60,10 +60,11 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\tusername: username (not needed for sqlite and derby)\n"
 			+ "\tdbname: dbname or filepath for sqlite db or derby db\n"
 			+ "\ttablename: table to import to\n"
-			+ "\timportfilepath: file to import, maybe zipped (.zip)\n"
+			+ "\timportfilepathOrData: file to import, maybe zipped (.zip) or data as text\n"
 			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite and derby)\n"
 			+ "\n"
 			+ "optional parameters\n"
+			+ "\t-data: Declare importfilepathOrData explicitly as inline data (no filepath)\n"
 			+ "\t-x importDataFormat: Data import format, default format is CSV\n"
 			+ "\t\timportDataFormat: CSV | JSON | XML | SQL\n"
 			+ "\t-m: column mappings (separated by semicolon or linebreak): when not configured a simple mapping by column names is used\n"
@@ -283,6 +284,8 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					dbCsvImportDefinition.setNoHeaders(true);
 				} else if ("-c".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setCompleteCommit(true);
+				} else if ("-data".equalsIgnoreCase(arguments[i])) {
+					dbCsvImportDefinition.setInlineData(true);
 				} else {
 					if (dbCsvImportDefinition.getDbVendor() == null) {
 						dbCsvImportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
@@ -294,8 +297,8 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 						dbCsvImportDefinition.setDbName(arguments[i]);
 					} else if (dbCsvImportDefinition.getTableName() == null) {
 						dbCsvImportDefinition.setTableName(arguments[i]);
-					} else if (dbCsvImportDefinition.getImportFilePath() == null) {
-						dbCsvImportDefinition.setImportFilePath(arguments[i]);
+					} else if (dbCsvImportDefinition.getImportFilePathOrData() == null) {
+						dbCsvImportDefinition.setImportFilePathOrData(arguments[i]);
 					} else if (dbCsvImportDefinition.getPassword() == null && dbCsvImportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvImportDefinition.getDbVendor() != DbVendor.Derby) {
 						dbCsvImportDefinition.setPassword(arguments[i]);
 					} else {

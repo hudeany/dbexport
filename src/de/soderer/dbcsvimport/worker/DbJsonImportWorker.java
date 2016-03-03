@@ -1,5 +1,6 @@
 package de.soderer.dbcsvimport.worker;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -33,20 +34,25 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 	private Map<String, DbColumnType> dataTypes = null;
 	private Integer itemsAmount = null;
 	
-	public DbJsonImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, importFilePath);
+	public DbJsonImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
 	}
 
 	@Override
 	public String getConfigurationLogString() {
+		String dataPart;
+		if (isInlineData) {
+			dataPart = "Data: " + importFilePathOrData + "\n";
+		} else {
+			dataPart = "File: " + importFilePathOrData + "\n"
+			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
+		}
 		return
-			"File: " + importFilePath + "\n"
-			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePath, ".zip") + "\n"
+			dataPart
 			+ "Format: JSON" + "\n"
 			+ "Encoding: " + encoding + "\n"
 			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
 			+ "Table name: " + tableName + "\n"
-			+ "Import file path: " + importFilePath + "\n"
 			+ "Import mode: " + importMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
@@ -146,11 +152,16 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 	protected void openReader() throws Exception {
 		InputStream inputStream = null;
 		try {
-			inputStream = new FileInputStream(new File(importFilePath));
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				inputStream = new ZipInputStream(inputStream);
-				((ZipInputStream) inputStream).getNextEntry();
+			if (!isInlineData) {
+				inputStream = new FileInputStream(new File(importFilePathOrData));
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+					inputStream = new ZipInputStream(inputStream);
+					((ZipInputStream) inputStream).getNextEntry();
+				}
+			} else {
+				inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 			}
+			
 			jsonReader = new Json5Reader(inputStream, encoding);
 			JsonToken startToken = jsonReader.readNextToken();
 			if (startToken != JsonToken.JsonArray_Open) {
@@ -194,12 +205,12 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 			openReader();
 			
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".json.zip");
+			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".json.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePath + "." + fileSuffix + ".json").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".json").getName()));
 			} else {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".json");
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".json");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 			

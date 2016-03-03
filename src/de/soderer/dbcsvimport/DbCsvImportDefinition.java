@@ -1,11 +1,13 @@
 package de.soderer.dbcsvimport;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.List;
 
 import de.soderer.dbcsvimport.worker.AbstractDbImportWorker;
 import de.soderer.dbcsvimport.worker.DbCsvImportWorker;
 import de.soderer.dbcsvimport.worker.DbJsonImportWorker;
+import de.soderer.dbcsvimport.worker.DbSqlImportWorker;
 import de.soderer.dbcsvimport.worker.DbXmlImportWorker;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -20,7 +22,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	public enum DataType {
 		CSV,
 		JSON,
-		XML;
+		XML,
+		SQL;
 
 		/**
 		 * Gets the string representation of data type.
@@ -77,8 +80,10 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	/** The tableName. */
 	private String tableName;
 
-	/** The importFilePath. */
-	private String importFilePath;
+	/** The importFilePath or data. */
+	private String importFilePathOrData;
+	
+	private boolean isInlineData = false;
 
 	/** The password, may be entered interactivly */
 	private String password;
@@ -174,17 +179,34 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		this.tableName = tableName;
 	}
 
-	public String getImportFilePath() {
-		return importFilePath;
+	public String getImportFilePathOrData() {
+		return importFilePathOrData;
 	}
 
-	public void setImportFilePath(String importFilePath) {
-		this.importFilePath = importFilePath;
-		if (this.importFilePath != null) {
-			this.importFilePath = this.importFilePath.trim();
-			this.importFilePath = this.importFilePath.replace("~", System.getProperty("user.home"));
-			if (this.importFilePath.endsWith(File.separator)) {
-				this.importFilePath = this.importFilePath.substring(0, this.importFilePath.length() - 1);
+	public boolean isInlineData() {
+		return isInlineData;
+	}
+
+	public void setInlineData(boolean isInlineData) {
+		this.isInlineData = isInlineData;
+	}
+
+	public void setImportFilePathOrData(String importFilePathOrData) {
+		this.importFilePathOrData = importFilePathOrData;
+		if (this.importFilePathOrData != null && !isInlineData) {
+			// Check filepath syntax
+			try {
+                Paths.get(importFilePathOrData);
+                isInlineData = false;
+            } catch (Exception e) {
+            	isInlineData = true;
+            }
+			if (!isInlineData) {
+				this.importFilePathOrData = this.importFilePathOrData.trim().replace("~", System.getProperty("user.home"));
+				if (this.importFilePathOrData.endsWith(File.separator)) {
+					this.importFilePathOrData = this.importFilePathOrData.substring(0, this.importFilePathOrData.length() - 1);
+				}
+				isInlineData = false;
 			}
 		}
 	}
@@ -358,13 +380,13 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	}
 
 	public void checkParameters() throws DbCsvImportException {
-		if (importFilePath == null) {
-			throw new DbCsvImportException("ImportFilePath is missing");
-		} else {
-			if (!new File(importFilePath).exists()) {
-				throw new DbCsvImportException("ImportFilePath does not exist: " + importFilePath);
-			} else if (!new File(importFilePath).isFile()) {
-				throw new DbCsvImportException("ImportFilePath is not a file: " + importFilePath);
+		if (importFilePathOrData == null) {
+			throw new DbCsvImportException("ImportFilePath or data is missing");
+		} else if (!isInlineData) {
+			if (!new File(importFilePathOrData).exists()) {
+				throw new DbCsvImportException("ImportFilePath does not exist: " + importFilePathOrData);
+			} else if (!new File(importFilePathOrData).isFile()) {
+				throw new DbCsvImportException("ImportFilePath is not a file: " + importFilePathOrData);
 			}
 		}
 	
@@ -435,7 +457,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			username,
 			password,
 			tableName,
-			importFilePath,
+			Boolean.toString(isInlineData),
+			importFilePathOrData,
 			dataType.toString(),
 			Boolean.toString(log),
 			encoding,
@@ -475,7 +498,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		username = valueStrings.get(i++);
 		password = valueStrings.get(i++);
 		tableName = valueStrings.get(i++);
-		importFilePath = valueStrings.get(i++);
+		isInlineData = Utilities.interpretAsBool(valueStrings.get(i++));
+		importFilePathOrData = valueStrings.get(i++);
 		dataType = DataType.getFromString(valueStrings.get(i++));
 		log = Utilities.interpretAsBool(valueStrings.get(i++));
 		encoding = valueStrings.get(i++);
@@ -513,7 +537,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				getUsername(),
 				getPassword(),
 				getTableName(),
-				getImportFilePath());
+				isInlineData(),
+				getImportFilePathOrData());
 		} else if (getDataType() == DataType.XML) {
 			worker = new DbXmlImportWorker(parent,
 				getDbVendor(),
@@ -522,8 +547,18 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				getUsername(),
 				getPassword(),
 				getTableName(),
-				getImportFilePath());
+				isInlineData(),
+				getImportFilePathOrData());
 			((DbXmlImportWorker) worker).setNullValueText(getNullValueString());
+		} else if (getDataType() == DataType.SQL) {
+			worker = new DbSqlImportWorker(parent,
+				getDbVendor(),
+				getHostname(),
+				getDbName(),
+				getUsername(),
+				getPassword(),
+				isInlineData(),
+				getImportFilePathOrData());
 		} else {
 			worker = new DbCsvImportWorker(parent,
 				getDbVendor(),
@@ -532,7 +567,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				getUsername(),
 				getPassword(),
 				getTableName(),
-				getImportFilePath());
+				isInlineData(),
+				getImportFilePathOrData());
 			((DbCsvImportWorker) worker).setSeparator(getSeparator());
 			((DbCsvImportWorker) worker).setStringQuote(getStringQuote());
 			((DbCsvImportWorker) worker).setAllowUnderfilledLines(isAllowUnderfilledLines());

@@ -14,7 +14,6 @@ import java.sql.Connection;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -79,9 +78,11 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 
 	/** The file log box. */
 	private JCheckBox fileLogBox;
+	
+	private JCheckBox inlineDataBox;
 
 	/** The importFilePath field. */
-	private JTextField importFilePathField;
+	private JTextArea importFilePathOrDataField;
 
 	/** The separator combo. */
 	private JComboBox<String> separatorCombo;
@@ -246,28 +247,29 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		});
 		dataTypePanel.add(dataTypeCombo, BorderLayout.EAST);
 		mandatoryParameterPanel.add(dataTypePanel);
-
-		// Outputpath Panel
+		
+		// Imputpath Panel
 		JPanel importFilePathPanel = new JPanel();
 		importFilePathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel outputpathLabel = new JLabel(LangResources.get("importFilePath"));
 		importFilePathPanel.add(outputpathLabel);
-		importFilePathField = new JTextField();
-		importFilePathField.setToolTipText(LangResources.get("importFilePath_help"));
-		importFilePathField.setPreferredSize(new Dimension(175, importFilePathField.getPreferredSize().height));
-		importFilePathField.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-		importFilePathPanel.add(importFilePathField);
+		importFilePathOrDataField = new JTextArea();
+		importFilePathOrDataField.setToolTipText(LangResources.get("importFilePath_help"));
+		JScrollPane importFilePathOrDataScrollpane = new JScrollPane(importFilePathOrDataField);
+		importFilePathOrDataScrollpane.setPreferredSize(new Dimension(175, 50));
+		importFilePathPanel.add(importFilePathOrDataScrollpane);
 		mandatoryParameterPanel.add(importFilePathPanel);
 		
 		JButton browseButton = new JButton("...");
-		browseButton.setPreferredSize(new Dimension(20, importFilePathField.getPreferredSize().height));
+		browseButton.setPreferredSize(new Dimension(20, importFilePathOrDataField.getPreferredSize().height));
 		browseButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
-					File importFile = selectImportFile(importFilePathField.getText());
+					File importFile = selectImportFile(importFilePathOrDataField.getText());
 					if (importFile != null) {
-						importFilePathField.setText(importFile.getAbsolutePath());
+						importFilePathOrDataField.setText(importFile.getAbsolutePath());
+						inlineDataBox.setSelected(false);
 					}
 				} catch (Exception e) {
 					new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.RED).setVisible(true);
@@ -407,6 +409,10 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		// Optional parameters Panel
 		JPanel optionalParametersPanel = new JPanel();
 		optionalParametersPanel.setLayout(new BoxLayout(optionalParametersPanel, BoxLayout.PAGE_AXIS));
+
+		inlineDataBox = new JCheckBox(LangResources.get("inlineData"));
+		inlineDataBox.setToolTipText(LangResources.get("inlineData_help"));
+		optionalParametersPanel.add(inlineDataBox);
 
 		fileLogBox = new JCheckBox(LangResources.get("filelog"));
 		fileLogBox.setToolTipText(LangResources.get("filelog_help"));
@@ -555,7 +561,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	}
 
 	protected void createMapping(DbCsvImportDefinition configurationAsDefinition, DbCsvImportGui dbCsvImportGui) throws Exception {
-		if (Utilities.isBlank(importFilePathField.getText())) {
+		if (Utilities.isBlank(importFilePathOrDataField.getText())) {
 			throw new Exception("ImportFilePath is needed for mapping");
 		} else if (Utilities.isBlank(tableNameField.getText())) {
 			throw new Exception("TableName is needed for mapping");
@@ -597,7 +603,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		dbCsvImportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
 		dbCsvImportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getText() : null);
 		dbCsvImportDefinition.setTableName(tableNameField.getText());
-		dbCsvImportDefinition.setImportFilePath(importFilePathField.getText());
+		dbCsvImportDefinition.setImportFilePathOrData(importFilePathOrDataField.getText());
 		dbCsvImportDefinition.setDataType(DataType.getFromString((String) dataTypeCombo.getSelectedItem()));
 		dbCsvImportDefinition.setLog(fileLogBox.isSelected());
 		dbCsvImportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
@@ -642,7 +648,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		passwordField.setText(dbCsvImportDefinition.getPassword());
 
 		tableNameField.setText(dbCsvImportDefinition.getTableName());
-		importFilePathField.setText(dbCsvImportDefinition.getImportFilePath());
+		importFilePathOrDataField.setText(dbCsvImportDefinition.getImportFilePathOrData());
 		
 		for (int i = 0; i < dataTypeCombo.getItemCount(); i++) {
 			if (dataTypeCombo.getItemAt(i).equalsIgnoreCase(dbCsvImportDefinition.getDataType().toString())) {
@@ -758,29 +764,76 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			noHeadersBox.setEnabled(true);
 			nullValueStringCombo.setEnabled(true);
 			allowUnderfilledLinesBox.setEnabled(true);
+			tableNameField.setEnabled(true);
+			createTableBox.setEnabled(true);
+			updateWithNullDataBox.setEnabled(true);
+			trimDataBox.setEnabled(true);
+			importModeCombo.setEnabled(true);
+			keyColumnsField.setEnabled(true);
+			mappingField.setEnabled(true);
+			additionalInsertValuesField.setEnabled(true);
+			additionalUpdateValuesField.setEnabled(true);
 		} else if (DataType.JSON.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			noHeadersBox.setEnabled(false);
 			nullValueStringCombo.setEnabled(false);
 			allowUnderfilledLinesBox.setEnabled(false);
+			tableNameField.setEnabled(true);
+			createTableBox.setEnabled(true);
+			updateWithNullDataBox.setEnabled(true);
+			trimDataBox.setEnabled(true);
+			importModeCombo.setEnabled(true);
+			keyColumnsField.setEnabled(true);
+			mappingField.setEnabled(true);
+			additionalInsertValuesField.setEnabled(true);
+			additionalUpdateValuesField.setEnabled(true);
 		} else if (DataType.XML.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
 			noHeadersBox.setEnabled(false);
 			nullValueStringCombo.setEnabled(true);
 			allowUnderfilledLinesBox.setEnabled(false);
+			tableNameField.setEnabled(true);
+			createTableBox.setEnabled(true);
+			updateWithNullDataBox.setEnabled(true);
+			trimDataBox.setEnabled(true);
+			importModeCombo.setEnabled(true);
+			keyColumnsField.setEnabled(true);
+			mappingField.setEnabled(true);
+			additionalInsertValuesField.setEnabled(true);
+			additionalUpdateValuesField.setEnabled(true);
+		} else if (DataType.SQL.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
+			separatorCombo.setEnabled(false);
+			stringQuoteCombo.setEnabled(false);
+			noHeadersBox.setEnabled(false);
+			nullValueStringCombo.setEnabled(false);
+			allowUnderfilledLinesBox.setEnabled(false);
+			tableNameField.setEnabled(false);
+			createTableBox.setEnabled(false);
+			updateWithNullDataBox.setEnabled(false);
+			trimDataBox.setEnabled(false);
+			importModeCombo.setEnabled(false);
+			keyColumnsField.setEnabled(false);
+			mappingField.setEnabled(false);
+			additionalInsertValuesField.setEnabled(false);
+			additionalUpdateValuesField.setEnabled(false);
 		}
+		mappingField.setBackground(mappingField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 		
-		additionalInsertValuesField.setEnabled(
-			ImportMode.CLEARINSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
-			|| ImportMode.INSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
-			|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		if (additionalInsertValuesField.isEnabled()) {
+			additionalInsertValuesField.setEnabled(
+				ImportMode.CLEARINSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
+				|| ImportMode.INSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
+				|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		}
 		additionalInsertValuesField.setBackground(additionalInsertValuesField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 		
-		additionalUpdateValuesField.setEnabled(
-			ImportMode.UPDATE.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
-			|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		if (additionalUpdateValuesField.isEnabled()) {
+			additionalUpdateValuesField.setEnabled(
+				ImportMode.UPDATE.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem())
+				|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
+		}
 		additionalUpdateValuesField.setBackground(additionalUpdateValuesField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 	}
 

@@ -1,5 +1,6 @@
 package de.soderer.dbcsvimport.worker;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -41,8 +42,8 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 	private String itemEntryTagName = null;
 	String rootTagName = null;
 	
-	public DbXmlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, String importFilePath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, importFilePath);
+	public DbXmlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
 	}
 
 	public void setNullValueText(String nullValueText) {
@@ -51,15 +52,20 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 
 	@Override
 	public String getConfigurationLogString() {
+		String dataPart;
+		if (isInlineData) {
+			dataPart = "Data: " + importFilePathOrData + "\n";
+		} else {
+			dataPart = "File: " + importFilePathOrData + "\n"
+			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
+		}
 		return
-			"File: " + importFilePath + "\n"
-			+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePath, ".zip") + "\n"
+			dataPart
 			+ "Format: XML" + "\n"
 			+ "Encoding: " + encoding + "\n"
 			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
 			+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n"
 			+ "Table name: " + tableName + "\n"
-			+ "Import file path: " + importFilePath + "\n"
 			+ "Import mode: " + importMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
@@ -157,10 +163,14 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 	@Override
 	protected void openReader() throws Exception {
 		try {
-			inputStream = new FileInputStream(new File(importFilePath));
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				inputStream = new ZipInputStream(inputStream);
-				((ZipInputStream) inputStream).getNextEntry();
+			if (!isInlineData) {
+				inputStream = new FileInputStream(new File(importFilePathOrData));
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+					inputStream = new ZipInputStream(inputStream);
+					((ZipInputStream) inputStream).getNextEntry();
+				}
+			} else {
+				inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 			}
 			
 			XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
@@ -243,12 +253,12 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			openReader();
 			
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePath, ".zip")) {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".xml.zip");
+			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xml.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePath + "." + fileSuffix + ".xml").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".xml").getName()));
 			} else {
-				filteredDataFile = new File(importFilePath + "." + fileSuffix + ".xml");
+				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xml");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 			
