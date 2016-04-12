@@ -126,7 +126,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 									DateUtilities.ISO_8601_DATETIME_FORMAT.parse(value);
 									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
 								} catch (Exception e2) {
-									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.length()), -1, -1, true));
+									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes(encoding).length), -1, -1, true));
 								}
 							}
 							dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
@@ -135,7 +135,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && (propertyValue instanceof Float || propertyValue instanceof Double)) {
 							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true));
 						} else {
-							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().length()), -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().getBytes(encoding).length), -1, -1, true));
 						}
 					}
 				}

@@ -1,4 +1,4 @@
 <?xml version='1.0' encoding='utf-8' standalone='yes'?>
-<ApplicationVersions creationDate='2016/03/03 04:59:25'>
-	<DbCsvImport version='1.4.0' md5CheckSum='ea39a578d6ba40ca20158f439d9ea6b3'>https://github.com/hudeany/dbcsvimport/releases/download/1.4.0/DbCsvImport-1.4.0.jar</DbCsvImport>
+<ApplicationVersions creationDate='2016/04/12 04:15:41'>
+	<DbCsvImport version='1.5.0' md5CheckSum='dda69bc03e14b4d5d3a03725c3a53620'>https://github.com/hudeany/dbcsvimport/releases/download/1.5.0/DbCsvImport-1.5.0.jar</DbCsvImport>
 </ApplicationVersions>

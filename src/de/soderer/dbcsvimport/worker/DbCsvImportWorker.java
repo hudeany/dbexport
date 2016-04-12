@@ -151,12 +151,12 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 								dataTypes.put(columnName, null);
 							} else if ("file".equalsIgnoreCase(formatInfo) || currentValue.length() > 4000) {
 								dataTypes.put(columnName, new DbColumnType("BLOB", -1, -1, -1, true));
-							} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file")) {
+							} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file") && !"lc".equalsIgnoreCase(formatInfo) && !"uc".equalsIgnoreCase(formatInfo)) {
 								try {
 									new SimpleDateFormat(formatInfo).parse(currentValue.trim());
 									dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
 								} catch (Exception e) {
-									dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.length()), -1, -1, true));
+									dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true));
 								}
 								dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
 							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && Utilities.isInteger(currentValue)) {
@@ -164,7 +164,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && Utilities.isDouble(currentValue)) {
 								dataTypes.put(columnName, new DbColumnType("DOUBLE", -1, -1, -1, true));
 							} else {
-								dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.length()), -1, -1, true));
+								dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true));
 							}
 						}
 					}

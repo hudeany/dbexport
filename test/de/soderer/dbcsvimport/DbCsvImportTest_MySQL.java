@@ -153,7 +153,7 @@ public class DbCsvImportTest_MySQL {
 		Statement statement = null;
 		try {
 			connection = DbUtilities.createConnection(DbVendor.MySQL, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			return DbUtilities.readoutTable(connection, "test_tbl", ';').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
+			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -573,6 +573,90 @@ public class DbCsvImportTest_MySQL {
 	}
 	
 	@Test
+	public void testCsvImportCreateTableLowerCased() {
+		try {
+			FileUtilities.write(BLOB_DATA_FILE, TextUtilities.GERMAN_TEST_STRING.getBytes("UTF-8"));
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer;column_varchar;column_double;not%included\n");
+			data.append("001;AbcÄ123;1.2300;not Included\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer';column_varchar='column_varchar' lc;column_double='column_double'";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "-create", "test_tbl", "~/temp/test_tbl.csv", "-m", mapping, "-i", "UPSERT", "-k", "column_integer", "-u", PASSWORD }));
+			Assert.assertEquals(
+				"column_integer;column_double;column_varchar\n"
+				+ "1;1.23;abcä123\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportCreateTableCasinsensitiveKey() {
+		try {
+			FileUtilities.write(BLOB_DATA_FILE, TextUtilities.GERMAN_TEST_STRING.getBytes("UTF-8"));
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer;column_varchar;column_double;not%included\n");
+			data.append("001;AbcÄ123;1.2300;not Included\n");
+			data.append("002;ABCÄ123;1.2300;not Included\n");
+			data.append("003;abcä123;1.2300;not Included\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer';column_varchar='column_varchar' lc;column_double='column_double'";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "-create", "test_tbl", "~/temp/test_tbl.csv", "-m", mapping, "-i", "UPSERT", "-k", "lower(column_varchar)", "-u", PASSWORD }));
+			Assert.assertEquals(
+				"column_varchar;column_double;column_integer\n"
+				+ "abcä123;1.23;1\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportCreateTableNoMapping() {
+		try {
+			FileUtilities.write(BLOB_DATA_FILE, TextUtilities.GERMAN_TEST_STRING.getBytes("UTF-8"));
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column_integer;column_varchar;column_double\n");
+			data.append("001;AbcÄ123;1.2300\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "-create", "test_tbl", "~/temp/test_tbl.csv", "-i", "UPSERT", "-k", "column_integer", "-u", PASSWORD }));
+			Assert.assertEquals(
+				"column_integer;column_double;column_varchar\n"
+				+ "1;1.23;AbcÄ123\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportCreateTableNoMappingNoKey() {
+		try {
+			FileUtilities.write(BLOB_DATA_FILE, TextUtilities.GERMAN_TEST_STRING.getBytes("UTF-8"));
+			
+			StringBuilder data = new StringBuilder();
+			data.append(Utilities.BOM_UTF_8_CHAR + "column_integer;column_varchar;column_double\n");
+			data.append("001;AbcÄ123;1.2300\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "-create", "test_tbl", "~/temp/test_tbl.csv", "-i", "INSERT", "-u", PASSWORD }));
+			Assert.assertEquals(
+				"column_double;column_integer;column_varchar\n"
+				+ "1.23;1;AbcÄ123\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
 	public void testJsonImportUpsert() {
 		JsonWriter jsonWriter = null;
 		try {
@@ -784,6 +868,57 @@ public class DbCsvImportTest_MySQL {
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
 				+ "4;;;;;;;Inline Insert\n"
 				+ "5;;;;;;;Inline Insert\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportDuplicates() {
+		try {
+			createEmptyTestTable();
+			
+			FileUtilities.write(INPUTFILE_CSV, (
+				"column integer; column_double; column_varchar; column_clob; column_timestamp; column_date\n"
+				+ "123; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+				+ "123; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+				+ "123; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+			).getBytes("UTF-8"));
+			String mapping = "column_integer='column integer'; column_double='column_double'; column_varchar='column_varchar'; column_clob='column_clob'; column_blob=; column_timestamp='column_timestamp'dd.MM.yyyy HH:mm:ss; column_date='column_date'dd.MM.yyyy HH:mm:ss";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "test_tbl", "~/temp/test_tbl.csv", "-k", "column_integer", "-m", mapping, PASSWORD }));
+			Assert.assertEquals(
+				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
+				+ "1;; aBcDeF1234;2003-02-01;123.456;123;2003-02-01 11:12:13.0; aBcDeF123\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportExistingDuplicates() {
+		try {
+			createEmptyTestTable();
+			prefillTestTable();
+			prefillTestTable();
+			
+			FileUtilities.write(INPUTFILE_CSV, (
+				"column integer; column_double; column_varchar; column_clob; column_timestamp; column_date\n"
+				+ "1; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+				+ "1; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+				+ "3; 123.456; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23\n"
+			).getBytes("UTF-8"));
+			String mapping = "column_integer='column integer'; column_double='column_double'; column_varchar='column_varchar'; column_clob='column_clob'; column_blob=; column_timestamp='column_timestamp'dd.MM.yyyy HH:mm:ss; column_date='column_date'dd.MM.yyyy HH:mm:ss";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "mysql", HOSTNAME, USERNAME, DBNAME, "test_tbl", "-i", "UPSERT", "~/temp/test_tbl.csv", "-k", "column_integer", "-m", mapping, PASSWORD }));
+			Assert.assertEquals(
+				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
+				+ "1;; aBcDeF1234;2003-02-01;123.456;1;2003-02-01 11:12:13.0; aBcDeF123\n"
+				+ "2;; aBcDeF1234;2003-02-01;123.456;3;2003-02-01 11:12:13.0; aBcDeF123\n"
+				+ "3;;;;;999;;\"<test_text>_999\"\n"
+				+ "4;; aBcDeF1234;2003-02-01;123.456;1;2003-02-01 11:12:13.0; aBcDeF123\n"
+				+ "5;; aBcDeF1234;2003-02-01;123.456;3;2003-02-01 11:12:13.0; aBcDeF123\n"
+				+ "6;;;;;999;;\"<test_text>_999\"\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());

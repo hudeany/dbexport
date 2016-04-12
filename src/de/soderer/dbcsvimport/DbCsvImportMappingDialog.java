@@ -126,6 +126,16 @@ public class DbCsvImportMappingDialog extends JDialog {
 				optionalComboBox.addItem("");
 				optionalComboBox.addItem("file");
 				mappingEntryPanel.add(optionalComboBox);
+			} else if (dbColumnType.getSimpleDataType() == SimpleDataType.String) {
+				optionalComboBox = new JComboBox<String>();
+				optionalComboBox.addItem("");
+				optionalComboBox.addItem("LowerCase");
+				optionalComboBox.addItem("UpperCase");
+				mappingEntryPanel.add(optionalComboBox);
+				
+				if ("email".equalsIgnoreCase(dbColumnName)) {
+					optionalComboBox.setSelectedItem("LowerCase");
+				}
 			}
 			
 			mappingPanel.add(mappingEntryPanel);
@@ -210,7 +220,13 @@ public class DbCsvImportMappingDialog extends JDialog {
 				if (entry.getKey().equals(mappingEntry.getFirst().getText())) {
 					mappingEntry.getSecond().setSelectedItem(entry.getValue().getFirst());
 					if (mappingEntry.getThird() != null && Utilities.isNotBlank(entry.getValue().getSecond())) {
-						mappingEntry.getThird().setSelectedItem(entry.getValue().getSecond());
+						if ("lc".equalsIgnoreCase(entry.getValue().getSecond())) {
+							mappingEntry.getThird().setSelectedItem("LowerCase");
+						} else if ("uc".equalsIgnoreCase(entry.getValue().getSecond())) {
+							mappingEntry.getThird().setSelectedItem("UpperCase");
+						} else {
+							mappingEntry.getThird().setSelectedItem(entry.getValue().getSecond());
+						}
 					}
 					break;
 				}
@@ -225,7 +241,14 @@ public class DbCsvImportMappingDialog extends JDialog {
 			if (Utilities.isNotBlank(((String) mappingEntry.getSecond().getSelectedItem()))) {
 				mappingString += mappingEntry.getFirst().getText() + "=\"" + ((String) mappingEntry.getSecond().getSelectedItem()) + "\"";
 				if (mappingEntry.getThird() != null && Utilities.isNotBlank(((String) mappingEntry.getThird().getSelectedItem()))) {
-					mappingString += " " + ((String) mappingEntry.getThird().getSelectedItem());
+					String formatValue = ((String) mappingEntry.getThird().getSelectedItem());
+					if ("lowercase".equalsIgnoreCase(formatValue)) {
+						mappingString += " lc";
+					} else if ("uppercase".equalsIgnoreCase(formatValue)) {
+						mappingString += " uc";
+					} else {
+						mappingString += " " + formatValue;
+					}
 				}
 				mappingString += "\n";
 			}
@@ -241,6 +264,14 @@ public class DbCsvImportMappingDialog extends JDialog {
 		return mappingString;
 	}
 
+	/**
+	 * Mapping Map contains dbColumn as key, csvFileColumn as valueTuples first and formatString as valeTuples second
+	 * 
+	 * @param mappingString
+	 * @return
+	 * @throws IOException
+	 * @throws Exception
+	 */
 	public static Map<String, Tuple<String, String>> parseMappingString(String mappingString) throws IOException, Exception {
 		Map<String, Tuple<String, String>> mapping = new HashMap<String, Tuple<String, String>>();
 		List<String> mappingLines = Utilities.splitAndTrimList(mappingString, ';', '\n', '\r');
@@ -274,6 +305,10 @@ public class DbCsvImportMappingDialog extends JDialog {
 					mapping.put(dbColumn, new Tuple<String, String>(dataColumn, "file"));
 				} else if (Pattern.matches("[ yYmMdDhHsS:.-/]+", rest)) {
 					mapping.put(dbColumn, new Tuple<String, String>(dataColumn, rest));
+				} else if ("lc".equalsIgnoreCase(rest)) {
+					mapping.put(dbColumn, new Tuple<String, String>(dataColumn, "lc"));
+				} else if ("uc".equalsIgnoreCase(rest)) {
+					mapping.put(dbColumn, new Tuple<String, String>(dataColumn, "uc"));
 				} else {
 					throw new Exception("Invalid mapping line: " + mappingLine);
 				}

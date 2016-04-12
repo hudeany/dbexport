@@ -208,7 +208,7 @@ public class DbCsvImportTest_Oracle {
 			List<String> columnNames = DbUtilities.getColumnNames(connection, "test_tbl");
 			Collections.sort(columnNames);
 			columnNames.remove(orderColumn.toUpperCase());
-			return DbUtilities.readout(connection, "SELECT " + orderColumn + ", " + Utilities.join(columnNames, ", ").toLowerCase() + " FROM test_tbl ORDER BY " + orderColumn, ';').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
+			return DbUtilities.readout(connection, "SELECT " + orderColumn + ", " + Utilities.join(columnNames, ", ").toLowerCase() + " FROM test_tbl ORDER BY " + orderColumn, ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -223,7 +223,7 @@ public class DbCsvImportTest_Oracle {
 		Statement statement = null;
 		try {
 			connection = DbUtilities.createConnection(DbVendor.Oracle, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			return DbUtilities.readoutTable(connection, "test_tbl", ';').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
+			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;

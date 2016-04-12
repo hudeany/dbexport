@@ -82,7 +82,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			+ "\t-c: complete commit only (takes more time and makes rollback on any error)\n"
 			+ "\t-a: allow underfilled lines\n"
 			+ "\t-t: trim data values\n"
-			+ "\t-i 'importmode': importmodes: CLEARINSERT | INSERT | UPDATE | UPSERT\n"
+			+ "\t-i 'importmode': importmodes: CLEARINSERT | INSERT | UPDATE | UPSERT (default INSERT)\n"
 			+ "\t-u: don't update with null values from import data\n"
 			+ "\t-k 'keycolumnslist': keycolumns list comma separated\n"
 			+ "\t-insvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for inserts. E.g.: id=test_seq.NEXTVAL;flag='abc'\n"

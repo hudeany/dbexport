@@ -170,7 +170,7 @@ public class DbCsvImportTest_HSQL {
 		Statement statement = null;
 		try {
 			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
-			return DbUtilities.readoutTable(connection, "test_tbl", ';').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
+			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;

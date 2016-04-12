@@ -170,7 +170,7 @@ public class DbCsvImportTest_Derby {
 		Statement statement = null;
 		try {
 			connection = DbUtilities.createConnection(DbVendor.Derby, "", DERBY_DB_PATH, "", null);
-			return DbUtilities.readoutTable(connection, "test_tbl", ';').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
+			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;

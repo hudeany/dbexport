@@ -220,13 +220,13 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					showUnlimitedProgress();
 					
 					if (importMode == ImportMode.CLEARINSERT) {
-						markTrailingDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
+						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
+						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
 						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
 					} else if (importMode == ImportMode.INSERT) {
 						ignoredDuplicates = deleteTableCrossDuplicates(connection, tableName, tempTableName, keyColumns);
-						markTrailingDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates += removeDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
+						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
+						ignoredDuplicates += removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
 						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
 					} else if (importMode == ImportMode.UPDATE) {
 						itemsForUpdateInImportData = getUpdateableItemsInTable(connection, tempTableName, tableName, keyColumns);
@@ -240,8 +240,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 						// Update destination table
 						updateExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, itemIndexColumn, updateWithNullValues, additionalUpdateValues);
 
-						markTrailingDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, updateWithNullValues, itemIndexColumn, duplicateIndexColumn);
+						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
+						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
 						
 						// Insert into destination table
 						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
@@ -387,7 +387,36 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 		statement.execute("ALTER TABLE " + tempTableName + " ADD " + itemIndexColumn + " INTEGER");
 		statement.execute("ALTER TABLE " + tempTableName + " ADD " + duplicateIndexColumn + " INTEGER");
-		statement.execute("CREATE INDEX " + tempTableName + "_idx1 ON " + tempTableName + " (" + Utilities.join(keyColumns, ", ") + ")");
+		
+		boolean hasKeyColumns = false;
+		if  (keyColumns != null) {
+			for (String keyColumn : keyColumns) {
+				keyColumn = keyColumn.trim();
+				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+				}
+				
+				if (Utilities.isNotBlank(keyColumn)) {
+					hasKeyColumns = true;
+				}
+			}
+		}
+		if (hasKeyColumns) {
+			String keyColumnPart = "";
+			for (String keyColumn : keyColumns) {
+				if (keyColumnPart.length() > 0) {
+					keyColumnPart += ", ";
+				}
+				keyColumn = keyColumn.trim();
+				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+				}
+				keyColumnPart += keyColumn;
+			}
+			
+			statement.execute("CREATE INDEX " + tempTableName + "_idx1 ON " + tempTableName + " (" + keyColumnPart + ")");
+		}
+		
 		statement.execute("CREATE INDEX " + tempTableName + "_idx2 ON " + tempTableName + " (" + itemIndexColumn + ")");
 		statement.execute("CREATE INDEX " + tempTableName + "_idx3 ON " + tempTableName + " (" + duplicateIndexColumn + ")");
 		
@@ -504,6 +533,20 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	}
 
 	private int insertNotExistingItems(Connection connection, String fromTableName, String intoTableName, List<String> insertColumns, List<String> keyColumns, String additionalInsertValues) throws Exception {
+		boolean hasKeyColumns = false;
+		if  (keyColumns != null) {
+			for (String keyColumn : keyColumns) {
+				keyColumn = keyColumn.trim();
+				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+				}
+				
+				if (Utilities.isNotBlank(keyColumn)) {
+					hasKeyColumns = true;
+				}
+			}
+		}
+		
 		Statement statement = null;
 		try {
 			String additionalInsertValuesSqlColumns = "";
@@ -518,9 +561,11 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 			}
 			
 			statement = connection.createStatement();
-			String deleteDuplicates = "INSERT INTO " + intoTableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(insertColumns, ", ") + ") SELECT " + additionalInsertValuesSqlValues + Utilities.join(insertColumns, ", ") + " FROM " + fromTableName + " a"
-				+ " WHERE NOT EXISTS (SELECT 1 FROM " + intoTableName + " b WHERE " + getWherePart(keyColumns, "a", "b") + ")";
-			int numberOfInserts = statement.executeUpdate(deleteDuplicates);
+			String insertDataStatement = "INSERT INTO " + intoTableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(insertColumns, ", ") + ") SELECT " + additionalInsertValuesSqlValues + Utilities.join(insertColumns, ", ") + " FROM " + fromTableName + " a";
+			if (hasKeyColumns) {
+				insertDataStatement += " WHERE NOT EXISTS (SELECT 1 FROM " + intoTableName + " b WHERE " + getWherePart(keyColumns, "a", "b") + ")";
+			}
+			int numberOfInserts = statement.executeUpdate(insertDataStatement);
 			connection.commit();
 			return numberOfInserts;
 		} catch (Exception e) {
@@ -532,18 +577,48 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	}
 
 	private int deleteTableCrossDuplicates(Connection connection, String keepInTableName, String deleteInTableName, List<String> keyColumns) throws Exception {
-		Statement statement = null;
-		try {
-			statement = connection.createStatement();
-			String deleteDuplicates = "DELETE FROM " + deleteInTableName + " WHERE " + Utilities.join(keyColumns, ", ") + " IN (SELECT " + Utilities.join(keyColumns, ", ") + " FROM " + keepInTableName + ")";
-			int numberOfDeletedDuplicates = statement.executeUpdate(deleteDuplicates);
-			connection.commit();
-			return numberOfDeletedDuplicates;
-		} catch (Exception e) {
-			connection.rollback();
-			throw new Exception("Cannot deleteTableCrossDuplicates: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
+		boolean hasKeyColumns = false;
+		if  (keyColumns != null) {
+			for (String keyColumn : keyColumns) {
+				keyColumn = keyColumn.trim();
+				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+				}
+				
+				if (Utilities.isNotBlank(keyColumn)) {
+					hasKeyColumns = true;
+				}
+			}
+		}
+		if (hasKeyColumns) {
+			Statement statement = null;
+			try {
+				statement = connection.createStatement();
+				
+				String keyColumnPart = "";
+				for (String keyColumn : keyColumns) {
+					if (keyColumnPart.length() > 0) {
+						keyColumnPart += ", ";
+					}
+					keyColumn = keyColumn.trim();
+					if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+						keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+					}
+					keyColumnPart += keyColumn;
+				}
+				
+				String deleteDuplicates = "DELETE FROM " + deleteInTableName + " WHERE " + keyColumnPart + " IN (SELECT " + keyColumnPart + " FROM " + keepInTableName + ")";
+				int numberOfDeletedDuplicates = statement.executeUpdate(deleteDuplicates);
+				connection.commit();
+				return numberOfDeletedDuplicates;
+			} catch (Exception e) {
+				connection.rollback();
+				throw new Exception("Cannot deleteTableCrossDuplicates: " + e.getMessage(), e);
+			} finally {
+				Utilities.closeQuietly(statement);
+			}
+		} else {
+			return 0;
 		}
 	}
 
@@ -677,25 +752,52 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 	}
 
-	private void markTrailingDuplicates(Connection connection, String tempTableName, List<String> keyColumns, boolean updateWithNullValues, String itemIndexColumn, String duplicateIndexColumn) throws Exception {
-		Statement statement = null;
-		try {
-			statement = connection.createStatement();
-			
-			String setDuplicateReferences = "UPDATE " + tempTableName + " SET " + duplicateIndexColumn + " = (SELECT subselect." + itemIndexColumn + " FROM"
-				+ " (SELECT " + Utilities.join(keyColumns, ", ") + ", MIN(" + itemIndexColumn + ") AS " + itemIndexColumn + " FROM " + tempTableName + " GROUP BY " + Utilities.join(keyColumns, ", ") + ") subselect"
-				+ " WHERE " + getWherePart(keyColumns, "subselect", tempTableName) + ")";
-			statement.executeUpdate(setDuplicateReferences);
-			connection.commit();
-		} catch (Exception e) {
-			connection.rollback();
-			throw new Exception("Cannot markTrailingDuplicates: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
+	private void markTrailingDuplicates(Connection connection, String tempTableName, List<String> keyColumns, String itemIndexColumn, String duplicateIndexColumn) throws Exception {
+		boolean hasKeyColumns = false;
+		if  (keyColumns != null) {
+			for (String keyColumn : keyColumns) {
+				keyColumn = keyColumn.trim();
+				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+				}
+				
+				if (Utilities.isNotBlank(keyColumn)) {
+					hasKeyColumns = true;
+				}
+			}
+		}
+		if (hasKeyColumns) {
+			Statement statement = null;
+			try {
+				statement = connection.createStatement();
+				
+				String keyColumnPart = "";
+				for (String keyColumn : keyColumns) {
+					if (keyColumnPart.length() > 0) {
+						keyColumnPart += ", ";
+					}
+					keyColumn = keyColumn.trim();
+					if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
+						keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
+					}
+					keyColumnPart += keyColumn;
+				}
+				
+				String setDuplicateReferences = "UPDATE " + tempTableName + " SET " + duplicateIndexColumn + " = (SELECT subselect." + itemIndexColumn + " FROM"
+					+ " (SELECT " + keyColumnPart + ", MIN(" + itemIndexColumn + ") AS " + itemIndexColumn + " FROM " + tempTableName + " GROUP BY " + keyColumnPart + ") subselect"
+					+ " WHERE " + getWherePart(keyColumns, "subselect", tempTableName) + ")";
+				statement.executeUpdate(setDuplicateReferences);
+				connection.commit();
+			} catch (Exception e) {
+				connection.rollback();
+				throw new Exception("Cannot markTrailingDuplicates: " + e.getMessage(), e);
+			} finally {
+				Utilities.closeQuietly(statement);
+			}
 		}
 	}
 
-	private int removeDuplicates(Connection connection, String tempTableName, List<String> keyColumns, boolean updateWithNullValues, String lineIndexColumn, String duplicateIndexColumn) throws Exception {
+	private int removeDuplicates(Connection connection, String tempTableName, List<String> keyColumns, String lineIndexColumn, String duplicateIndexColumn) throws Exception {
 		Statement statement = null;
 		try {
 			statement = connection.createStatement();
@@ -713,22 +815,41 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	private static String getWherePart(List<String> columnNames, String table1, String table2) {
 		StringBuilder returnValue = new StringBuilder();
 		for (String columnName : columnNames) {
+			columnName = columnName.trim();
+			boolean useLowerCase = false;
+			if (Utilities.startsWithCaseinsensitive(columnName, "lower(") && columnName.endsWith(")")) {
+				columnName = columnName.substring(6, columnName.length() - 1).trim();
+				useLowerCase = true;
+			}
+			
 			if (returnValue.length() > 0) {
 				returnValue.append(", ");
+			}
+			if (useLowerCase) {
+				returnValue.append("LOWER(");
 			}
 			if (Utilities.isNotBlank(table1)) {
 				returnValue.append(table1);
 				returnValue.append(".");
 			}
 			returnValue.append(columnName);
+			if (useLowerCase) {
+				returnValue.append(")");
+			}
 			
 			returnValue.append(" = ");
 
+			if (useLowerCase) {
+				returnValue.append("LOWER(");
+			}
 			if (Utilities.isNotBlank(table2)) {
 				returnValue.append(table2);
 				returnValue.append(".");
 			}
 			returnValue.append(columnName);
+			if (useLowerCase) {
+				returnValue.append(")");
+			}
 		}
 		return returnValue.toString();
 	}
@@ -770,6 +891,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					}
 					importedDataAmount += new File(valueString).length();
 				}
+			} else if ("lc".equalsIgnoreCase(formatInfo)) {
+				valueString = valueString.toLowerCase();
+				preparedStatement.setString(columnIndex, valueString);
+			} else if ("uc".equalsIgnoreCase(formatInfo)) {
+				valueString = valueString.toUpperCase();
+				preparedStatement.setString(columnIndex, valueString);
 			} else {
 				preparedStatement.setTimestamp(columnIndex, new java.sql.Timestamp(new SimpleDateFormat(formatInfo).parse(valueString).getTime()));
 			}
