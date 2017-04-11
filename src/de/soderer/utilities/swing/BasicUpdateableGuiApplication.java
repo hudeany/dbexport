@@ -96,14 +96,14 @@ public class BasicUpdateableGuiApplication extends JFrame implements UpdateParen
 		} else if ("de".equalsIgnoreCase(Locale.getDefault().getLanguage())) {
 			String pattern;
 			switch(resourceKey) {
-				case "noNewerVersion": pattern = "Es ist keine neuere Version verfügbar für {0}.\nDie aktuelle lokale Version ist {1}."; break;
-				case "newVersion": pattern = "Es ist eine neue Version {0} verfügbar für {1}.\nDie aktuelle lokale Version ist {2}."; break;
+				case "noNewerVersion": pattern = "Es ist keine neuere Version verfÃ¼gbar fÃ¼r {0}.\nDie aktuelle lokale Version ist {1}."; break;
+				case "newVersion": pattern = "Es ist eine neue Version {0} verfÃ¼gbar fÃ¼r {1}.\nDie aktuelle lokale Version ist {2}."; break;
 				case "installUpdate": pattern = "Update installieren? (jN)"; break;
 				case "enterUsername": pattern = "Bitte Usernamen eingeben"; break;
 				case "enterPassword": pattern = "Bitte Passwort eingeben"; break;
 				case "yes": pattern = "Ja"; break;
 				case "no": pattern = "Nein"; break;
-				case "close": pattern = "Schließen"; break;
+				case "close": pattern = "SchlieÃŸen"; break;
 				case "updateDone": pattern = "Upgedatete Anwendung kann neugestartet werden"; break;
 				case "restartNow": pattern = "Jetzt neustarten"; break;
 				default: pattern = "MessageKey unbekannt: " + resourceKey + " Argumente: " + Utilities.join(arguments, ", ");
