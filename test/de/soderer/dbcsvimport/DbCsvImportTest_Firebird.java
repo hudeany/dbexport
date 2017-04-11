@@ -2,7 +2,6 @@ package de.soderer.dbcsvimport;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -34,23 +33,16 @@ public class DbCsvImportTest_Firebird {
 	@Before
 	public void setup() throws Exception {
 		INPUTFILE_CSV.delete();
-		
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			
-			statement = connection.createStatement();
-			
+
+		try (Connection connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray())) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
-				statement.execute("DROP TABLE test_tbl");
+				try (Statement statement = connection.createStatement()) {
+					statement.execute("DROP TABLE test_tbl");
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
@@ -58,35 +50,21 @@ public class DbCsvImportTest_Firebird {
 	public void tearDown() throws Exception {
 		INPUTFILE_CSV.delete();
 		
-		Connection connection = null;
-		Statement statement = null;
-		PreparedStatement preparedStatement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			
-			statement = connection.createStatement();
-			
+		try (Connection connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray())) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
-				statement.execute("DROP TABLE test_tbl");
+				try(Statement statement = connection.createStatement()) {
+					statement.execute("DROP TABLE test_tbl");
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(preparedStatement);
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
 	private void createEmptyTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			
-			statement = connection.createStatement();
-			
+		try (Connection connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
+				Statement statement = connection.createStatement()) {
 			String dataColumnsPart = "";
 			String dataColumnsPartForInsert = "";
 			for (String dataType : DATA_TYPES) {
@@ -114,42 +92,27 @@ public class DbCsvImportTest_Firebird {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
 	private void prefillTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
-			statement = connection.createStatement();
+		try (Connection connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
+				Statement statement = connection.createStatement()) {
 			statement.executeUpdate("INSERT INTO test_tbl (id, column_integer, column_varchar) VALUES (COALESCE((SELECT MAX(id) + 1 FROM test_tbl), 1), 1, '<test_text>_1')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 			statement.executeUpdate("INSERT INTO test_tbl (id, column_integer, column_varchar) VALUES (COALESCE((SELECT MAX(id) + 1 FROM test_tbl), 1), 3, '<test_text>_3')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 			statement.executeUpdate("INSERT INTO test_tbl (id, column_integer, column_varchar) VALUES (COALESCE((SELECT MAX(id) + 1 FROM test_tbl), 1), 999, '<test_text>_999')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
 	private String exportTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray());
+		try (Connection connection = DbUtilities.createConnection(DbVendor.Firebird, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray())) {
 			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	

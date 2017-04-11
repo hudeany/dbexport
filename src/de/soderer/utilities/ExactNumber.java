@@ -50,9 +50,9 @@ public class ExactNumber {
 
 		if (postDecimalSeparator.contains(".") || postDecimalSeparator.contains(",")) {
 			throw new Exception("Invalid number data");
-		} else if (!Utilities.isInteger(preDecimalSeparator)) {
+		} else if (!NumberUtilities.isInteger(preDecimalSeparator)) {
 			throw new Exception("Invalid number data");
-		} else if (!"".equals(postDecimalSeparator) && !Utilities.isInteger(postDecimalSeparator)) {
+		} else if (!"".equals(postDecimalSeparator) && !NumberUtilities.isInteger(postDecimalSeparator)) {
 			throw new Exception("Invalid number data");
 		}
 

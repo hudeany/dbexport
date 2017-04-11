@@ -16,10 +16,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
@@ -27,15 +29,27 @@ import de.soderer.utilities.ZipUtilities;
 import de.soderer.utilities.json.Json5Reader;
 import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonReader.JsonToken;
+import de.soderer.utilities.json.JsonUtilities;
 import de.soderer.utilities.json.JsonWriter;
+import de.soderer.utilities.json.schema.JsonSchema;
 
 public class DbJsonImportWorker extends AbstractDbImportWorker {
 	private Json5Reader jsonReader = null;
 	private Map<String, DbColumnType> dataTypes = null;
 	private Integer itemsAmount = null;
+	private String dataPath = null;
+	private String schemaFilePath = null;
 	
 	public DbJsonImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData, DataType.JSON);
+	}
+
+	public void setDataPath(String dataPath) {
+		this.dataPath = dataPath;
+	}
+
+	public void setSchemaFilePath(String schemaFilePath) {
+		this.schemaFilePath = schemaFilePath;
 	}
 
 	@Override
@@ -54,9 +68,10 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
 			+ "Table name: " + tableName + "\n"
 			+ "Import mode: " + importMode + "\n"
+			+ "Duplicate mode: " + duplicateMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
-			+ "Mapping: " + convertMappingToString(mapping) + "\n"
+			+ "Mapping: \n" + TextUtilities.addLeadingTab(convertMappingToString(mapping)) + "\n"
 			+ "Additional insert values: " + additionalInsertValues + "\n"
 			+ "Additional update values: " + additionalUpdateValues + "\n"
 			+ "Update with null values: " + updateWithNullValues + "\n";
@@ -70,8 +85,6 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 		
 		return dataTypes;
 	}
-
-
 
 	@Override
 	public List<String> getAvailableDataPropertyNames() throws Exception {
@@ -102,29 +115,31 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 					SimpleDataType currentType = dataTypes.get(propertyName) == null ? null : dataTypes.get(propertyName).getSimpleDataType();
 					if (currentType != SimpleDataType.Blob) {
 						if (propertyValue == null) {
-							dataTypes.put(propertyName, null);
+							if (!dataTypes.containsKey(propertyName)) {
+								dataTypes.put(propertyName, null);
+							}
 						} else if ("file".equalsIgnoreCase(formatInfo) || (propertyValue instanceof String && ((String) propertyValue).length() > 4000)) {
-							dataTypes.put(propertyName, new DbColumnType("BLOB", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("BLOB", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file") && propertyValue instanceof String) {
 							String value = ((String) propertyValue).trim();
 							try {
 								new SimpleDateFormat(formatInfo).parse(value);
-								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 							} catch (Exception e1) {
 								try {
 									DateUtilities.ISO_8601_DATETIME_FORMAT.parse(value);
-									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 								} catch (Exception e2) {
-									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes("UTF-8").length), -1, -1, true));
+									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes("UTF-8").length), -1, -1, true, false));
 								}
 							}
-							dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && propertyValue instanceof Integer) {
-							dataTypes.put(propertyName, new DbColumnType("INTEGER", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && (propertyValue instanceof Float || propertyValue instanceof Double)) {
-							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true, false));
 						} else {
-							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().getBytes("UTF-8").length), -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().getBytes("UTF-8").length), -1, -1, true, false));
 						}
 					}
 				}
@@ -134,7 +149,7 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 			
 			itemsAmount = itemCount;
 			
-			closeReader();
+			close();
 		}
 		
 		return new ArrayList<String>(dataTypes.keySet());
@@ -148,10 +163,42 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 		return itemsAmount;
 	}
 
-	@Override
-	protected void openReader() throws Exception {
+	private void openReader() throws Exception {
+		if (jsonReader != null) {
+			throw new Exception("Reader was already opened before");
+		}
+		
 		InputStream inputStream = null;
 		try {
+			if (Utilities.isNotEmpty(schemaFilePath)) {
+				InputStream validationStream = null;
+				InputStream schemaStream = null;
+				try {
+					if (!isInlineData) {
+						validationStream = new FileInputStream(new File(importFilePathOrData));
+						if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+							validationStream = new ZipInputStream(validationStream);
+							((ZipInputStream) validationStream).getNextEntry();
+						}
+					} else {
+						validationStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
+					}
+					
+					schemaStream = new FileInputStream(new File(schemaFilePath));
+			        JsonSchema schema = new JsonSchema(schemaStream);
+			        schema.validate(validationStream);
+				} catch (Exception e) {
+					throw new Exception("JSON data does not comply to JSON schema '" + schemaFilePath + "': " + e.getMessage());
+				} finally {
+					if (schemaStream != null) {
+						schemaStream.close();
+					}
+					if (validationStream != null) {
+						validationStream.close();
+					}
+				}
+			}
+			
 			if (!isInlineData) {
 				inputStream = new FileInputStream(new File(importFilePathOrData));
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
@@ -163,9 +210,18 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 			}
 			
 			jsonReader = new Json5Reader(inputStream, encoding);
-			JsonToken startToken = jsonReader.readNextToken();
-			if (startToken != JsonToken.JsonArray_Open) {
-				throw new Exception("Invalid json data for import starting with: " + startToken.toString());
+			if (Utilities.isNotEmpty(dataPath)) {
+				// Read JSON path
+				JsonUtilities.readUpToJsonPath(jsonReader, dataPath);
+				jsonReader.readNextToken();
+				if (jsonReader.getCurrentToken() != JsonToken.JsonArray_Open) {
+					throw new Exception("Invalid non-array json data for import at: " + dataPath);
+				}
+			} else {
+				jsonReader.readNextToken();
+				if (jsonReader.getCurrentToken() != JsonToken.JsonArray_Open) {
+					throw new Exception("Invalid non-array json data for import");
+				}
 			}
 		} catch (Exception e) {
 			Utilities.closeQuietly(jsonReader);
@@ -175,7 +231,11 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 
 	@Override
 	protected Map<String, Object> getNextItemData() throws Exception {
-		if (!jsonReader.readNextJsonItem()) {
+		if (jsonReader == null) {
+			openReader();
+		}
+		
+		if (!jsonReader.readNextJsonNode()) {
 			return null;
 		} else {
 			Object nextObject = jsonReader.getCurrentObject();
@@ -193,8 +253,9 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 	}
 
 	@Override
-	protected void closeReader() throws Exception {
+	public void close() {
 		Utilities.closeQuietly(jsonReader);
+		jsonReader = null;
 	}
 
 	@Override
@@ -235,7 +296,7 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 			
 			return filteredDataFile;
 		} finally {
-			closeReader();
+			close();
 			Utilities.closeQuietly(jsonWriter);
 			Utilities.closeQuietly(outputStream);
 		}

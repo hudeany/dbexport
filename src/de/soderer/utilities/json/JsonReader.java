@@ -6,14 +6,16 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Stack;
-import java.util.regex.Pattern;
 
 import de.soderer.utilities.BasicReader;
+import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.Utilities;
 
 public class JsonReader extends BasicReader {
 	protected Object currentObject = null;
 	
 	protected Stack<JsonToken> openJsonItems = new Stack<JsonToken>();
+	protected Stack<String> currentJsonPath = new Stack<String>();
 	
 	public enum JsonToken {
 		JsonObject_Open,
@@ -40,58 +42,84 @@ public class JsonReader extends BasicReader {
 		return currentObject;
 	}
 	
+	public JsonToken getCurrentToken() {
+		return openJsonItems.peek();
+	}
+
 	public JsonToken readNextToken() throws Exception {
+		JsonToken jsonToken = readNextTokenInternal();
+		
+		updateJsonPath(jsonToken);
+		
+		return jsonToken;
+	}
+	
+	protected JsonToken readNextTokenInternal() throws Exception {
 		currentObject = null;
 		Character currentChar = readNextNonWhitespace();
 		if (currentChar == null) {
-			throw new Exception("Premature end of data");
+			if (openJsonItems.size() > 0) {
+				throw new Exception("Premature end of data");
+			} else {
+				return null;
+			}
 		}
+		
+		JsonToken jsonToken;
 		switch (currentChar) {
 			case '{': // Open JsonObject
 				if (openJsonItems.size() > 0 && openJsonItems.peek() == JsonToken.JsonObject_PropertyKey) {
 					openJsonItems.pop();
 				}
 				openJsonItems.push(JsonToken.JsonObject_Open);
-				return JsonToken.JsonObject_Open;
+				jsonToken = JsonToken.JsonObject_Open;
+				break;
 			case '}': // Close JsonObject
 				if (openJsonItems.pop() != JsonToken.JsonObject_Open) {
 					throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 				} else {
-					return JsonToken.JsonObject_Close;
+					jsonToken = JsonToken.JsonObject_Close;
 				}
+				break;
 			case '[': // Open JsonArray
 				if (openJsonItems.size() > 0 && openJsonItems.peek() == JsonToken.JsonObject_PropertyKey) {
 					openJsonItems.pop();
 				}
 				openJsonItems.push(JsonToken.JsonArray_Open);
-				return JsonToken.JsonArray_Open;
+				jsonToken = JsonToken.JsonArray_Open;
+				break;
 			case ']': // Close JsonArray
 				if (openJsonItems.pop() != JsonToken.JsonArray_Open) {
 					throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 				} else {
-					return JsonToken.JsonArray_Close;
+					jsonToken = JsonToken.JsonArray_Close;
 				}
+				break;
 			case ',': // Separator of JsonObject properties or JsonArray items
 				currentChar = readNextNonWhitespace();
 				if (currentChar == '}' || currentChar == ']') {
 					throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 				} else {
 					reuseCurrentChar();
-					return readNextToken();
+					jsonToken = readNextTokenInternal();
 				}
+				break;
 			case '\'': // Not allowed single-quoted value
 				throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 			case '"': // Start JsonObject propertykey or propertyvalue or JsonArray item
-				if (openJsonItems.peek() == JsonToken.JsonArray_Open) {
+				if (openJsonItems.size() == 0) {
 					currentObject = readQuotedText('"', '\\');
-					return JsonToken.JsonSimpleValue;
+					jsonToken = JsonToken.JsonSimpleValue;
+				} else if (openJsonItems.peek() == JsonToken.JsonArray_Open) {
+					currentObject = readQuotedText('"', '\\');
+					jsonToken = JsonToken.JsonSimpleValue;
 				} else if (openJsonItems.peek() == JsonToken.JsonObject_Open) {
 					currentObject = readQuotedText('"', '\\');
 					if (readNextNonWhitespace() != ':') {
 						throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 					}
 					openJsonItems.push(JsonToken.JsonObject_PropertyKey);
-					return JsonToken.JsonObject_PropertyKey;
+					jsonToken = JsonToken.JsonObject_PropertyKey;
 				} else if (openJsonItems.peek() == JsonToken.JsonObject_PropertyKey) {
 					currentObject = readQuotedText('"', '\\');
 					openJsonItems.pop();
@@ -101,14 +129,18 @@ public class JsonReader extends BasicReader {
 					} else if (currentChar != ',') {
 						throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 					}
-					return JsonToken.JsonSimpleValue;
+					jsonToken = JsonToken.JsonSimpleValue;
 				} else {
 					throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 				}
+				break;
 			default: // Start JsonObject propertyvalue or JsonArray item
-				if (openJsonItems.peek() == JsonToken.JsonArray_Open) {
+				if (openJsonItems.size() == 0) {
+					currentObject = readSimpleJsonValue(readUpToNext(false, null).trim());
+					jsonToken = JsonToken.JsonSimpleValue;
+				} else if (openJsonItems.peek() == JsonToken.JsonArray_Open) {
 					currentObject = readSimpleJsonValue(readUpToNext(false, null, ',', ']').trim());
-					return JsonToken.JsonSimpleValue;
+					jsonToken = JsonToken.JsonSimpleValue;
 				} else if (openJsonItems.peek() == JsonToken.JsonObject_PropertyKey) {
 					openJsonItems.pop();
 					currentObject = readSimpleJsonValue(readUpToNext(false, null, ',', '}').trim());
@@ -123,14 +155,19 @@ public class JsonReader extends BasicReader {
 							reuseCurrentChar();
 						}
 					}
-					return JsonToken.JsonSimpleValue;
+					jsonToken = JsonToken.JsonSimpleValue;
 				} else {
 					throw new Exception("Invalid json data '" + currentChar + "' at index " + getReadCharacters());
 				}
+				break;
 		}
+		
+		updateJsonPath(jsonToken);
+		
+		return jsonToken;
 	}
 	
-	public boolean readNextJsonItem() throws Exception {
+	public boolean readNextJsonNode() throws Exception {
 		if (getReadCharacters() == 0) {
 			throw new Exception("JsonReader position was not initialized for readNextJsonItem()");
 		}
@@ -165,18 +202,20 @@ public class JsonReader extends BasicReader {
 	 * @return JsonObject or JsonArray
 	 * @throws Exception
 	 */
-	public JsonItem read() throws Exception {
+	public JsonNode read() throws Exception {
 		if (getReadCharacters() != 0) {
 			throw new Exception("JsonReader position was already initialized for other read operation");
 		}
 		
 		JsonToken nextToken = readNextToken();
 		if (nextToken == JsonToken.JsonObject_Open) {
-			return readJsonObject();
+			return new JsonNode(readJsonObject());
 		} else if (nextToken == JsonToken.JsonArray_Open) {
-			return readJsonArray();
+			return new JsonNode(readJsonArray());
+		} else if (nextToken == JsonToken.JsonSimpleValue) {
+			return new JsonNode(currentObject);
 		} else {
-			throw new Exception("Invalid json data: No JsonObject or JsonArray at root");
+			throw new Exception("Invalid json data: No JSON data found at root");
 		}
 	}
 	
@@ -242,17 +281,8 @@ public class JsonReader extends BasicReader {
 			return true;
 		} else if (valueString.equalsIgnoreCase("false")) {
 			return false;
-		} else if (Pattern.matches("[+|-]?[0-9]*(\\.[0-9]*)?([e|E][+|-]?[0-9]*)?", valueString)) {
-			if (valueString.contains(".")) {
-				return new Double(valueString);
-			} else {
-				Long value = new Long(valueString);
-				if (Integer.MIN_VALUE <= value && value <= Integer.MAX_VALUE ) {
-					return new Integer(valueString);
-				} else {
-					return value;
-				}
-			}
+		} else if (NumberUtilities.isNumber(valueString)) {
+			return NumberUtilities.parseNumber(valueString);
 		} else {
 			throw new Exception("Invalid json data at index " + getReadCharacters());
 		}
@@ -266,11 +296,78 @@ public class JsonReader extends BasicReader {
 	 * @throws IOException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	public static JsonItem readJsonItemString(String data) throws Exception {
+	public static JsonNode readJsonItemString(String data) throws Exception {
 		try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data.getBytes("UTF-8"))) {
 			try (JsonReader jsonReader = new JsonReader(inputStream)) {
 				return jsonReader.read();
 			}
 		}
+	}
+	
+	protected void updateJsonPath(JsonToken jsonToken) {
+		if (jsonToken != null) {
+			switch(jsonToken) {
+				case JsonArray_Open:
+					if (currentJsonPath.size() > 0 && currentJsonPath.peek().startsWith("[")) {
+						riseArrayIndex();
+					}
+					currentJsonPath.push("[]");
+					break;
+				case JsonArray_Close:
+					if (currentJsonPath.size() > 0 && currentJsonPath.peek().startsWith("[")) {
+						currentJsonPath.pop();
+					}
+					if (currentJsonPath.size() > 0 && currentJsonPath.peek().startsWith(".")) {
+						currentJsonPath.pop();
+					}
+					break;
+				case JsonObject_Open:
+					if (currentJsonPath.size() > 0 && currentJsonPath.peek().startsWith("[")) {
+						riseArrayIndex();
+					}
+					break;
+				case JsonObject_PropertyKey:
+					currentJsonPath.push("." + (String) getCurrentObject());
+					break;
+				case JsonSimpleValue:
+					if (currentJsonPath.size() > 0) {
+						if (currentJsonPath.peek().startsWith("[")) {
+							riseArrayIndex();
+						} else if (currentJsonPath.peek().startsWith(".")) {
+							currentJsonPath.pop();
+						}
+					}
+					break;
+				case JsonObject_Close:
+					if (currentJsonPath.size() > 0 && currentJsonPath.peek().startsWith(".")) {
+						currentJsonPath.pop();
+					}
+					break;
+			}
+		}
+	}
+
+	private void riseArrayIndex() {
+		String currentArrayIndexString = currentJsonPath.pop();
+		currentArrayIndexString = currentArrayIndexString.substring(1, currentArrayIndexString.length() - 1);
+		int newArrayIndex = 0;
+		if (currentArrayIndexString.length() > 0) {
+			newArrayIndex = Integer.parseInt(currentArrayIndexString) + 1;
+		}
+		currentJsonPath.push("[" + newArrayIndex + "]");
+	}
+	
+	/**
+	 * 
+	 * JsonPath syntax:<br />
+	 *	$ : root<br />
+	 *	. : child separator<br />
+	 *	[n] : array operator<br />
+	 *<br />
+	 * JsonPath example:<br />
+	 * 	"$.list.customer[0].name"<br />
+	 */
+	public String getCurrentJsonPath() {
+		return "$" + Utilities.join(currentJsonPath, "");
 	}
 }

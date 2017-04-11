@@ -9,11 +9,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.InputStream;
 import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -29,6 +34,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DuplicateMode;
 import de.soderer.dbcsvimport.DbCsvImportDefinition.ImportMode;
 import de.soderer.dbcsvimport.worker.AbstractDbImportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
@@ -83,12 +89,21 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 
 	/** The importFilePath field. */
 	private JTextArea importFilePathOrDataField;
+	
+	private JTextField dataPathField;
+	
+	private JTextField schemaFilePathField;
+	
+	private JButton schemaFileButton;
 
 	/** The separator combo. */
 	private JComboBox<String> separatorCombo;
 
 	/** The string quote combo. */
 	private JComboBox<String> stringQuoteCombo;
+
+	/** The escape string quote combo. */
+	private JComboBox<String> escapeStringQuoteCombo;
 
 	/** The null value string combo. */
 	private JComboBox<String> nullValueStringCombo;
@@ -116,6 +131,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	
 	private JCheckBox onlyCommitOnFullSuccessBox;
 	
+	private JCheckBox createNewIndexIfNeededBox;
+	
 	private JCheckBox updateWithNullDataBox;
 	
 	private JCheckBox trimDataBox;
@@ -123,6 +140,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	private JCheckBox logErrorneousDataBox;
 	
 	private JComboBox<String> importModeCombo;
+	
+	private JComboBox<String> duplicateModeCombo;
 	
 	private JButton mappingButton;
 
@@ -139,6 +158,11 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	 */
 	public DbCsvImportGui(DbCsvImportDefinition dbCsvImportDefinition) throws Exception {
 		super(DbCsvImport.APPLICATION_NAME, new Version(DbCsvImport.VERSION));
+		
+		try (InputStream imageIconStream = this.getClass().getClassLoader().getResourceAsStream("DbCsvImport_Icon.png")) {
+			BufferedImage imageIcon = ImageIO.read(imageIconStream);
+			setIconImage(imageIcon);
+		}
 
 		final DbCsvImportGui dbCsvImportGui = this;
 
@@ -173,7 +197,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		});
 		dbTypePanel.add(dbTypeCombo, BorderLayout.EAST);
 		mandatoryParameterPanel.add(dbTypePanel);
-
+		
 		// Host Panel
 		JPanel hostPanel = new JPanel();
 		hostPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -251,8 +275,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		// Imputpath Panel
 		JPanel importFilePathPanel = new JPanel();
 		importFilePathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-		JLabel outputpathLabel = new JLabel(LangResources.get("importFilePath"));
-		importFilePathPanel.add(outputpathLabel);
+		JLabel inputFilePathLabel = new JLabel(LangResources.get("importFilePath"));
+		importFilePathPanel.add(inputFilePathLabel);
 		importFilePathOrDataField = new JTextArea();
 		importFilePathOrDataField.setToolTipText(LangResources.get("importFilePath_help"));
 		JScrollPane importFilePathOrDataScrollpane = new JScrollPane(importFilePathOrDataField);
@@ -277,6 +301,45 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			}
 		});
 		importFilePathPanel.add(browseButton);
+
+		// Data path panel
+		JPanel dataPathPanel = new JPanel();
+		dataPathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		JLabel dataPathLabel = new JLabel(LangResources.get("dataPath"));
+		dataPathPanel.add(dataPathLabel);
+		dataPathField = new JTextField();
+		dataPathField.setToolTipText(LangResources.get("dataPath_help"));
+		dataPathField.setPreferredSize(new Dimension(200, dataPathField.getPreferredSize().height));
+		dataPathPanel.add(dataPathField);
+		mandatoryParameterPanel.add(dataPathPanel);
+		
+		// Schema file panel
+		JPanel schemaFilePathPanel = new JPanel();
+		schemaFilePathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		JLabel schemaFilePathLabel = new JLabel(LangResources.get("schemaFilePath"));
+		schemaFilePathPanel.add(schemaFilePathLabel);
+		schemaFilePathField = new JTextField();
+		schemaFilePathField.setToolTipText(LangResources.get("schemaFilePath_help"));
+		schemaFilePathField.setPreferredSize(new Dimension(175, schemaFilePathField.getPreferredSize().height));
+		schemaFilePathPanel.add(schemaFilePathField);
+		
+		schemaFileButton = new JButton("...");
+		schemaFileButton.setPreferredSize(new Dimension(20, 15));
+		schemaFileButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				try {
+					File schemaFile = selectImportFile(schemaFilePathField.getText());
+					if (schemaFile != null) {
+						schemaFilePathField.setText(schemaFile.getAbsolutePath());
+					}
+				} catch (Exception e) {
+					new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.RED).setVisible(true);
+				}
+			}
+		});
+		schemaFilePathPanel.add(schemaFileButton);
+		mandatoryParameterPanel.add(schemaFilePathPanel);
 
 		// Encoding Pane
 		JPanel encodingPanel = new JPanel();
@@ -320,6 +383,21 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		stringQuoteCombo.setEditable(true);
 		stringQuotePanel.add(stringQuoteCombo);
 		mandatoryParameterPanel.add(stringQuotePanel);
+		
+		// escapeStringQuote Pane
+		JPanel escapeStringQuotePanel = new JPanel();
+		escapeStringQuotePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		JLabel escapeStringQuoteLabel = new JLabel(LangResources.get("escapestringquote"));
+		escapeStringQuotePanel.add(escapeStringQuoteLabel);
+		escapeStringQuoteCombo = new JComboBox<String>();
+		escapeStringQuoteCombo.setToolTipText(LangResources.get("escapestringquote_help"));
+		escapeStringQuoteCombo.setPreferredSize(new Dimension(200, escapeStringQuoteCombo.getPreferredSize().height));
+		escapeStringQuoteCombo.addItem("\"");
+		escapeStringQuoteCombo.addItem("'");
+		escapeStringQuoteCombo.addItem("\\");
+		escapeStringQuoteCombo.setEditable(true);
+		escapeStringQuotePanel.add(escapeStringQuoteCombo);
+		mandatoryParameterPanel.add(escapeStringQuotePanel);
 
 		// NullValueString Pane
 		JPanel nullValueStringPanel = new JPanel();
@@ -333,11 +411,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		nullValueStringCombo.addItem("NULL");
 		nullValueStringCombo.addItem("Null");
 		nullValueStringCombo.addItem("null");
+		nullValueStringCombo.addItem("<null>");
 		nullValueStringCombo.setEditable(true);
 		nullValueStringPanel.add(nullValueStringCombo);
 		mandatoryParameterPanel.add(nullValueStringPanel);
 
-		// Importmode Pane
+		// Importmode Panel
 		JPanel importModePanel = new JPanel();
 		importModePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel importModeLabel = new JLabel(LangResources.get("importMode"));
@@ -358,6 +437,27 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		});
 		importModePanel.add(importModeCombo);
 		mandatoryParameterPanel.add(importModePanel);
+
+		// Duplicatemode Panel
+		JPanel duplicateModePanel = new JPanel();
+		duplicateModePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		JLabel duplicateModeLabel = new JLabel(LangResources.get("duplicateMode"));
+		duplicateModePanel.add(duplicateModeLabel);
+		duplicateModeCombo = new JComboBox<String>();
+		duplicateModeCombo.setToolTipText(LangResources.get("duplicateMode_help"));
+		duplicateModeCombo.setPreferredSize(new Dimension(200, duplicateModeCombo.getPreferredSize().height));
+		for (DuplicateMode duplicateMode : DuplicateMode.values()) {
+			duplicateModeCombo.addItem(duplicateMode.toString());
+		}
+		duplicateModeCombo.setEditable(false);
+		duplicateModeCombo.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				checkButtonStatus();
+			}
+		});
+		duplicateModePanel.add(duplicateModeCombo);
+		mandatoryParameterPanel.add(duplicateModePanel);
 
 		// Key columns Panel
 		JPanel keyColumnsPanel = new JPanel();
@@ -433,6 +533,10 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		onlyCommitOnFullSuccessBox = new JCheckBox(LangResources.get("onlyCommitOnFullSuccess"));
 		onlyCommitOnFullSuccessBox.setToolTipText(LangResources.get("onlyCommitOnFullSuccess_help"));
 		optionalParametersPanel.add(onlyCommitOnFullSuccessBox);
+		
+		createNewIndexIfNeededBox = new JCheckBox(LangResources.get("createNewIndexIfNeeded"));
+		createNewIndexIfNeededBox.setToolTipText(LangResources.get("createNewIndexIfNeeded_help"));
+		optionalParametersPanel.add(createNewIndexIfNeededBox);
 		
 		updateWithNullDataBox = new JCheckBox(LangResources.get("updateWithNullData"));
 		updateWithNullDataBox.setToolTipText(LangResources.get("updateWithNullData_help"));
@@ -520,7 +624,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
-					new ApplicationUpdateHelper(DbCsvImport.APPLICATION_NAME, DbCsvImport.VERSION, DbCsvImport.VERSIONINFO_DOWNLOAD_URL, dbCsvImportGui, "-gui").executeUpdate();
+					new ApplicationUpdateHelper(DbCsvImport.APPLICATION_NAME, DbCsvImport.VERSION, DbCsvImport.VERSIONINFO_DOWNLOAD_URL, dbCsvImportGui, "-gui", DbCsvImport.TRUSTED_UPDATE_CA_CERTIFICATE).executeUpdate();
 				} catch (Exception e) {
 					TextDialog textDialog = new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.PINK);
 					textDialog.setVisible(true);
@@ -540,8 +644,11 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			}
 		});
 		buttonPanel2.add(closeButton);
-
-		parameterPanel.add(mandatoryParameterPanel);
+		
+		JScrollPane mandatoryParameterScrollPane = new JScrollPane(mandatoryParameterPanel);
+		mandatoryParameterScrollPane.setPreferredSize(new Dimension(450, 400));
+		parameterPanel.add(mandatoryParameterScrollPane);
+		
 		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
 		add(buttonPanel1);
@@ -567,23 +674,54 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			throw new Exception("TableName is needed for mapping");
 		}
 		
-		Connection connection = null;
-		try {
-			connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword().toCharArray());
-			CaseInsensitiveMap<DbColumnType> columnTypes = DbUtilities.getColumnDataTypes(connection, configurationAsDefinition.getTableName());
-			List<String> keyColumns = DbUtilities.getPrimaryKeyColumns(connection, configurationAsDefinition.getTableName());
-			if (Utilities.isBlank(keyColumnsField.getText())) {
-				keyColumnsField.setText(Utilities.join(keyColumns, ", "));
+		try (Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword().toCharArray(), true)) {
+			CaseInsensitiveMap<DbColumnType> columnTypes = null;
+			if (DbUtilities.checkTableExist(connection, configurationAsDefinition.getTableName())) {
+				columnTypes = DbUtilities.getColumnDataTypes(connection, configurationAsDefinition.getTableName());
+				List<String> keyColumns = new ArrayList<String>(DbUtilities.getPrimaryKeyColumns(connection, configurationAsDefinition.getTableName()));
+				Collections.sort(keyColumns);
+				if (Utilities.isBlank(keyColumnsField.getText())) {
+					keyColumnsField.setText(Utilities.join(keyColumns, ", "));
+				}
+			} else if (!configurationAsDefinition.isCreateTable()) {
+				throw new Exception("Destination table does not exist: " + configurationAsDefinition.getTableName());
 			}
 
-			List<String> dataColumns = configurationAsDefinition.getConfiguredWorker(null).getAvailableDataPropertyNames();
-			DbCsvImportMappingDialog columnMappingDialog = new DbCsvImportMappingDialog(this, DbCsvImport.APPLICATION_NAME + " " + LangResources.get("mapping"), columnTypes, dataColumns);
-			columnMappingDialog.setMappingString(mappingField.getText());
-			if (columnMappingDialog.showDialog()) {
-				mappingField.setText(columnMappingDialog.getMappingString());
+			try (AbstractDbImportWorker worker = configurationAsDefinition.getConfiguredWorker(null, true)) {
+				SimpleProgressDialog<AbstractDbImportWorker> progressDialog = new SimpleProgressDialog<AbstractDbImportWorker>(this, DbCsvImport.APPLICATION_NAME, worker);
+				Result result = progressDialog.showDialog();
+				
+				if (result == Result.CANCELED) {
+					new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME, LangResources.get("error.canceledbyuser"), LangResources.get("close"), Color.YELLOW).setVisible(true);
+				} else if (result == Result.ERROR) {
+					Exception e = progressDialog.getWorker().getError();
+					if (e instanceof DbCsvImportException) {
+						TextDialog textDialog = new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + ((DbCsvImportException) e).getMessage(), LangResources.get("close"), Color.PINK);
+						textDialog.setVisible(true);
+					} else {
+						String stacktrace = ExceptionUtilities.getStackTrace(e);
+						new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace, LangResources.get("close"), false, Color.PINK).setVisible(true);
+					}
+				} else {
+					List<String> dataColumns = worker.getDataPropertyNames();
+					if (columnTypes != null) {
+						DbCsvImportMappingDialog columnMappingDialog = new DbCsvImportMappingDialog(this, DbCsvImport.APPLICATION_NAME + " " + LangResources.get("mapping"), columnTypes, dataColumns, configurationAsDefinition.getKeycolumns());
+						columnMappingDialog.setMappingString(mappingField.getText());
+						if (columnMappingDialog.showDialog()) {
+							mappingField.setText(columnMappingDialog.getMappingString());
+						}
+					} else {
+						String mappingString = "";
+						for (String dataColumn : dataColumns) {
+							if (mappingString.length() > 0) {
+								mappingString += "\n";
+							}
+							mappingString += dataColumn.toLowerCase() + "=\"" + dataColumn + "\"";
+						}
+						mappingField.setText(mappingString);
+					}
+				}
 			}
-		} finally {
-			Utilities.closeQuietly(connection);
 		}
 	}
 
@@ -596,7 +734,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	 */
 	private DbCsvImportDefinition getConfigurationAsDefinition() throws Exception {
 		DbCsvImportDefinition dbCsvImportDefinition = new DbCsvImportDefinition();
-
+		
 		dbCsvImportDefinition.setDbVendor(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()));
 		dbCsvImportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
 		dbCsvImportDefinition.setDbName(dbNameField.getText());
@@ -608,12 +746,15 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		dbCsvImportDefinition.setLog(fileLogBox.isSelected());
 		dbCsvImportDefinition.setEncoding((String) encodingCombo.getSelectedItem());
 		dbCsvImportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
-		dbCsvImportDefinition.setStringQuote(((String) stringQuoteCombo.getSelectedItem()).charAt(0));
+		dbCsvImportDefinition.setStringQuote(Utilities.isNotEmpty((String) stringQuoteCombo.getSelectedItem()) ? ((String) stringQuoteCombo.getSelectedItem()).charAt(0) : null);
+		dbCsvImportDefinition.setEscapeStringQuote(((String) escapeStringQuoteCombo.getSelectedItem()).charAt(0));
 		dbCsvImportDefinition.setNoHeaders(noHeadersBox.isSelected());
 		dbCsvImportDefinition.setNullValueString((String) nullValueStringCombo.getSelectedItem());
 		dbCsvImportDefinition.setCompleteCommit(onlyCommitOnFullSuccessBox.isSelected());
+		dbCsvImportDefinition.setCreateNewIndexIfNeeded(createNewIndexIfNeededBox.isSelected());
 		dbCsvImportDefinition.setAllowUnderfilledLines(allowUnderfilledLinesBox.isSelected());
-		dbCsvImportDefinition.setImportmode(ImportMode.getFromString(((String) importModeCombo.getSelectedItem())));
+		dbCsvImportDefinition.setImportMode(ImportMode.getFromString(((String) importModeCombo.getSelectedItem())));
+		dbCsvImportDefinition.setDuplicateMode(DuplicateMode.getFromString(((String) duplicateModeCombo.getSelectedItem())));
 		dbCsvImportDefinition.setUpdateNullData(updateWithNullDataBox.isSelected());
 		dbCsvImportDefinition.setKeycolumns(Utilities.splitAndTrimList(keyColumnsField.getText()));
 		dbCsvImportDefinition.setCreateTable(createTableBox.isSelected());
@@ -684,22 +825,39 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		}
 
 		boolean stringQuoteFound = false;
-		for (int i = 0; i < stringQuoteCombo.getItemCount(); i++) {
-			if (stringQuoteCombo.getItemAt(i).equalsIgnoreCase(Character.toString(dbCsvImportDefinition.getStringQuote()))) {
-				stringQuoteCombo.setSelectedIndex(i);
-				stringQuoteFound = true;
-				break;
+		if (dbCsvImportDefinition.getStringQuote() == null) {
+			stringQuoteCombo.setSelectedItem("");
+			stringQuoteFound = true;
+		} else {
+			for (int i = 0; i < stringQuoteCombo.getItemCount(); i++) {
+				if (stringQuoteCombo.getItemAt(i).equalsIgnoreCase(Character.toString(dbCsvImportDefinition.getStringQuote()))) {
+					stringQuoteCombo.setSelectedIndex(i);
+					stringQuoteFound = true;
+					break;
+				}
 			}
 		}
 		if (!stringQuoteFound) {
 			stringQuoteCombo.setSelectedItem(Character.toString(dbCsvImportDefinition.getStringQuote()));
+		}
+
+		boolean escapeStringQuoteFound = false;
+		for (int i = 0; i < escapeStringQuoteCombo.getItemCount(); i++) {
+			if (escapeStringQuoteCombo.getItemAt(i).equalsIgnoreCase(Character.toString(dbCsvImportDefinition.getEscapeStringQuote()))) {
+				escapeStringQuoteCombo.setSelectedIndex(i);
+				escapeStringQuoteFound = true;
+				break;
+			}
+		}
+		if (!escapeStringQuoteFound) {
+			escapeStringQuoteCombo.setSelectedItem(Character.toString(dbCsvImportDefinition.getEscapeStringQuote()));
 		}
 		
 		noHeadersBox.setSelected(dbCsvImportDefinition.isNoHeaders());
 		
 		boolean nullValueStringFound = false;
 		for (int i = 0; i < nullValueStringCombo.getItemCount(); i++) {
-			if (nullValueStringCombo.getItemAt(i).equalsIgnoreCase(dbCsvImportDefinition.getNullValueString())) {
+			if (nullValueStringCombo.getItemAt(i).equals(dbCsvImportDefinition.getNullValueString())) {
 				nullValueStringCombo.setSelectedIndex(i);
 				nullValueStringFound = true;
 				break;
@@ -710,11 +868,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		}
 		
 		onlyCommitOnFullSuccessBox.setSelected(dbCsvImportDefinition.isCompleteCommit());
+		createNewIndexIfNeededBox.setSelected(dbCsvImportDefinition.isCreateNewIndexIfNeeded());
 		allowUnderfilledLinesBox.setSelected(dbCsvImportDefinition.isAllowUnderfilledLines());
 		
 		boolean importModeFound = false;
 		for (int i = 0; i < importModeCombo.getItemCount(); i++) {
-			if (importModeCombo.getItemAt(i).equalsIgnoreCase(dbCsvImportDefinition.getImportmode().toString())) {
+			if (importModeCombo.getItemAt(i).equalsIgnoreCase(dbCsvImportDefinition.getImportMode().toString())) {
 				importModeCombo.setSelectedIndex(i);
 				importModeFound = true;
 				break;
@@ -722,6 +881,18 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		}
 		if (!importModeFound) {
 			throw new Exception("Invalid import mode");
+		}
+
+		boolean duplicateModeFound = false;
+		for (int i = 0; i < duplicateModeCombo.getItemCount(); i++) {
+			if (duplicateModeCombo.getItemAt(i).equalsIgnoreCase(dbCsvImportDefinition.getDuplicateMode().toString())) {
+				duplicateModeCombo.setSelectedIndex(i);
+				duplicateModeFound = true;
+				break;
+			}
+		}
+		if (!duplicateModeFound) {
+			throw new Exception("Invalid duplicate mode");
 		}
 		
 		updateWithNullDataBox.setSelected(dbCsvImportDefinition.isUpdateNullData());
@@ -761,6 +932,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		if (DataType.CSV.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(true);
 			stringQuoteCombo.setEnabled(true);
+			escapeStringQuoteCombo.setEnabled(true);
 			noHeadersBox.setEnabled(true);
 			nullValueStringCombo.setEnabled(true);
 			allowUnderfilledLinesBox.setEnabled(true);
@@ -769,13 +941,18 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			updateWithNullDataBox.setEnabled(true);
 			trimDataBox.setEnabled(true);
 			importModeCombo.setEnabled(true);
+			duplicateModeCombo.setEnabled(true);
 			keyColumnsField.setEnabled(true);
 			mappingField.setEnabled(true);
 			additionalInsertValuesField.setEnabled(true);
 			additionalUpdateValuesField.setEnabled(true);
+			dataPathField.setEnabled(false);
+			schemaFilePathField.setEnabled(false);
+			schemaFileButton.setEnabled(false);
 		} else if (DataType.JSON.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
+			escapeStringQuoteCombo.setEnabled(false);
 			noHeadersBox.setEnabled(false);
 			nullValueStringCombo.setEnabled(false);
 			allowUnderfilledLinesBox.setEnabled(false);
@@ -784,13 +961,18 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			updateWithNullDataBox.setEnabled(true);
 			trimDataBox.setEnabled(true);
 			importModeCombo.setEnabled(true);
+			duplicateModeCombo.setEnabled(true);
 			keyColumnsField.setEnabled(true);
 			mappingField.setEnabled(true);
 			additionalInsertValuesField.setEnabled(true);
 			additionalUpdateValuesField.setEnabled(true);
+			dataPathField.setEnabled(true);
+			schemaFilePathField.setEnabled(true);
+			schemaFileButton.setEnabled(true);
 		} else if (DataType.XML.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
+			escapeStringQuoteCombo.setEnabled(false);
 			noHeadersBox.setEnabled(false);
 			nullValueStringCombo.setEnabled(true);
 			allowUnderfilledLinesBox.setEnabled(false);
@@ -799,13 +981,18 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			updateWithNullDataBox.setEnabled(true);
 			trimDataBox.setEnabled(true);
 			importModeCombo.setEnabled(true);
+			duplicateModeCombo.setEnabled(true);
 			keyColumnsField.setEnabled(true);
 			mappingField.setEnabled(true);
 			additionalInsertValuesField.setEnabled(true);
 			additionalUpdateValuesField.setEnabled(true);
+			dataPathField.setEnabled(true);
+			schemaFilePathField.setEnabled(true);
+			schemaFileButton.setEnabled(true);
 		} else if (DataType.SQL.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
 			separatorCombo.setEnabled(false);
 			stringQuoteCombo.setEnabled(false);
+			escapeStringQuoteCombo.setEnabled(false);
 			noHeadersBox.setEnabled(false);
 			nullValueStringCombo.setEnabled(false);
 			allowUnderfilledLinesBox.setEnabled(false);
@@ -814,10 +1001,14 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			updateWithNullDataBox.setEnabled(false);
 			trimDataBox.setEnabled(false);
 			importModeCombo.setEnabled(false);
+			duplicateModeCombo.setEnabled(false);
 			keyColumnsField.setEnabled(false);
 			mappingField.setEnabled(false);
 			additionalInsertValuesField.setEnabled(false);
 			additionalUpdateValuesField.setEnabled(false);
+			dataPathField.setEnabled(false);
+			schemaFilePathField.setEnabled(false);
+			schemaFileButton.setEnabled(false);
 		}
 		mappingField.setBackground(mappingField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 		
@@ -844,17 +1035,20 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	 *            the db csv import definition
 	 * @param dbCsvImportGui
 	 *            the db csv import gui
+	 * @throws Exception 
 	 */
-	private void importData(DbCsvImportDefinition dbCsvImportDefinition, final DbCsvImportGui dbCsvImportGui) {
+	private void importData(DbCsvImportDefinition dbCsvImportDefinition, final DbCsvImportGui dbCsvImportGui) throws Exception {
 		try {
 			dbCsvImportDefinition.checkParameters();
 			if (!new DbCsvImportDriverSupplier(this, dbCsvImportDefinition.getDbVendor()).supplyDriver()) {
 				throw new Exception("Cannot aquire db driver for db vendor: " + dbCsvImportDefinition.getDbVendor());
 			}
-			
-			// The worker parent is set later by the opened DualProgressDialog
-			AbstractDbImportWorker worker = dbCsvImportDefinition.getConfiguredWorker(null);
-
+		} catch (Exception e) {
+			new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), Color.PINK).setVisible(true);
+			return;
+		}
+		
+		try (AbstractDbImportWorker worker = dbCsvImportDefinition.getConfiguredWorker(null, false)) {
 			SimpleProgressDialog<AbstractDbImportWorker> progressDialog = new SimpleProgressDialog<AbstractDbImportWorker>(this, DbCsvImport.APPLICATION_NAME, worker);
 			Result result = progressDialog.showDialog();
 			

@@ -11,11 +11,14 @@ import de.soderer.dbcsvimport.worker.DbSqlImportWorker;
 import de.soderer.dbcsvimport.worker.DbXmlImportWorker;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
 
 public class DbCsvImportDefinition extends SecureDataEntry {
+	public static final String CONNECTIONTEST_SIGN = "connectiontest";
+	
 	/**
 	 * The Enum DataType.
 	 */
@@ -45,7 +48,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	}
 
 	/**
-	 * The Enum DataType.
+	 * The Enum ImportMode.
 	 */
 	public enum ImportMode {
 		CLEARINSERT,
@@ -60,6 +63,30 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				}
 			}
 			throw new Exception("Invalid import mode: " + importModeString);
+		}
+	}
+
+	/**
+	 * The Enum DuplicateMode.
+	 */
+	public enum DuplicateMode {
+		NO_CHECK,
+		CKECK_SOURCE_ONLY_DROP,
+		CKECK_SOURCE_ONLY_JOIN,
+		UPDATE_FIRST_DROP,
+		UPDATE_FIRST_JOIN,
+		UPDATE_ALL_DROP,
+		UPDATE_ALL_JOIN,
+		MAKE_UNIQUE_DROP,
+		MAKE_UNIQUE_JOIN;
+
+		public static DuplicateMode getFromString(String duplicateModeString) throws Exception {
+			for (DuplicateMode duplicateMode : DuplicateMode.values()) {
+				if (duplicateMode.toString().equalsIgnoreCase(duplicateModeString)) {
+					return duplicateMode;
+				}
+			}
+			throw new Exception("Invalid duplicate mode: " + duplicateModeString);
 		}
 	}
 
@@ -109,7 +136,10 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	private char separator = ';';
 
 	/** The string quote. */
-	private char stringQuote = '"';
+	private Character stringQuote = '"';
+
+	/** The escape string quote character. */
+	private char escapeStringQuote = '"';
 
 	/** The no headers. */
 	private boolean noHeaders = false;
@@ -121,7 +151,9 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	
 	private boolean allowUnderfilledLines = false;
 	
-	private ImportMode importmode = ImportMode.INSERT;
+	private ImportMode importMode = ImportMode.INSERT;
+	
+	private DuplicateMode duplicateMode = DuplicateMode.UPDATE_ALL_JOIN;
 	
 	private boolean updateNullData = true;
 	
@@ -138,6 +170,12 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	private String additionalUpdateValues = null;
 	
 	private boolean logErrorneousData = false;
+	
+	private boolean createNewIndexIfNeeded = true;
+
+	private String dataPath = null;
+
+	private String schemaFilePath = null;
 
 	public DbUtilities.DbVendor getDbVendor() {
 		return dbVendor;
@@ -267,12 +305,20 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		this.separator = separator;
 	}
 
-	public char getStringQuote() {
+	public Character getStringQuote() {
 		return stringQuote;
 	}
 
-	public void setStringQuote(char stringQuote) {
+	public void setStringQuote(Character stringQuote) {
 		this.stringQuote = stringQuote;
+	}
+
+	public char getEscapeStringQuote() {
+		return escapeStringQuote;
+	}
+
+	public void setEscapeStringQuote(char escapeStringQuote) {
+		this.escapeStringQuote = escapeStringQuote;
 	}
 
 	public boolean isNoHeaders() {
@@ -307,12 +353,20 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		this.allowUnderfilledLines = allowUnderfilledLines;
 	}
 
-	public ImportMode getImportmode() {
-		return importmode;
+	public ImportMode getImportMode() {
+		return importMode;
 	}
 
-	public void setImportmode(ImportMode importmode) {
-		this.importmode = importmode;
+	public void setImportMode(ImportMode importMode) {
+		this.importMode = importMode;
+	}
+
+	public DuplicateMode getDuplicateMode() {
+		return duplicateMode;
+	}
+
+	public void setDuplicateMode(DuplicateMode duplicateMode) {
+		this.duplicateMode = duplicateMode;
 	}
 
 	public boolean isUpdateNullData() {
@@ -379,8 +433,36 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		this.logErrorneousData = logErrorneousData;
 	}
 
+	public boolean isCreateNewIndexIfNeeded() {
+		return createNewIndexIfNeeded;
+	}
+
+	public void setCreateNewIndexIfNeeded(boolean createNewIndexIfNeeded) {
+		this.createNewIndexIfNeeded = createNewIndexIfNeeded;
+	}
+
+	private String getDataPath() {
+		return dataPath;
+	}
+
+	public void setDataPath(String dataPath) {
+		this.dataPath = dataPath;
+	}
+
+	private String getSchemaFilePath() {
+		return schemaFilePath;
+	}
+
+	public void setSchemaFilePath(String schemaFilePath) {
+		this.schemaFilePath= schemaFilePath;
+	}
+
 	public void checkParameters() throws DbCsvImportException {
-		if (importFilePathOrData == null) {
+		if (CONNECTIONTEST_SIGN.equalsIgnoreCase(tableName)) {
+			if (!NumberUtilities.isDigit(importFilePathOrData)) {
+				throw new DbCsvImportException("Connection test iterations must be nummeric: " + importFilePathOrData);
+			}
+		} else if (importFilePathOrData == null) {
 			throw new DbCsvImportException("ImportFilePath or data is missing");
 		} else if (!isInlineData) {
 			if (!new File(importFilePathOrData).exists()) {
@@ -433,9 +515,19 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			throw new DbCsvImportException("NoHeaders is not supported for data format " + dataType);
 		}
 		
-		if ((importmode == ImportMode.UPDATE || importmode == ImportMode.UPSERT)
-				&& (keycolumns == null || keycolumns.isEmpty())) {
-			throw new DbCsvImportException("Invalid empty key column definition for import mode: " + importmode);
+		if (dataType != DataType.SQL) {
+			if ((importMode == ImportMode.UPDATE || importMode == ImportMode.UPSERT)
+					&& (keycolumns == null || keycolumns.isEmpty())) {
+				throw new DbCsvImportException("Invalid empty key column definition for import mode: " + importMode);
+			}
+		}
+	
+		if (Utilities.isNotEmpty(dataPath) && dataType != DataType.XML && dataType != DataType.JSON) {
+			throw new DbCsvImportException("DataPath is not supported for data format " + dataType);
+		}
+	
+		if (Utilities.isNotEmpty(schemaFilePath) && dataType != DataType.XML && dataType != DataType.JSON) {
+			throw new DbCsvImportException("SchemaFilePath is not supported for data format " + dataType);
 		}
 	}
 
@@ -463,12 +555,14 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			Boolean.toString(log),
 			encoding,
 			Character.toString(separator),
-			Character.toString(stringQuote),
+			stringQuote == null ? "" : Character.toString(stringQuote),
+			Character.toString(escapeStringQuote),
 			Boolean.toString(noHeaders),
 			nullValueString,
 			Boolean.toString(completeCommit),
 			Boolean.toString(allowUnderfilledLines),
-			importmode.toString(),
+			importMode.toString(),
+			duplicateMode.toString(),
 			Boolean.toString(updateNullData),
 			Utilities.join(keycolumns, ", "),
 			Boolean.toString(createTable),
@@ -476,7 +570,9 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			Boolean.toString(trimData),
 			additionalInsertValues,
 			additionalUpdateValues,
-			Boolean.toString(logErrorneousData)
+			Boolean.toString(logErrorneousData),
+			dataPath,
+			schemaFilePath
 		};
 	}
 	
@@ -504,12 +600,21 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		log = Utilities.interpretAsBool(valueStrings.get(i++));
 		encoding = valueStrings.get(i++);
 		separator = valueStrings.get(i++).charAt(0);
-		stringQuote = valueStrings.get(i++).charAt(0);
+		
+		String stringQuoteVar = valueStrings.get(i++);
+		if (Utilities.isEmpty(stringQuoteVar)) {
+			stringQuote = null;
+		} else {
+			stringQuote = stringQuoteVar.charAt(0);
+		}
+		
+		escapeStringQuote = valueStrings.get(i++).charAt(0);
 		noHeaders = Utilities.interpretAsBool(valueStrings.get(i++));
 		nullValueString = valueStrings.get(i++);
 		completeCommit = Utilities.interpretAsBool(valueStrings.get(i++));
 		allowUnderfilledLines = Utilities.interpretAsBool(valueStrings.get(i++));
-		importmode = ImportMode.getFromString(valueStrings.get(i++));
+		importMode = ImportMode.getFromString(valueStrings.get(i++));
+		duplicateMode = DuplicateMode.getFromString(valueStrings.get(i++));
 		updateNullData = Utilities.interpretAsBool(valueStrings.get(i++));
 		keycolumns = Utilities.splitAndTrimList(valueStrings.get(i++));
 		createTable = Utilities.interpretAsBool(valueStrings.get(i++));
@@ -518,6 +623,12 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		additionalInsertValues = valueStrings.get(i++);
 		additionalUpdateValues = valueStrings.get(i++);
 		logErrorneousData = Utilities.interpretAsBool(valueStrings.get(i++));
+		if (valueStrings.size() > i) {
+			dataPath = valueStrings.get(i++);
+		}
+		if (valueStrings.size() > i) {
+			schemaFilePath = valueStrings.get(i++);
+		}
 	}
 
 	/**
@@ -527,7 +638,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	 * @return
 	 * @throws Exception
 	 */
-	public AbstractDbImportWorker getConfiguredWorker(WorkerParentSimple parent) throws Exception {
+	public AbstractDbImportWorker getConfiguredWorker(WorkerParentSimple parent, boolean analyseDataOnly) throws Exception {
 		AbstractDbImportWorker worker;
 		if (getDataType() == DataType.JSON) {
 			worker = new DbJsonImportWorker(parent,
@@ -539,6 +650,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				getTableName(),
 				isInlineData(),
 				getImportFilePathOrData());
+			((DbJsonImportWorker) worker).setDataPath(getDataPath());
+			((DbJsonImportWorker) worker).setSchemaFilePath(getSchemaFilePath());
 		} else if (getDataType() == DataType.XML) {
 			worker = new DbXmlImportWorker(parent,
 				getDbVendor(),
@@ -550,6 +663,8 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				isInlineData(),
 				getImportFilePathOrData());
 			((DbXmlImportWorker) worker).setNullValueText(getNullValueString());
+			((DbXmlImportWorker) worker).setDataPath(getDataPath());
+			((DbXmlImportWorker) worker).setSchemaFilePath(getSchemaFilePath());
 		} else if (getDataType() == DataType.SQL) {
 			worker = new DbSqlImportWorker(parent,
 				getDbVendor(),
@@ -571,17 +686,21 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 				getImportFilePathOrData());
 			((DbCsvImportWorker) worker).setSeparator(getSeparator());
 			((DbCsvImportWorker) worker).setStringQuote(getStringQuote());
+			((DbCsvImportWorker) worker).setEscapeStringQuote(getEscapeStringQuote());
 			((DbCsvImportWorker) worker).setAllowUnderfilledLines(isAllowUnderfilledLines());
 			((DbCsvImportWorker) worker).setNoHeaders(isNoHeaders());
 			((DbCsvImportWorker) worker).setNullValueText(getNullValueString());
 			((DbCsvImportWorker) worker).setTrimData(isTrimData());
 		}
+		worker.setAnalyseDataOnly(analyseDataOnly);
 		worker.setLog(isLog());
 		worker.setEncoding(getEncoding());
 		worker.setMapping(getMapping());
-		worker.setImportmode(getImportmode());
+		worker.setImportMode(getImportMode());
+		worker.setDuplicateMode(getDuplicateMode());
 		worker.setKeycolumns(getKeycolumns());
 		worker.setCompleteCommit(isCompleteCommit());
+		worker.setCreateNewIndexIfNeeded(isCreateNewIndexIfNeeded());
 		worker.setAdditionalInsertValues(getAdditionalInsertValues());
 		worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
 		worker.setUpdateNullData(isUpdateNullData());

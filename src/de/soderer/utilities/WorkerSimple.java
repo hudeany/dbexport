@@ -13,6 +13,7 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 	private Date endTime;
 	protected long itemsToDo = -1;
 	protected long itemsDone = -1;
+	protected long dataItemsDone = -1;
 	protected Date lastProgressShow = new Date();
 	protected long showProgressAfterMilliseconds = DEFAULT_SHOW_PROGRESS_AFTER_MILLISECONDS;
 	private T result = null;
@@ -141,6 +142,8 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 			result = work();
 		} catch (Exception e) {
 			error = e;
+		} catch (Throwable e) {
+			error = new Exception("Fatal error occurred: " + e.getMessage(), e);
 		}
 		
 		if (endTime == null) {

@@ -7,7 +7,7 @@ import java.util.List;
 
 import de.soderer.utilities.Utilities;
 
-public class JsonArray implements Iterable<Object>, JsonItem {
+public class JsonArray implements Iterable<Object> {
 	private List<Object> items = new ArrayList<Object>();
 
 	public void add(Object value) {
@@ -51,12 +51,26 @@ public class JsonArray implements Iterable<Object>, JsonItem {
 	}
 
 	@Override
-	public boolean isJsonObject() {
-		return false;
-	}
-
-	@Override
-	public boolean isJsonArray() {
-		return true;
+	public boolean equals(Object otherObject) {
+		if (this == otherObject) {
+			return true;
+		} else if (otherObject != null && otherObject instanceof JsonArray) {
+			JsonArray otherArray = (JsonArray) otherObject;
+			if (this.size() != otherArray.size()) {
+				return false;
+			} else {
+				for (int i = 0; i < this.size(); i++) {
+					Object thisValue = this.get(i);
+					Object otherValue = otherArray.get(i);
+					if ((thisValue != otherValue)
+						&& (thisValue != null && !thisValue.equals(otherValue))) {
+						return false;
+					}
+				}
+				return true;
+			}
+		} else {
+			return false;
+		}
 	}
 }

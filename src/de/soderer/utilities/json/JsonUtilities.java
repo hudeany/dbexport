@@ -1,5 +1,8 @@
 package de.soderer.utilities.json;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +14,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.json.schema.JsonSchema;
 
 public class JsonUtilities {
 	public static JsonObject convertXmlDocument(Document xmlDocument, boolean throwExceptionOnError) throws Exception {
@@ -59,28 +63,57 @@ public class JsonUtilities {
 		return jsonObject;
 	}
 
-	public static Document convertToXmlDocument(JsonObject jsonObject, boolean useAttributes) throws Exception {
+	public static Document convertToXmlDocument(JsonNode jsonNode, boolean useAttributes) throws Exception {
 		try {
 			DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
 			Document xmlDocument = documentBuilder.newDocument();
 			xmlDocument.setXmlStandalone(true);
-			List<Node> mainNodes = convertToXmlNodes(jsonObject, xmlDocument, useAttributes);
-			if (mainNodes == null || mainNodes.size() < 1) {
-				throw new Exception("No data found");
-			} else if (mainNodes.size() == 1) {
-				xmlDocument.appendChild(mainNodes.get(0));
+			List<Node> mainNodes;
+			if (jsonNode.isJsonObject()) {
+				mainNodes = convertToXmlNodes((JsonObject) jsonNode.getValue(), xmlDocument, useAttributes);
+				if (mainNodes == null || mainNodes.size() < 1) {
+					throw new Exception("No data found");
+				} else if (mainNodes.size() == 1) {
+					xmlDocument.appendChild(mainNodes.get(0));
+				} else {
+					Node rootNode = xmlDocument.createElement("root");
+					for (Node subNode : mainNodes) {
+						if (subNode instanceof Attr) {
+							rootNode.getAttributes().setNamedItem(subNode);
+						} else {
+							rootNode.appendChild(subNode);
+						}
+					}
+					xmlDocument.appendChild(rootNode);
+				}
+			} else if (jsonNode.isJsonArray()) {
+				mainNodes = convertToXmlNodes((JsonArray) jsonNode.getValue(), "root", xmlDocument, useAttributes);
+				if (mainNodes == null || mainNodes.size() < 1) {
+					throw new Exception("No data found");
+				} else if (mainNodes.size() == 1) {
+					xmlDocument.appendChild(mainNodes.get(0));
+				} else {
+					Node rootNode = xmlDocument.createElement("root");
+					for (Node subNode : mainNodes) {
+						if (subNode instanceof Attr) {
+							rootNode.getAttributes().setNamedItem(subNode);
+						} else {
+							rootNode.appendChild(subNode);
+						}
+					}
+					xmlDocument.appendChild(rootNode);
+				}
+			} else if (jsonNode.isNull()) {
+				Node rootNode = xmlDocument.createElement("root");
+				rootNode.setTextContent("null");
+				xmlDocument.appendChild(rootNode);
 			} else {
 				Node rootNode = xmlDocument.createElement("root");
-				for (Node subNode : mainNodes) {
-					if (subNode instanceof Attr) {
-						rootNode.getAttributes().setNamedItem(subNode);
-					} else {
-						rootNode.appendChild(subNode);
-					}
-				}
+				rootNode.setTextContent(jsonNode.getValue().toString());
 				xmlDocument.appendChild(rootNode);
 			}
+			
 			return xmlDocument;
 		} catch (Exception e) {
 			throw new Exception("Invalid data", e);
@@ -153,5 +186,63 @@ public class JsonUtilities {
 		}
 
 		return list;
+	}
+	
+	/**
+	 * JsonPath syntax:<br />
+	 *	$ : root<br />
+	 *	. or / : child separator<br />
+	 *	[n] : array operator<br />
+	 *<br />
+	 * JsonPath example:<br />
+	 * 	"$.list.customer[0].name"<br />
+	 * 
+	 * @param jsonReader
+	 * @param jsonPath
+	 * @throws Exception
+	 */
+	public static void readUpToJsonPath(JsonReader jsonReader, String jsonPath) throws Exception {
+		if (jsonPath.startsWith("/") || jsonPath.startsWith("$")) {
+			jsonPath = jsonPath.substring(1);
+		}
+		if (jsonPath.endsWith("/")) {
+			jsonPath = jsonPath.substring(0, jsonPath.length() - 1);
+		}
+		jsonPath = "$" + jsonPath.replace("/", ".");
+		
+		while (jsonReader.readNextToken() != null && !jsonReader.getCurrentJsonPath().equals(jsonPath)) {
+		}
+
+		if (!jsonReader.getCurrentJsonPath().equals(jsonPath)) {
+			throw new Exception("Path '" + jsonPath + "' is not part of the JSON data");
+		}
+	}
+
+	public static JsonNode parseJsonDataAndVerifyJsonSchema(byte[] jsonData, String encoding, String jsonSchemaFileName) throws Exception {
+		JsonSchema jsonSchema;
+		try (InputStream jsonSchemaInputStream = new FileInputStream(jsonSchemaFileName)) {
+			jsonSchema = new JsonSchema(jsonSchemaInputStream, encoding);
+		}
+		return jsonSchema.validate(new ByteArrayInputStream(jsonData), encoding);
+	}
+
+	public static JsonNode validateJsonSchema(byte[] jsonData, String encoding) throws Exception {
+		JsonSchema jsonSchema;
+		try (InputStream jsonSchemaInputStream = JsonSchema.class.getClassLoader().getResourceAsStream("json/JsonSchemaDescriptionDraftV4.json");) {
+			jsonSchema = new JsonSchema(jsonSchemaInputStream, encoding);
+		}
+		return jsonSchema.validate(new ByteArrayInputStream(jsonData), encoding);
+	}
+
+	public static JsonNode validateJson(byte[] jsonData, String encoding) throws Exception {
+		try (JsonReader jsonReader = new JsonReader(new ByteArrayInputStream(jsonData), encoding)) {
+			return jsonReader.read();
+		}
+	}
+
+	public static JsonNode validateJson5(byte[] jsonData, String encoding) throws Exception {
+		try (JsonReader jsonReader = new Json5Reader(new ByteArrayInputStream(jsonData), encoding)) {
+			return jsonReader.read();
+		}
 	}
 }

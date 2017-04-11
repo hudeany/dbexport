@@ -1,0 +1,63 @@
+Usage: java -jar DbCsvImport.jar [-gui] [optional parameters] dbtype hostname[:port] username dbname tablename [-data] importfilepathOrData [password]
+
+mandatory parameters
+	dbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql
+	hostname: with optional port (not needed for sqlite and derby)
+	username: username (not needed for sqlite and derby)
+	dbname: dbname or filepath for sqlite db or derby db
+	tablename: table to import to
+	importfilepathOrData: file to import, maybe zipped (.zip) or data as text
+	password: is asked interactivly, if not given as parameter (not needed for sqlite and derby)
+
+optional parameters
+	-data: Declare importfilepathOrData explicitly as inline data (no filepath)
+	-x importDataFormat: Data import format, default format is CSV
+		importDataFormat: CSV | JSON | XML | SQL | EXCEL
+	-dp <datapath>: optional datapath within the XML-Data (XPath), JSON-Data or EXCEL-Data (Sheetname)
+	-sp <schemaFilePath>: optional path to schema file for XML (XSD) or JSON
+	-m: column mappings (separated by semicolon or linebreak): when not configured a simple mapping by column names is used
+		Mapping entry format: dbcolumnname="data column name" <formatinfo>
+		<formatinfo> may be decimal delimiter (default .), date pattern (default dd.MM.yyyy HH:mm:ss) or file or lc (lowercase) or uc (uppercase) or email
+		Example: 'db1="def 1" ,;db2="def 2" .;db3="def 3" dd.MM.yyyy HH:mm:ss;db4="def 4" file'
+	-mf: column mapping file, containing the mapping entries of -m
+	-n 'NULL': set a string for null values (only for csv and xml, default is '')
+	-l: log import information in .log files
+	-v: progress and e.t.a. import in terminal
+	-e: encoding for CSV and JSON data files and clob files (default UTF-8)
+	-s: separator character, default ';', encapsulate by '
+	-q: string quote character, default '"', encapsulate by ', 'null' or 'none' for empty
+	-noheaders: first csv line is data and not headers
+	-c: complete commit only (takes more time and makes rollback on any error)
+	-nonewindex: do not create new indexes on destination table, even if the are helpful (by default new indexes are created, which saves time)
+	-a: allow underfilled lines
+	-t: trim data values
+	-i 'importmode':
+		CLEARINSERT: deletes all existing data before insert. If key columns are set, duplicates are prevented
+		INSERT: (default) inserts all data. If key columns are set, inserts only not already existing data
+		UPDATE: updates only exiting data, needs key columns
+		UPSERT: updates and inserts, needs key columns
+	-d 'duplicatemode':
+		NO_CHECK: No duplicate check. Only insert
+		CKECK_SOURCE_ONLY_DROP: Check duplicates in import data only. Drop duplicates
+		CKECK_SOURCE_ONLY_JOIN: Check duplicates in import data only. Join duplicates
+		UPDATE_FIRST_DROP: Check duplicates in import data and db data. Only update the first occurrence in db. Drop duplicates
+		UPDATE_FIRST_JOIN: Check duplicates in import data and db data. Only update the first occurrence in db. Join duplicates
+		UPDATE_ALL_DROP: Check duplicates in import data and db data. Update all occurrences in db. Drop duplicates
+		UPDATE_ALL_JOIN: (default) Check duplicates in import data and db data. Update all occurrences in db. Join duplicates
+		MAKE_UNIQUE_DROP: Check duplicates in import data and db data. Remove duplicate occurrences in db. Drop duplicates
+		MAKE_UNIQUE_JOIN: Check duplicates in import data and db data. Remove duplicate occurrences in db. Join duplicates
+	-u: don't update with null values from import data
+	-k 'keycolumnslist': keycolumns list comma separated
+	-insvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for inserts. E.g.: id=test_seq.NEXTVAL;flag='abc'
+	-updvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for updates. E.g.: create=current_timestamp;flag='abc'
+	-create: scan data and create suitable table, if not exists. Also creates sqlite, derby and hsql db if needed
+	-logerrors: log error data items in file
+
+global/single parameters
+	-help: show this help manual
+	-gui: open a GUI
+	-version: show current local version of this tool
+	-update: check for online update and ask, whether an available update shell be installed. [username [password]]
+
+connection test:
+	Set tablename to "connectiontest" and importfilepathOrData to iterations wanted

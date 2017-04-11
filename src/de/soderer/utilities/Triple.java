@@ -5,6 +5,12 @@ public class Triple<T1, T2, T3> {
 	private T2 value2;
 	private T3 value3;
 
+	public Triple() {
+		this.value1 = null;
+		this.value2 = null;
+		this.value3 = null;
+	}
+
 	public Triple(T1 value1, T2 value2, T3 value3) {
 		this.value1 = value1;
 		this.value2 = value2;
@@ -21,6 +27,18 @@ public class Triple<T1, T2, T3> {
 
 	public T3 getThird() {
 		return value3;
+	}
+
+	public void setFirst(T1 value1) {
+		this.value1 = value1;
+	}
+
+	public void setSecond(T2 value2) {
+		this.value2 = value2;
+	}
+
+	public void setThird(T3 value3) {
+		this.value3 = value3;
 	}
 
 	@Override

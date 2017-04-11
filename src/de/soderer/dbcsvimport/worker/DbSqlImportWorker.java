@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.zip.ZipInputStream;
 
 import de.soderer.dbcsvimport.DbCsvImportException;
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
 import de.soderer.utilities.CsvDataException;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
@@ -31,7 +32,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 	private Integer itemsAmount = null;
 	
 	public DbSqlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isInlineData, String importFilePathOrData) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, null, isInlineData, importFilePathOrData);
+		super(parent, dbVendor, hostname, dbName, username, password, null, isInlineData, importFilePathOrData, DataType.SQL);
 	}
 
 	@Override
@@ -95,8 +96,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 		return itemsAmount;
 	}
 
-	@Override
-	protected void openReader() throws Exception {
+	private void openReader() throws Exception {
 		InputStream inputStream = null;
 		try {
 			if (!isInlineData) {
@@ -121,8 +121,9 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 	}
 
 	@Override
-	protected void closeReader() throws Exception {
+	public void close() {
 		Utilities.closeQuietly(sqlScriptReader);
+		sqlScriptReader = null;
 	}
 
 	@Override
@@ -133,25 +134,27 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 	@Override
 	public Boolean work() throws Exception {
 		OutputStream logOutputStream = null;
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			if (!isInlineData) {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
-				}
+
+		if (!isInlineData) {
+			if (!new File(importFilePathOrData).exists()) {
+				throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
+			} else if (new File(importFilePathOrData).isDirectory()) {
+				throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
 			}
-			
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
+		}
+		
+		Connection connection = null; 
+		boolean previousAutoCommit = false;
+		try {
+			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true);
+			previousAutoCommit = connection.getAutoCommit();
 			connection.setAutoCommit(false);
 			
-			importedItems = 0;
-			notImportedItems = new ArrayList<Integer>();
+			validItems = 0;
+			invalidItems = new ArrayList<Integer>();
 	
 			try {
-				if (log && !isInlineData) {
+				if (log) {
 					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
 					
 					logToFile(logOutputStream, getConfigurationLogString());
@@ -165,32 +168,29 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 				logToFile(logOutputStream, "Statements to execute: " + itemsToDo);
 				showProgress(true);
 				
-				statement = connection.createStatement();
-				
-				openReader();
-				
-				// Execute statements
-				String nextStatement;
-				while ((nextStatement = sqlScriptReader.readNextStatement()) != null) {
-					try {
-						statement.execute(nextStatement);
-						importedItems++;
-					} catch (Exception e) {
-						if (commitOnFullSuccessOnly) {
-							Utilities.closeQuietly(statement);
-							connection.rollback();
-							Utilities.closeQuietly(connection);
-							connection = null;
-							throw new Exception("Errorneous statement number " + (itemsDone + 1) + " at character index " + sqlScriptReader.getReadCharacters() + ": " + e.getMessage());
+				try (Statement statement = connection.createStatement()) {
+					openReader();
+					
+					// Execute statements
+					String nextStatement;
+					while ((nextStatement = sqlScriptReader.readNextStatement()) != null) {
+						try {
+							statement.execute(nextStatement);
+							validItems++;
+						} catch (Exception e) {
+							if (commitOnFullSuccessOnly) {
+								connection.rollback();
+								throw new Exception("Errorneous statement number " + (itemsDone + 1) + " at character index " + sqlScriptReader.getReadCharacters() + ": " + e.getMessage());
+							}
+							invalidItems.add((int) itemsDone);
 						}
-						notImportedItems.add((int) itemsDone);
+						itemsDone++;
 					}
-					itemsDone++;
+					connection.commit();
 				}
-				connection.commit();
 				
-				if (logErrorneousData & notImportedItems.size() > 0) {
-					errorneousDataFile = filterDataItems(notImportedItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
+				if (logErrorneousData & invalidItems.size() > 0) {
+					errorneousDataFile = filterDataItems(invalidItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
 				}
 				
 				setEndTime(new Date());
@@ -201,7 +201,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 				
 				int elapsedTimeInSeconds = (int) (getEndTime().getTime() - getStartTime().getTime()) / 1000;
 				if (elapsedTimeInSeconds > 0) {
-					int itemsPerSecond = (int) (importedItems / elapsedTimeInSeconds);
+					int itemsPerSecond = (int) (validItems / elapsedTimeInSeconds);
 					logToFile(logOutputStream, "Import speed: " + itemsPerSecond + " items/second");
 				} else {
 					logToFile(logOutputStream, "Import speed: immediately");
@@ -218,7 +218,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 				}
 				throw e;
 			} finally {
-				closeReader();
+				close();
 				Utilities.closeQuietly(logOutputStream);
 			}
 	
@@ -226,11 +226,11 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 		} catch (Exception e) {
 			throw e;
 		} finally {
-			Utilities.closeQuietly(statement);
 			if (connection != null) {
 				connection.rollback();
+				connection.setAutoCommit(previousAutoCommit);
+				connection.close();
 			}
-			Utilities.closeQuietly(connection);
 		}
 	}
 }

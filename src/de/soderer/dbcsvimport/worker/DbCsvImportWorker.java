@@ -16,14 +16,18 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
 import de.soderer.dbcsvimport.DbCsvImportException;
 import de.soderer.utilities.CsvDataException;
+import de.soderer.utilities.CsvFormat;
 import de.soderer.utilities.CsvReader;
 import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
@@ -32,7 +36,8 @@ import de.soderer.utilities.ZipUtilities;
 public class DbCsvImportWorker extends AbstractDbImportWorker {
 	// Default optional parameters
 	private char separator = ';';
-	private char stringQuote = '"';
+	private Character stringQuote = '"';
+	private char escapeStringQuote = '"';
 	private String nullValueText = null;
 	private boolean allowUnderfilledLines = false;
 	private boolean noHeaders = false;
@@ -44,15 +49,19 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	private Integer itemsAmount = null;
 	
 	public DbCsvImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData, DataType.CSV);
 	}
 
 	public void setSeparator(char separator) {
 		this.separator = separator;
 	}
 
-	public void setStringQuote(char stringQuote) {
+	public void setStringQuote(Character stringQuote) {
 		this.stringQuote = stringQuote;
+	}
+
+	public void setEscapeStringQuote(char escapeStringQuote) {
+		this.escapeStringQuote = escapeStringQuote;
 	}
 
 	public void setAllowUnderfilledLines(boolean allowUnderfilledLines) {
@@ -86,15 +95,18 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			+ "Encoding: " + encoding + "\n"
 			+ "Separator: " + separator + "\n"
 			+ "StringQuote: " + stringQuote + "\n"
+			+ "EscapeStringQuote: " + escapeStringQuote + "\n"
 			+ "AllowUnderfilledLines: " + allowUnderfilledLines + "\n"
 			+ "TrimData: " + trimData + "\n"
 			+ "CommitOnFullSuccessOnly: " + commitOnFullSuccessOnly + "\n"
+			+ "CreateNewIndexIfNeeded: " + createNewIndexIfNeeded + "\n"
 			+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n"
 			+ "Table name: " + tableName + "\n"
 			+ "Import mode: " + importMode + "\n"
+			+ "Duplicate mode: " + duplicateMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
-			+ "Mapping: " + convertMappingToString(mapping) + "\n"
+			+ "Mapping: \n" + TextUtilities.addLeadingTab(convertMappingToString(mapping)) + "\n"
 			+ "Additional insert values: " + additionalInsertValues + "\n"
 			+ "Additional update values: " + additionalUpdateValues + "\n"
 			+ "Update with null values: " + updateWithNullValues + "\n";
@@ -116,9 +128,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
-				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
-				csvReader.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
-				csvReader.setAlwaysTrim(trimData);
+				CsvFormat csvFormat = new CsvFormat()
+					.setSeparator(separator)
+					.setStringQuote(stringQuote)
+					.setStringQuoteEscapeCharacter(escapeStringQuote)
+					.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines)
+					.setAlwaysTrim(trimData);
+				
+				csvReader = new CsvReader(inputStream, encoding, csvFormat);
 				
 				if (!noHeaders) {
 					// Read headers from file
@@ -131,7 +148,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 				List<String> values;
 				while ((values = csvReader.readNextCsvLine()) != null) {
 					for (int i = 0; i < values.size(); i++) {
-						String columnName = (columnNames == null || columnNames.size() <= i  ? Integer.toString(i) : columnNames.get(i));
+						String columnName = (columnNames == null || columnNames.size() <= i ? "column_" + Integer.toString(i + 1) : columnNames.get(i));
 						String formatInfo = null;
 						if (mapping != null) {
 							for (Tuple<String, String> mappingValue : mapping.values()) {
@@ -148,23 +165,25 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 						if (currentType != SimpleDataType.Blob) {
 							String currentValue = values.get(i);
 							if (Utilities.isEmpty(currentValue)) {
-								dataTypes.put(columnName, null);
+								if (!dataTypes.containsKey(columnName)) {
+									dataTypes.put(columnName, null);
+								}
 							} else if ("file".equalsIgnoreCase(formatInfo) || currentValue.length() > 4000) {
-								dataTypes.put(columnName, new DbColumnType("BLOB", -1, -1, -1, true));
-							} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file") && !"lc".equalsIgnoreCase(formatInfo) && !"uc".equalsIgnoreCase(formatInfo)) {
+								dataTypes.put(columnName, new DbColumnType("BLOB", -1, -1, -1, true, false));
+							} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !".".equals(formatInfo) && !",".equals(formatInfo) && !"file".equalsIgnoreCase(formatInfo) && !"lc".equalsIgnoreCase(formatInfo) && !"uc".equalsIgnoreCase(formatInfo)) {
 								try {
 									new SimpleDateFormat(formatInfo).parse(currentValue.trim());
-									dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
+									dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true, false));
 								} catch (Exception e) {
-									dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true));
+									dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true, false));
 								}
-								dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true));
-							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && Utilities.isInteger(currentValue)) {
-								dataTypes.put(columnName, new DbColumnType("INTEGER", -1, -1, -1, true));
-							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && Utilities.isDouble(currentValue)) {
-								dataTypes.put(columnName, new DbColumnType("DOUBLE", -1, -1, -1, true));
+								dataTypes.put(columnName, new DbColumnType("DATE", -1, -1, -1, true, false));
+							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
+								dataTypes.put(columnName, new DbColumnType("INTEGER", -1, -1, -1, true, false));
+							} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
+								dataTypes.put(columnName, new DbColumnType("DOUBLE", -1, -1, -1, true, false));
 							} else {
-								dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true));
+								dataTypes.put(columnName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(columnName) == null ? 0 : dataTypes.get(columnName).getCharacterLength(), currentValue.getBytes(encoding).length), -1, -1, true, false));
 							}
 						}
 					}
@@ -196,9 +215,14 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
-				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
-				csvReader.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
-				csvReader.setAlwaysTrim(true);
+				CsvFormat csvFormat = new CsvFormat()
+					.setSeparator(separator)
+					.setStringQuote(stringQuote)
+					.setStringQuoteEscapeCharacter(escapeStringQuote)
+					.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines)
+					.setAlwaysTrim(true);
+				
+				csvReader = new CsvReader(inputStream, encoding, csvFormat);
 				
 				if (noHeaders) {
 					List<String> returnList = new ArrayList<String>();
@@ -217,7 +241,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 						// Only take first data as example for all other data
 						List<String> values = csvReader.readNextCsvLine();
 						for (int i = 0; i < values.size(); i++) {
-							returnList.add(Integer.toString(i + 1));
+							returnList.add("column_" + Integer.toString(i + 1));
 						}
 						columnNames = returnList;
 					}
@@ -252,8 +276,13 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 					inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 				}
 				
-				csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
-				csvReader.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
+				CsvFormat csvFormat = new CsvFormat()
+					.setSeparator(separator)
+					.setStringQuote(stringQuote)
+					.setStringQuoteEscapeCharacter(escapeStringQuote)
+					.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
+				
+				csvReader = new CsvReader(inputStream, encoding, csvFormat);
 				
 				if (noHeaders) {
 					itemsAmount = csvReader.getCsvLineCount();
@@ -272,8 +301,11 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 		return itemsAmount;
 	}
 
-	@Override
-	protected void openReader() throws Exception {
+	private void openReader() throws Exception {
+		if (csvReader != null) {
+			throw new Exception("Reader was already opened before");
+		}
+		
 		InputStream inputStream = null;
 		try {
 			if (!isInlineData) {
@@ -285,9 +317,15 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			} else {
 				inputStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
 			}
-			csvReader = new CsvReader(inputStream, encoding, separator, stringQuote);
-			csvReader.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines);
-			csvReader.setAlwaysTrim(trimData);
+
+			CsvFormat csvFormat = new CsvFormat()
+				.setSeparator(separator)
+				.setStringQuote(stringQuote)
+				.setStringQuoteEscapeCharacter(escapeStringQuote)
+				.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines)
+				.setAlwaysTrim(trimData);
+			
+			csvReader = new CsvReader(inputStream, encoding, csvFormat);
 			
 			if (!noHeaders) {
 				// Skip headers
@@ -301,6 +339,10 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 
 	@Override
 	protected Map<String, Object> getNextItemData() throws Exception {
+		if (csvReader == null) {
+			openReader();
+		}
+		
 		List<String> values = csvReader.readNextCsvLine();
 		if (values != null) {
 			Map<String, Object> returnMap = new HashMap<String, Object>();
@@ -323,8 +365,9 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 	}
 
 	@Override
-	protected void closeReader() throws Exception {
+	public void close() {
 		Utilities.closeQuietly(csvReader);
+		csvReader = null;
 	}
 
 	@Override
@@ -344,7 +387,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 			
-			csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setStringQuoteEscapeCharacter(escapeStringQuote));
 			
 			csvWriter.writeValues(columnNames);
 			
@@ -361,7 +404,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 							values.add((String) item.get(columnName));
 						} else if (item.get(columnName) instanceof Date) {
 							values.add(DateUtilities.YYYY_MM_DD_HHMMSS.format(item.get(columnName)));
-						} else if (item.get(columnName)  instanceof Number) {
+						} else if (item.get(columnName) instanceof Number) {
 							values.add(item.get(columnName).toString());
 						} else {
 							values.add(item.get(columnName).toString());
@@ -373,7 +416,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 			
 			return filteredDataFile;
 		} finally {
-			closeReader();
+			close();
 			Utilities.closeQuietly(csvWriter);
 			Utilities.closeQuietly(outputStream);
 		}

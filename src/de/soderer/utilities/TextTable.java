@@ -145,7 +145,7 @@ public class TextTable {
 		for (int columnIndex = 0; columnIndex < columnRightAligned.size(); columnIndex++) {
 			boolean isNumeric = true;
 			for (List<String> line : content) {
-				if (Utilities.isNotBlank(line.get(columnIndex)) && !Utilities.isInteger(line.get(columnIndex))) {
+				if (Utilities.isNotBlank(line.get(columnIndex)) && !NumberUtilities.isInteger(line.get(columnIndex))) {
 					isNumeric = false;
 					break;
 				}

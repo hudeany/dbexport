@@ -969,17 +969,17 @@ public class TextUtilities {
 	 * Trim a string to a maximum number of characters and add a sign if it was cut off.
 	 *
 	 * @param inputString
-	 * @param laenge
-	 * @param interLeave
+	 * @param maxLength
+	 * @param cutoffSign
 	 * @return
 	 */
-	public static String trimStringToMaximumLength(String inputString, int laenge, String interLeave) {
-		if (inputString == null || inputString.length() <= laenge) {
+	public static String trimStringToMaximumLength(String inputString, int maxLength, String cutoffSign) {
+		if (inputString == null || inputString.length() <= maxLength) {
 			return inputString;
 		} else {
-			int takeFirstLength = (laenge - interLeave.length()) / 2;
-			int takeLastLength = laenge - interLeave.length() - takeFirstLength;
-			return inputString.substring(0, takeFirstLength) + interLeave + inputString.substring(inputString.length() - takeLastLength);
+			int takeFirstLength = (maxLength - cutoffSign.length()) / 2;
+			int takeLastLength = maxLength - cutoffSign.length() - takeFirstLength;
+			return inputString.substring(0, takeFirstLength) + cutoffSign + inputString.substring(inputString.length() - takeLastLength);
 		}
 	}
 
@@ -1050,5 +1050,9 @@ public class TextUtilities {
 			value = value * 26 + columnIndex;
 		}
 		return value;
+	}
+
+	public static boolean isValidBase64(String value) {
+		return Pattern.matches("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$", value);
 	}
 }

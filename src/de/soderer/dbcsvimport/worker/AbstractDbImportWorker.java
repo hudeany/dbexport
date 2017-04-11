@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
@@ -22,24 +21,32 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DuplicateMode;
 import de.soderer.dbcsvimport.DbCsvImportDefinition.ImportMode;
 import de.soderer.dbcsvimport.DbCsvImportException;
 import de.soderer.dbcsvimport.DbCsvImportMappingDialog;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
+import de.soderer.utilities.DbNotExistsException;
 import de.soderer.utilities.DbUtilities;
+import de.soderer.utilities.LangResources;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.NetworkUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
 import de.soderer.utilities.WorkerSimple;
+import de.soderer.utilities.collection.CaseInsensitiveMap;
 
-public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
+public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> implements Closeable {
 	// Mandatory parameters
 	protected DbUtilities.DbVendor dbVendor = null;
-	protected ImportMode importMode = ImportMode.UPSERT;
+	protected ImportMode importMode = ImportMode.INSERT;
+	protected DuplicateMode duplicateMode = DuplicateMode.UPDATE_ALL_JOIN;
 	protected List<String> keyColumns = null;
+	protected List<String> keyColumnsWithFunctions = null;
 	protected String hostname;
 	protected String dbName;
 	protected String username;
@@ -50,8 +57,11 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected boolean isInlineData;
 	protected String importFilePathOrData;
 	protected boolean commitOnFullSuccessOnly = true;
+	protected boolean createNewIndexIfNeeded = true;
+	private String newIndexName = null;
+	private DataType dataType;
 	
-	protected List<String> dbTableColumnsListToInsert;
+	protected List<String> dbTableColumnsListToInsert = null;
 	protected Map<String, Tuple<String, String>> mapping = null;
 	
 	// Default optional parameters
@@ -59,14 +69,18 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected String encoding = "UTF-8";
 	protected boolean updateWithNullValues = true;
 	
-	protected int importedItems = 0;
-	protected List<Integer> notImportedItems = new ArrayList<Integer>();
+	protected int validItems = 0;
+	protected int duplicatesItems = 0;
+	protected List<Integer> invalidItems = new ArrayList<Integer>();
 	protected long importedDataAmount = 0;
 	protected int deletedItems = 0;
-	protected int updatedItems = 0;
-	protected int ignoredDuplicates = 0;
 	protected int insertedItems = 0;
-	protected int itemsForUpdateInImportData = 0;
+	protected int updatedItems = 0;
+	protected int countItems = 0;
+	protected int deletedDuplicatesInDB = 0;
+
+	protected boolean analyseDataOnly = false;
+	protected List<String> availableDataPropertyNames = null;
 
 	protected String additionalInsertValues = null;
 	protected String additionalUpdateValues = null;
@@ -74,7 +88,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	protected boolean logErrorneousData = false;
 	protected File errorneousDataFile = null;
 
-	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
+	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData, DataType dataType) throws Exception {
 		super(parent);
 		
 		this.dbVendor = dbVendor;
@@ -85,6 +99,11 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		this.tableName = tableName;
 		this.isInlineData = isInlineData;
 		this.importFilePathOrData = importFilePathOrData;
+		this.dataType = dataType;
+	}
+
+	public void setAnalyseDataOnly(boolean analyseDataOnly) {
+		this.analyseDataOnly = analyseDataOnly;
 	}
 
 	public void setLog(boolean log) {
@@ -98,20 +117,123 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	public void setMapping(String mappingString) throws IOException, Exception {
 		if (Utilities.isNotBlank(mappingString)) {
 			mapping = DbCsvImportMappingDialog.parseMappingString(mappingString);
-			dbTableColumnsListToInsert = new ArrayList<String>(mapping.keySet());
+			dbTableColumnsListToInsert = new ArrayList<String>();
+			for (String dbColumn : mapping.keySet()) {
+				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumn));
+			}
+		} else {
+			mapping = null;
 		}
 	}
 
-	public void setImportmode(ImportMode importMode) {
+	public Map<String, Tuple<String, String>> getMapping() throws IOException, Exception {
+		if (mapping == null && dataType != DataType.SQL) {
+			mapping = new HashMap<String, Tuple<String, String>>();
+			for (String propertyName : getAvailableDataPropertyNames()) {
+				mapping.put(propertyName.toLowerCase(), new Tuple<String, String>(propertyName, ""));
+			}
+			dbTableColumnsListToInsert = new ArrayList<String>();
+			for (String dbColumn : mapping.keySet()) {
+				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumn));
+			}
+		}
+		return mapping;
+	}
+
+	private void checkMapping(Map<String, DbColumnType> dbColumns) throws Exception, DbCsvImportException {
+		List<String> dataPropertyNames = getAvailableDataPropertyNames();
+		if (mapping != null) {
+			for (String dbColumnToInsert : dbTableColumnsListToInsert) {
+				dbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+				if (!dbColumns.containsKey(dbColumnToInsert)) {
+					throw new DbCsvImportException("DB table does not contain mapped column: " + dbColumnToInsert);
+				}
+			}
+			
+			for (Entry<String, Tuple<String, String>> mappingEntry : mapping.entrySet()) {
+				if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
+					throw new DbCsvImportException("Data does not contain mapped property: " + mappingEntry.getValue().getFirst());
+				}
+			}
+		} else {
+			// Create default mapping
+			mapping = new HashMap<String, Tuple<String, String>>();
+			dbTableColumnsListToInsert = new ArrayList<String>();
+			for (String dbColumn : dbColumns.keySet()) {
+				for (String dataPropertyName : dataPropertyNames) {
+					if (dbColumn.equalsIgnoreCase(dataPropertyName)) {
+						mapping.put(dbColumn, new Tuple<String, String>(dataPropertyName, ""));
+						dbTableColumnsListToInsert.add(dbColumn);
+						break;
+					}
+				}
+			}
+		}
+		
+		if (keyColumns != null && keyColumns.size() > 0) {
+			for (String keyColumn : keyColumns) {
+				boolean isIncluded = false;
+				for (Entry<String, Tuple<String, String>> entry : mapping.entrySet()) {
+					if (DbUtilities.unescapeVendorReservedNames(dbVendor, keyColumn).equals(DbUtilities.unescapeVendorReservedNames(dbVendor, entry.getKey()))) {
+						isIncluded = true;
+						break;
+					}
+				}
+				if (!isIncluded) {
+					throw new DbCsvImportException("Mapping doesn't include the defined keycolumn: " + keyColumn);
+				}
+			}
+		}
+	}
+
+	public void setImportMode(ImportMode importMode) {
 		this.importMode = importMode;
 	}
 
-	public void setKeycolumns(List<String> keyColumns) {
-		this.keyColumns = keyColumns;
+	public void setDuplicateMode(DuplicateMode duplicateMode) {
+		this.duplicateMode = duplicateMode;
+	}
+
+	public void setKeycolumns(List<String> keyColumnList) {
+		if (Utilities.isNotEmpty(keyColumnList)) {
+			Map<String, String> columnFunctions = new CaseInsensitiveMap<String>();
+			
+			// Remove the optional functions from keycolumns
+			for (String keyColumn : keyColumnList) {
+				keyColumn = keyColumn.trim();
+				if (Utilities.isNotEmpty(keyColumn)) {
+					String function = null;
+					if (keyColumn.contains("(") && keyColumn.endsWith(")")) {
+						function = keyColumn.substring(0, keyColumn.indexOf("(")).trim().toUpperCase();
+						keyColumn = keyColumn.substring(keyColumn.indexOf("(") + 1, keyColumn.length() - 1).trim();
+					}
+					
+					columnFunctions.put(keyColumn, function);
+				}
+			}
+			
+			if (columnFunctions.size() > 0) {
+				columnFunctions = Utilities.sortMap(columnFunctions);
+				keyColumns = new ArrayList<String>();
+				keyColumnsWithFunctions = new ArrayList<String>();
+				for (String keyColumn : columnFunctions.keySet()) {
+					keyColumns.add(keyColumn);
+					if (columnFunctions.get(keyColumn) != null) {
+						keyColumnsWithFunctions.add(columnFunctions.get(keyColumn).toUpperCase() + "(" + keyColumn + ")");
+					} else {
+						keyColumnsWithFunctions.add(keyColumn);
+					}
+				}
+			}
+		}
 	}
 
 	public void setCompleteCommit(boolean commitOnFullSuccessOnly) {
 		this.commitOnFullSuccessOnly = commitOnFullSuccessOnly;
+	}
+
+	public void setCreateNewIndexIfNeeded(boolean createNewIndexIfNeeded) {
+		this.createNewIndexIfNeeded = createNewIndexIfNeeded;
 	}
 
 	public void setAdditionalInsertValues(String additionalInsertValues) {
@@ -136,26 +258,54 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 
 	@Override
 	public Boolean work() throws Exception {
-		OutputStream logOutputStream = null;
-		Connection connection = null;
-		PreparedStatement preparedStatement = null;
-		Statement statement = null;
-		try {
-			if (!isInlineData) {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
-				}
-			}
-			
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
-			connection.setAutoCommit(false);
-			
-			importedItems = 0;
-			notImportedItems = new ArrayList<Integer>();
-	
+		showUnlimitedProgress();
+		
+		if (analyseDataOnly) {
 			try {
+				if (!isInlineData) {
+					if (!new File(importFilePathOrData).exists()) {
+						throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
+					} else if (new File(importFilePathOrData).isDirectory()) {
+						throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
+					}
+				}
+				
+				parent.changeTitle(LangResources.get("analyseData"));
+				
+				availableDataPropertyNames = getAvailableDataPropertyNames();
+			} finally {
+				close();
+			}
+		} else {
+			OutputStream logOutputStream = null;
+			Connection connection = null;
+			boolean previousAutoCommit = false;
+			String tempTableName = null;
+			try {
+				if (!isInlineData) {
+					if (!new File(importFilePathOrData).exists()) {
+						throw new DbCsvImportException("Import file does not exist: " + importFilePathOrData);
+					} else if (new File(importFilePathOrData).isDirectory()) {
+						throw new DbCsvImportException("Import path is a directory: " + importFilePathOrData);
+					}
+				}
+	
+				if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
+					try {
+						connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true);
+					} catch (DbNotExistsException e) {
+						connection = DbUtilities.createNewDatabase(dbVendor, dbName);
+					}
+				} else {
+					connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
+				}
+				
+				previousAutoCommit = connection.getAutoCommit();
+				connection.setAutoCommit(false);
+				
+				validItems = 0;
+				invalidItems = new ArrayList<Integer>();
+				
 				if (log && !isInlineData) {
 					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
 					
@@ -163,10 +313,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				}
 	
 				logToFile(logOutputStream, "Start: " + DateFormat.getDateTimeInstance().format(getStartTime()));
-
-				showUnlimitedProgress();
 				
-				createTableIfNeeded(connection, tableName);
+				createTableIfNeeded(connection, tableName, keyColumns);
 
 				Map<String, DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tableName);
 				checkMapping(dbColumns);
@@ -174,35 +322,37 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				if (dbTableColumnsListToInsert.size() == 0) {
 					throw new DbCsvImportException("Invalid empty mapping");
 				}
-				
-				String[] keyColumnsArray = null;
-				if (keyColumns != null) {
-					keyColumns.toArray(new String[0]);
-				}
-				if (!DbUtilities.checkTableAndColumnsExist(connection, tableName, keyColumnsArray)) {
+
+				if (!DbUtilities.checkTableAndColumnsExist(connection, tableName, keyColumns == null ? null : keyColumns.toArray(new String[0]))) {
 					throw new DbCsvImportException("Some keycolumn is not included in table");
 				}
 				
 				if (importMode == ImportMode.CLEARINSERT) {
-					preparedStatement = connection.prepareStatement("DELETE FROM " + tableName);
-					deletedItems = preparedStatement.executeUpdate();
-					preparedStatement.close();
-					preparedStatement = null;
+					deletedItems = DbUtilities.clearTable(connection, tableName);
 				}
 
+				parent.changeTitle(LangResources.get("readData"));
 				itemsToDo = getItemsAmountToImport();
-				logToFile(logOutputStream, "Items to import: " + itemsToDo);
+				if (!log) {
+					logToFile(logOutputStream, "Items to import: " + itemsToDo);
+				}
 				showProgress(true);
 				
 				if ((importMode == ImportMode.CLEARINSERT || importMode == ImportMode.INSERT) && Utilities.isEmpty(keyColumns)) {
 					// Just import in the destination table
-					insertIntoTable(connection, tableName, dbColumns, null, additionalInsertValues, mapping);
+					insertIntoTable(connection, tableName, dbColumns, null, additionalInsertValues, getMapping());
+					insertedItems = validItems;
 				} else {
-					statement = connection.createStatement();
+					// Make table entries unique
+					if (duplicateMode == DuplicateMode.MAKE_UNIQUE_DROP) {
+						deletedDuplicatesInDB = DbUtilities.dropDuplicates(connection, tableName, keyColumnsWithFunctions);
+					} else if (duplicateMode == DuplicateMode.MAKE_UNIQUE_JOIN) {
+						deletedDuplicatesInDB = DbUtilities.joinDuplicates(connection, tableName, keyColumnsWithFunctions, updateWithNullValues);
+					}
 					
 					// Create temp table
 					String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(getStartTime());
-					String tempTableName = "tmp_" + dateSuffix;
+					tempTableName = "tmp_" + dateSuffix;
 					int i = 0;
 					while (DbUtilities.checkTableExist(connection, tempTableName) && i < 10) {
 						Thread.sleep(1000);
@@ -210,53 +360,152 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 						dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
 						tempTableName = "tmp_" + dateSuffix;
 					}
-					String itemIndexColumn = "import_item_" + dateSuffix;
-					String duplicateIndexColumn = "import_dupl_" + dateSuffix;
-					createTempTable(connection, statement, tempTableName, itemIndexColumn, duplicateIndexColumn);
+					if (i >= 10) {
+						tempTableName = null;
+						throw new Exception("Cannot create temp table");
+					}
+					DbUtilities.copyTableStructure(connection, tableName, dbTableColumnsListToInsert, keyColumns, tempTableName);
+					if (Utilities.isNotEmpty(keyColumns)) {
+						Boolean hasIndexedKeyColumns = DbUtilities.checkForIndex(connection, tableName, keyColumns);
+						if ((hasIndexedKeyColumns == null || !hasIndexedKeyColumns) && createNewIndexIfNeeded) {
+							try {
+								newIndexName = DbUtilities.createIndex(connection, tableName, keyColumns);
+							} catch (Exception e) {
+								System.err.println("Cannot create index for table '" + tableName + "' on columns '" + Utilities.join(keyColumns, ", ") + "': " + e.getMessage());
+							}
+						}
+					}
+					String tempItemIndexColumn = DbUtilities.addIndexedIntegerColumn(connection, tempTableName, "import_item");
+					connection.commit();
 					
 					// Insert in temp table
-					insertIntoTable(connection, tempTableName, dbColumns, itemIndexColumn, null, mapping);
+					insertIntoTable(connection, tempTableName, dbColumns, tempItemIndexColumn, null, getMapping());
 					
-					showUnlimitedProgress();
-					
-					if (importMode == ImportMode.CLEARINSERT) {
-						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
-						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
-					} else if (importMode == ImportMode.INSERT) {
-						ignoredDuplicates = deleteTableCrossDuplicates(connection, tableName, tempTableName, keyColumns);
-						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates += removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
-						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
-					} else if (importMode == ImportMode.UPDATE) {
-						itemsForUpdateInImportData = getUpdateableItemsInTable(connection, tempTableName, tableName, keyColumns);
-						updatedItems = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
-						// Update destination table
-						updateExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, itemIndexColumn, updateWithNullValues, additionalUpdateValues);
-					} else if (importMode == ImportMode.UPSERT) {
-						itemsForUpdateInImportData = getUpdateableItemsInTable(connection, tempTableName, tableName, keyColumns);
-						updatedItems = getUpdateableItemsInTable(connection, tableName, tempTableName, keyColumns);
-						
-						// Update destination table
-						updateExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, itemIndexColumn, updateWithNullValues, additionalUpdateValues);
+					itemsToDo = 4;
+					itemsDone = 0;
+					showProgress(true);
+					parent.changeTitle(LangResources.get("dropDuplicates"));
 
-						markTrailingDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
-						ignoredDuplicates = removeDuplicates(connection, tempTableName, keyColumns, itemIndexColumn, duplicateIndexColumn);
+					// Handle duplicates in import data
+					if (duplicateMode == DuplicateMode.NO_CHECK) {
+						// Do not check for duplicates
+					} else if (duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_DROP || duplicateMode == DuplicateMode.UPDATE_FIRST_DROP || duplicateMode == DuplicateMode.UPDATE_ALL_DROP || duplicateMode == DuplicateMode.MAKE_UNIQUE_DROP) {
+						duplicatesItems = DbUtilities.dropDuplicates(connection, tempTableName, keyColumns);
+					} else if (duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_JOIN || duplicateMode == DuplicateMode.UPDATE_FIRST_JOIN || duplicateMode == DuplicateMode.UPDATE_ALL_JOIN || duplicateMode == DuplicateMode.MAKE_UNIQUE_JOIN) {
+						duplicatesItems = DbUtilities.joinDuplicates(connection, tempTableName, keyColumns, updateWithNullValues);
+					} else {
+						throw new Exception("Invalid duplicate mode");
+					}
+
+					itemsDone = 1;
+					showProgress(true);
+
+					if (importMode == ImportMode.CLEARINSERT) {
+						parent.changeTitle(LangResources.get("insertData"));
 						
-						// Insert into destination table
-						insertedItems = insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, additionalInsertValues);
+						insertedItems = DbUtilities.insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumnsWithFunctions, additionalInsertValues);
+
+						itemsDone = 2;
+						showProgress(true);
+					} else if (importMode == ImportMode.INSERT) {
+						if (duplicateMode == DuplicateMode.NO_CHECK || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_DROP || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_JOIN) {
+							parent.changeTitle(LangResources.get("insertData"));
+							
+							// Insert all entries
+							insertedItems = DbUtilities.insertAllItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, additionalInsertValues);
+
+							itemsDone = 2;
+							showProgress(true);
+						} else {
+							parent.changeTitle(LangResources.get("dropDuplicates"));
+							
+							// Insert only not existing entries
+							duplicatesItems += DbUtilities.dropDuplicatesCrossTable(connection, tableName, tempTableName, keyColumnsWithFunctions);
+
+							itemsDone = 2;
+							showProgress(true);
+							parent.changeTitle(LangResources.get("insertData"));
+							
+							insertedItems = DbUtilities.insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumnsWithFunctions, additionalInsertValues);
+
+							itemsDone = 3;
+							showProgress(true);
+						}
+					} else if (importMode == ImportMode.UPDATE) {
+						if (duplicateMode == DuplicateMode.NO_CHECK || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_DROP || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_JOIN) {
+							// Do nothing
+						} else if (DbUtilities.detectDuplicates(connection, tableName, keyColumnsWithFunctions) > 0 && (duplicateMode == DuplicateMode.UPDATE_FIRST_DROP || duplicateMode == DuplicateMode.UPDATE_FIRST_JOIN)) {
+							parent.changeTitle(LangResources.get("updateData"));
+							
+							// Update only the first occurrence
+							updatedItems = DbUtilities.updateFirstExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, tempItemIndexColumn, updateWithNullValues, additionalUpdateValues);
+							
+							itemsDone = 2;
+							showProgress(true);
+						} else {
+							parent.changeTitle(LangResources.get("updateData"));
+							
+							// Update destination table
+							updatedItems = DbUtilities.updateAllExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, tempItemIndexColumn, updateWithNullValues, additionalUpdateValues);
+
+							itemsDone = 2;
+							showProgress(true);
+						}
+					} else if (importMode == ImportMode.UPSERT) {
+						if (duplicateMode == DuplicateMode.NO_CHECK || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_DROP || duplicateMode == DuplicateMode.CKECK_SOURCE_ONLY_JOIN) {
+							parent.changeTitle(LangResources.get("insertData"));
+							
+							// Insert all entries
+							insertedItems = DbUtilities.insertAllItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, additionalInsertValues);
+
+							itemsDone = 2;
+							showProgress(true);
+						} else if (DbUtilities.detectDuplicates(connection, tableName, keyColumnsWithFunctions) > 0 && (duplicateMode == DuplicateMode.UPDATE_FIRST_DROP || duplicateMode == DuplicateMode.UPDATE_FIRST_JOIN)) {
+							parent.changeTitle(LangResources.get("updateData"));
+							
+							// Update only the first occurrence
+							updatedItems = DbUtilities.updateFirstExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, tempItemIndexColumn, updateWithNullValues, additionalUpdateValues);
+
+							itemsDone = 2;
+							showProgress(true);
+							parent.changeTitle(LangResources.get("insertData"));
+							
+							// Insert into destination table
+							insertedItems = DbUtilities.insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumnsWithFunctions, additionalInsertValues);
+
+							itemsDone = 3;
+							showProgress(true);
+						} else {
+							parent.changeTitle(LangResources.get("updateData"));
+							
+							// Update destination table
+							updatedItems = DbUtilities.updateAllExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumns, tempItemIndexColumn, updateWithNullValues, additionalUpdateValues);
+
+							itemsDone = 2;
+							showProgress(true);
+							parent.changeTitle(LangResources.get("insertData"));
+
+							// Insert into destination table
+							insertedItems = DbUtilities.insertNotExistingItems(connection, tempTableName, tableName, dbTableColumnsListToInsert, keyColumnsWithFunctions, additionalInsertValues);
+
+							itemsDone = 3;
+							showProgress(true);
+						}
 					} else {
 						throw new Exception("Invalid import mode");
 					}
-					
-					// Drop temp table
-					if (DbUtilities.checkTableExist(connection, tempTableName) && i < 10) {
-						statement.execute("DROP TABLE " + tempTableName);
-					}
 				}
+				connection.commit();
 				
-				if (logErrorneousData & notImportedItems.size() > 0) {
-					errorneousDataFile = filterDataItems(notImportedItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
+				parent.changeTitle(LangResources.get("collectResult"));
+				
+				countItems = DbUtilities.getTableEntriesCount(connection, tableName);
+				
+				itemsDone = 4;
+				showProgress(true);
+				
+				if (logErrorneousData & invalidItems.size() > 0) {
+					errorneousDataFile = filterDataItems(invalidItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
 				}
 				
 				setEndTime(new Date());
@@ -267,7 +516,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				
 				int elapsedTimeInSeconds = (int) (getEndTime().getTime() - getStartTime().getTime()) / 1000;
 				if (elapsedTimeInSeconds > 0) {
-					int itemsPerSecond = (int) (importedItems / elapsedTimeInSeconds);
+					int itemsPerSecond = (int) (validItems / elapsedTimeInSeconds);
 					logToFile(logOutputStream, "Import speed: " + itemsPerSecond + " items/second");
 				} else {
 					logToFile(logOutputStream, "Import speed: immediately");
@@ -284,31 +533,31 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				}
 				throw e;
 			} finally {
-				closeReader();
+				close();
 				Utilities.closeQuietly(logOutputStream);
+				
+				// Drop temp table
+				DbUtilities.dropTableIfExists(connection, tempTableName);
+				
+				if (connection != null) {
+					connection.rollback();
+					connection.setAutoCommit(previousAutoCommit);
+					connection.close();
+				}
 			}
-	
-			return !cancel;
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(preparedStatement);
-			if (connection != null) {
-				connection.rollback();
-			}
-			Utilities.closeQuietly(connection);
 		}
+		
+		return !cancel;
 	}
 
-	private void createTableIfNeeded(Connection connection, String tableName) throws Exception, DbCsvImportException, SQLException {
+	private void createTableIfNeeded(Connection connection, String tableName, List<String> keyColumns) throws Exception, DbCsvImportException, SQLException {
 		if (!DbUtilities.checkTableExist(connection, tableName)) {
 			if (createTableIfNotExists) {
 				Map<String, DbColumnType> importDataTypes = scanDataPropertyTypes();
 				Map<String, DbColumnType> dbDataTypes = new HashMap<String, DbColumnType>();
 				for (Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
-					if (mapping != null) {
-						for (Entry<String,Tuple<String,String>> mappingEntry : mapping.entrySet()) {
+					if (getMapping() != null) {
+						for (Entry<String,Tuple<String,String>> mappingEntry : getMapping().entrySet()) {
 							if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
 								dbDataTypes.put(mappingEntry.getKey(), importDataTypes.get(importDataType.getKey()));
 								break;
@@ -341,312 +590,83 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 		}
 	}
 
-	private void checkMapping(Map<String, DbColumnType> dbColumns) throws Exception, DbCsvImportException {
-		List<String> dataPropertyNames = getAvailableDataPropertyNames();
-		if (mapping != null) {
-			// Check mapping
-			for (String dbColumnToInsert : dbTableColumnsListToInsert) {
-				if (!dbColumns.containsKey(dbColumnToInsert)) {
-					throw new DbCsvImportException("DB table does not contain mapped column: " + dbColumnToInsert);
-				}
-			}
-			
-			for (Entry<String, Tuple<String, String>> mappingEntry : mapping.entrySet()) {
-				if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
-					throw new DbCsvImportException("Data does not contain mapped property: " + mappingEntry.getValue().getFirst());
-				}
-			}
-		} else {
-			// Create default mapping
-			mapping = new HashMap<String, Tuple<String, String>>();
-			dbTableColumnsListToInsert = new ArrayList<String>();
-			for (String dbColumn : dbColumns.keySet()) {
-				for (String dataPropertyName : dataPropertyNames) {
-					if (dbColumn.equalsIgnoreCase(dataPropertyName)) {
-						mapping.put(dbColumn, new Tuple<String, String>(dataPropertyName, ""));
-						dbTableColumnsListToInsert.add(dbColumn);
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	private void createTempTable(Connection connection, Statement statement, String tempTableName, String itemIndexColumn, String duplicateIndexColumn) throws SQLException, Exception {
-		if (dbVendor == DbVendor.HSQL || dbVendor == DbVendor.Derby) {
-			statement.execute("CREATE TABLE " + tempTableName + " AS (SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + ") WITH NO DATA");
-		} else if (dbVendor == DbVendor.PostgreSQL) {
-			// Close a maybe open transaction to allow DDL-statement
-			connection.rollback();
-			statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
-		} else if (dbVendor == DbVendor.Firebird) {
-			// There is no "create table as select"-statmenet in firebird
-			DbUtilities.createTable(connection, tempTableName, DbUtilities.getColumnDataTypes(connection, tableName), null);
-		} else {
-			statement.execute("CREATE TABLE " + tempTableName + " AS SELECT " + Utilities.join(dbTableColumnsListToInsert, ", ") + " FROM " + tableName + " WHERE 1 = 0");
-		}
-		statement.execute("ALTER TABLE " + tempTableName + " ADD " + itemIndexColumn + " INTEGER");
-		statement.execute("ALTER TABLE " + tempTableName + " ADD " + duplicateIndexColumn + " INTEGER");
-		
-		boolean hasKeyColumns = false;
-		if  (keyColumns != null) {
-			for (String keyColumn : keyColumns) {
-				keyColumn = keyColumn.trim();
-				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-				}
-				
-				if (Utilities.isNotBlank(keyColumn)) {
-					hasKeyColumns = true;
-				}
-			}
-		}
-		if (hasKeyColumns) {
-			String keyColumnPart = "";
-			for (String keyColumn : keyColumns) {
-				if (keyColumnPart.length() > 0) {
-					keyColumnPart += ", ";
-				}
-				keyColumn = keyColumn.trim();
-				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-				}
-				keyColumnPart += keyColumn;
-			}
-			
-			statement.execute("CREATE INDEX " + tempTableName + "_idx1 ON " + tempTableName + " (" + keyColumnPart + ")");
-		}
-		
-		statement.execute("CREATE INDEX " + tempTableName + "_idx2 ON " + tempTableName + " (" + itemIndexColumn + ")");
-		statement.execute("CREATE INDEX " + tempTableName + "_idx3 ON " + tempTableName + " (" + duplicateIndexColumn + ")");
-		
-		if (dbVendor == DbVendor.PostgreSQL || dbVendor == DbVendor.Firebird) {
-			connection.commit();
-		}
-	}
-
-	private int getUpdateableItemsInTable(Connection connection, String intoTableName, String fromTableName, List<String> keyColumns) throws Exception {
-		Statement statement = null;
-		try {
-			statement = connection.createStatement();
-			
-			String selectDuplicatesNumber = "SELECT COUNT(*) FROM " + intoTableName + " a WHERE EXISTS (SELECT 1 FROM " + fromTableName + " b WHERE " + getWherePart(keyColumns, "a", "b") + ")";
-			ResultSet resultSet = statement.executeQuery(selectDuplicatesNumber);
-			resultSet.next();
-			return resultSet.getInt(1);
-		} catch (Exception e) {
-			throw new Exception("Cannot getUpdateItemsInImportData: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
-		}
-	}
-
 	public String getResultStatistics() {
 		StringBuilder statistics = new StringBuilder();
 		
-		statistics.append("Found items: " + itemsDone + "\n");
+		statistics.append("Found items: " + dataItemsDone + "\n");
 
-		statistics.append("Imported items: " + importedItems + "\n");
+		statistics.append("Valid items: " + validItems + "\n");
 		
-		statistics.append("Not imported items (Number of Errors): " + notImportedItems.size() + "\n");
-		if (notImportedItems.size() > 0) {
+		statistics.append("Invalid items: " + invalidItems.size() + "\n");
+		if (invalidItems.size() > 0) {
 			List<String> errorList = new ArrayList<String>();
-			for (int i = 0; i < Math.min(10, notImportedItems.size()); i++) {
-				errorList.add(Integer.toString(notImportedItems.get(i) + 1));
+			for (int i = 0; i < Math.min(10, invalidItems.size()); i++) {
+				errorList.add(Integer.toString(invalidItems.get(i)));
 			}
-			if (notImportedItems.size() > 10) {
+			if (invalidItems.size() > 10) {
 				errorList.add("...");
 			}
-			statistics.append("Not imported items indices: " + Utilities.join(errorList, ", ") + "\n");
+			statistics.append("Indices of invalid items: " + Utilities.join(errorList, ", ") + "\n");
 			if (errorneousDataFile != null) {
 				statistics.append("Errorneous data logged in file: " + errorneousDataFile + "\n");
 			}
 		}
 		
-		statistics.append("Imported data amount: " + Utilities.getHumanReadableNumber(importedDataAmount, "Byte") + "\n");
+		if (duplicatesItems > 0) {
+			statistics.append("Duplicate items: " + duplicatesItems + "\n");
+		}
+		
+		statistics.append("Imported data amount: " + Utilities.getHumanReadableNumber(importedDataAmount, "Byte", false) + "\n");
 
 		if (importMode == ImportMode.CLEARINSERT) {
-			statistics.append("Deleted items: " + deletedItems + "\n");
+			statistics.append("Deleted items from db: " + deletedItems + "\n");
 		}
-
-		if (ignoredDuplicates > 0) {
-			statistics.append("Ignored duplicate items: " + ignoredDuplicates + "\n");
-		}
-
-		if (deletedItems > 0) {
-			statistics.append("Items for update found in import data: " + itemsForUpdateInImportData + "\n");
-		}
-
-		if (importMode == ImportMode.UPDATE || importMode == ImportMode.UPSERT) {
-			statistics.append("Updated items in db: " + updatedItems + "\n");
+		
+		if (duplicateMode == DuplicateMode.MAKE_UNIQUE_JOIN || duplicateMode == DuplicateMode.MAKE_UNIQUE_DROP) {
+			statistics.append("Deleted duplicate items in db: " + deletedDuplicatesInDB + "\n");
 		}
 
 		if (importMode == ImportMode.CLEARINSERT || importMode == ImportMode.INSERT || importMode == ImportMode.UPSERT) {
 			statistics.append("Inserted items: " + insertedItems + "\n");
 		}
+
+		if (importMode == ImportMode.UPDATE || importMode == ImportMode.UPSERT) {
+			statistics.append("Updated items: " + updatedItems + "\n");
+		}
+
+		if (newIndexName != null) {
+			statistics.append("Newly created index: " + newIndexName + "\n");
+		}
+
+		statistics.append("Count items after import: " + countItems + "\n");
 		
 		return statistics.toString();
 	}
 
-	private void updateExistingItems(Connection connection, String fromTableName, String intoTableName, List<String> updateColumns, List<String> keyColumns, String itemIndexColumn, boolean updateWithNullValues, String additionalUpdateValues) throws Exception {
-		Statement statement = null;
-		try {
-			String additionalUpdateValuesSql = "";
-			if (Utilities.isNotBlank(additionalUpdateValues)) {
-				for (String line : Utilities.splitAndTrimListQuoted(additionalUpdateValues, '\n', '\r', ';')) {
-					String columnName = line.substring(0, line.indexOf("=")).trim();
-					String columnvalue = line.substring(line.indexOf("=") + 1).trim();
-					additionalUpdateValuesSql += columnName + " = " + columnvalue + ", ";
-				}
-			}
-			
-			statement = connection.createStatement();
-			
-			if (updateWithNullValues) {
-				String updateSetPart = "";
-				for (String updateColumn : updateColumns) {
-					if (updateSetPart.length() > 0) {
-						updateSetPart += ", ";
-					}
-					updateSetPart += updateColumn + " = (SELECT " + updateColumn + " FROM " + fromTableName + " WHERE " + itemIndexColumn + " ="
-						+ " (SELECT MAX(" + itemIndexColumn + ") FROM " + fromTableName + " c WHERE " + getWherePart(keyColumns, intoTableName, "c") + "))";
-				}
-				String updateAllAtOnce = "UPDATE " + intoTableName + " SET " + additionalUpdateValuesSql + updateSetPart
-					+ " WHERE EXISTS (SELECT 1 FROM " + fromTableName + " b WHERE " + getWherePart(keyColumns, intoTableName, "b") + ")";
-				statement.executeUpdate(updateAllAtOnce);
-			} else {
-				for (String updateColumn : updateColumns) {
-					String updateSingleColumn = "UPDATE " + intoTableName
-						+ " SET " + additionalUpdateValuesSql + updateColumn + " = (SELECT " + updateColumn + " FROM " + fromTableName + " WHERE " + itemIndexColumn + " ="
-							+ " (SELECT MAX(" + itemIndexColumn + ") FROM " + fromTableName + " c WHERE " + updateColumn + " IS NOT NULL AND " + getWherePart(keyColumns, intoTableName, "c") + "))"
-						+ " WHERE EXISTS (SELECT 1 FROM " + fromTableName + " b WHERE " + updateColumn + " IS NOT NULL AND " + getWherePart(keyColumns, intoTableName, "b") + ")";
-					statement.executeUpdate(updateSingleColumn);
-				}
-			}
-			connection.commit();
-		} catch (Exception e) {
-			connection.rollback();
-			throw new Exception("Cannot update: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
-		}
-	}
-
-	private int insertNotExistingItems(Connection connection, String fromTableName, String intoTableName, List<String> insertColumns, List<String> keyColumns, String additionalInsertValues) throws Exception {
-		boolean hasKeyColumns = false;
-		if  (keyColumns != null) {
-			for (String keyColumn : keyColumns) {
-				keyColumn = keyColumn.trim();
-				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-				}
-				
-				if (Utilities.isNotBlank(keyColumn)) {
-					hasKeyColumns = true;
-				}
+	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn, String additionalInsertValues, Map<String, Tuple<String, String>> mapping) throws SQLException, Exception {
+		List<Closeable> itemsToCloseAfterwards = new ArrayList<Closeable>();
+		
+		String additionalInsertValuesSqlColumns = "";
+		String additionalInsertValuesSqlValues = "";
+		if (Utilities.isNotBlank(additionalInsertValues)) {
+			for (String line : Utilities.splitAndTrimListQuoted(additionalInsertValues, '\n', '\r', ';')) {
+				String columnName = line.substring(0, line.indexOf("=")).trim();
+				String columnvalue = line.substring(line.indexOf("=") + 1).trim();
+				additionalInsertValuesSqlColumns += columnName + ", ";
+				additionalInsertValuesSqlValues += columnvalue + ", ";
 			}
 		}
 		
-		Statement statement = null;
-		try {
-			String additionalInsertValuesSqlColumns = "";
-			String additionalInsertValuesSqlValues = "";
-			if (Utilities.isNotBlank(additionalInsertValues)) {
-				for (String line : Utilities.splitAndTrimListQuoted(additionalInsertValues, '\n', '\r', ';')) {
-					String columnName = line.substring(0, line.indexOf("=")).trim();
-					String columnvalue = line.substring(line.indexOf("=") + 1).trim();
-					additionalInsertValuesSqlColumns += columnName + ", ";
-					additionalInsertValuesSqlValues += columnvalue + ", ";
-				}
-			}
-			
-			statement = connection.createStatement();
-			String insertDataStatement = "INSERT INTO " + intoTableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(insertColumns, ", ") + ") SELECT " + additionalInsertValuesSqlValues + Utilities.join(insertColumns, ", ") + " FROM " + fromTableName + " a";
-			if (hasKeyColumns) {
-				insertDataStatement += " WHERE NOT EXISTS (SELECT 1 FROM " + intoTableName + " b WHERE " + getWherePart(keyColumns, "a", "b") + ")";
-			}
-			int numberOfInserts = statement.executeUpdate(insertDataStatement);
-			connection.commit();
-			return numberOfInserts;
-		} catch (Exception e) {
-			connection.rollback();
-			throw new Exception("Cannot insert: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
-		}
-	}
-
-	private int deleteTableCrossDuplicates(Connection connection, String keepInTableName, String deleteInTableName, List<String> keyColumns) throws Exception {
-		boolean hasKeyColumns = false;
-		if  (keyColumns != null) {
-			for (String keyColumn : keyColumns) {
-				keyColumn = keyColumn.trim();
-				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-				}
-				
-				if (Utilities.isNotBlank(keyColumn)) {
-					hasKeyColumns = true;
-				}
-			}
-		}
-		if (hasKeyColumns) {
-			Statement statement = null;
-			try {
-				statement = connection.createStatement();
-				
-				String keyColumnPart = "";
-				for (String keyColumn : keyColumns) {
-					if (keyColumnPart.length() > 0) {
-						keyColumnPart += ", ";
-					}
-					keyColumn = keyColumn.trim();
-					if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-						keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-					}
-					keyColumnPart += keyColumn;
-				}
-				
-				String deleteDuplicates = "DELETE FROM " + deleteInTableName + " WHERE " + keyColumnPart + " IN (SELECT " + keyColumnPart + " FROM " + keepInTableName + ")";
-				int numberOfDeletedDuplicates = statement.executeUpdate(deleteDuplicates);
-				connection.commit();
-				return numberOfDeletedDuplicates;
-			} catch (Exception e) {
-				connection.rollback();
-				throw new Exception("Cannot deleteTableCrossDuplicates: " + e.getMessage(), e);
-			} finally {
-				Utilities.closeQuietly(statement);
-			}
+		String statementString;
+		if (Utilities.isBlank(itemIndexColumn)) {
+			statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbTableColumnsListToInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
 		} else {
-			return 0;
+			statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbTableColumnsListToInsert) + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
 		}
-	}
-
-	private void insertIntoTable(Connection connection, String tableName, Map<String, DbColumnType> dbColumns, String itemIndexColumn, String additionalInsertValues, Map<String, Tuple<String, String>> mapping) throws SQLException, Exception {
+		
 		PreparedStatement preparedStatement = null;
-		List<Closeable> itemsToCloseAfterwards = new ArrayList<Closeable>();
-		try {
-			String additionalInsertValuesSqlColumns = "";
-			String additionalInsertValuesSqlValues = "";
-			if (Utilities.isNotBlank(additionalInsertValues)) {
-				for (String line : Utilities.splitAndTrimListQuoted(additionalInsertValues, '\n', '\r', ';')) {
-					String columnName = line.substring(0, line.indexOf("=")).trim();
-					String columnvalue = line.substring(line.indexOf("=") + 1).trim();
-					additionalInsertValuesSqlColumns += columnName + ", ";
-					additionalInsertValuesSqlValues += columnvalue + ", ";
-				}
-			}
-			
-			String statementString;
-			if (Utilities.isBlank(itemIndexColumn)) {
-				statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(dbTableColumnsListToInsert, ", ") + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
-			} else {
-				statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + Utilities.join(dbTableColumnsListToInsert, ", ") + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
-			}
-			
+		try {			
 			preparedStatement = connection.prepareStatement(statementString);
-			
-			openReader();
 			
 			int batchBlockSize = 1000;
 			boolean hasUnexecutedData = false;
@@ -657,8 +677,9 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					int i = 1;
 					for (String dbColumnToInsert : dbTableColumnsListToInsert) {
 						SimpleDataType simpleDataType = dbColumns.get(dbColumnToInsert).getSimpleDataType();
-						Object dataValue = itemData.get(mapping.get(dbColumnToInsert).getFirst());
-						String formatInfo = mapping.get(dbColumnToInsert).getSecond();
+						String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+						Object dataValue = itemData.get(mapping.get(unescapedDbColumnToInsert).getFirst());
+						String formatInfo = mapping.get(unescapedDbColumnToInsert).getSecond();
 						
 						itemsToCloseAfterwards.add(setParameter(preparedStatement, i++, simpleDataType, dataValue, formatInfo));
 					}
@@ -670,10 +691,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					
 					preparedStatement.addBatch();
 					
-					importedItems++;
+					validItems++;
 					showProgress();
 				} catch (Exception e) {
-					notImportedItems.add((int) itemsDone + 1);
+					invalidItems.add((int) itemsDone + 1);
 					if (commitOnFullSuccessOnly) {
 						connection.rollback();
 						throw new DbCsvImportException(e.getClass().getSimpleName() + " error in item index " + (itemsDone + 1) + ": " + e.getMessage(), e);
@@ -690,8 +711,8 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				}
 				itemsDone++;
 				
-				if (importedItems > 0) {
-					if (importedItems % batchBlockSize == 0) {
+				if (validItems > 0) {
+					if (validItems % batchBlockSize == 0) {
 						int[] results = preparedStatement.executeBatch();
 						for (Closeable itemToClose : itemsToCloseAfterwards) {
 							Utilities.closeQuietly(itemToClose);
@@ -699,7 +720,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 						itemsToCloseAfterwards.clear();
 						for (int i = 0; i < results.length; i++) {
 							if (results[i] != 1 && results[i] != Statement.SUCCESS_NO_INFO) {
-								notImportedItems.add((int) (itemsDone - batchBlockSize) + i);
+								invalidItems.add((int) (itemsDone - batchBlockSize) + i);
 							}
 						}
 						if (!commitOnFullSuccessOnly) {
@@ -725,7 +746,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				itemsToCloseAfterwards.clear();
 				for (int i = 0; i < results.length; i++) {
 					if (results[i] != 1 && results[i] != Statement.SUCCESS_NO_INFO) {
-						notImportedItems.add((int) (itemsDone - (itemsDone % batchBlockSize)) + i);
+						invalidItems.add((int) (itemsDone - (itemsDone % batchBlockSize)) + i);
 					}
 				}
 				if (!commitOnFullSuccessOnly) {
@@ -734,12 +755,14 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 			}
 			
 			if (commitOnFullSuccessOnly) {
-				if (notImportedItems.size() == 0) {
+				if (invalidItems.size() == 0) {
 					connection.commit();
 				} else {
 					connection.rollback();
 				}
 			}
+
+			dataItemsDone = itemsDone;
 		} catch (Exception e) {
 			connection.rollback();
 			throw e;
@@ -748,110 +771,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				Utilities.closeQuietly(itemToClose);
 			}
 			itemsToCloseAfterwards.clear();
-			Utilities.closeQuietly(preparedStatement);
-		}
-	}
-
-	private void markTrailingDuplicates(Connection connection, String tempTableName, List<String> keyColumns, String itemIndexColumn, String duplicateIndexColumn) throws Exception {
-		boolean hasKeyColumns = false;
-		if  (keyColumns != null) {
-			for (String keyColumn : keyColumns) {
-				keyColumn = keyColumn.trim();
-				if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-					keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-				}
-				
-				if (Utilities.isNotBlank(keyColumn)) {
-					hasKeyColumns = true;
-				}
+			if (preparedStatement != null) {
+				preparedStatement.close();
 			}
 		}
-		if (hasKeyColumns) {
-			Statement statement = null;
-			try {
-				statement = connection.createStatement();
-				
-				String keyColumnPart = "";
-				for (String keyColumn : keyColumns) {
-					if (keyColumnPart.length() > 0) {
-						keyColumnPart += ", ";
-					}
-					keyColumn = keyColumn.trim();
-					if (Utilities.startsWithCaseinsensitive(keyColumn, "lower(") && keyColumn.endsWith(")")) {
-						keyColumn = keyColumn.substring(6, keyColumn.length() - 1).trim();
-					}
-					keyColumnPart += keyColumn;
-				}
-				
-				String setDuplicateReferences = "UPDATE " + tempTableName + " SET " + duplicateIndexColumn + " = (SELECT subselect." + itemIndexColumn + " FROM"
-					+ " (SELECT " + keyColumnPart + ", MIN(" + itemIndexColumn + ") AS " + itemIndexColumn + " FROM " + tempTableName + " GROUP BY " + keyColumnPart + ") subselect"
-					+ " WHERE " + getWherePart(keyColumns, "subselect", tempTableName) + ")";
-				statement.executeUpdate(setDuplicateReferences);
-				connection.commit();
-			} catch (Exception e) {
-				connection.rollback();
-				throw new Exception("Cannot markTrailingDuplicates: " + e.getMessage(), e);
-			} finally {
-				Utilities.closeQuietly(statement);
-			}
-		}
-	}
-
-	private int removeDuplicates(Connection connection, String tempTableName, List<String> keyColumns, String lineIndexColumn, String duplicateIndexColumn) throws Exception {
-		Statement statement = null;
-		try {
-			statement = connection.createStatement();
-			int numberOfDeletedDuplicates = statement.executeUpdate("DELETE FROM " + tempTableName + " WHERE " + duplicateIndexColumn + " != " + lineIndexColumn);
-			connection.commit();
-			return numberOfDeletedDuplicates;
-		} catch (Exception e) {
-			connection.rollback();
-			throw new Exception("Cannot removeTrailingDuplicates: " + e.getMessage(), e);
-		} finally {
-			Utilities.closeQuietly(statement);
-		}
-	}
-	
-	private static String getWherePart(List<String> columnNames, String table1, String table2) {
-		StringBuilder returnValue = new StringBuilder();
-		for (String columnName : columnNames) {
-			columnName = columnName.trim();
-			boolean useLowerCase = false;
-			if (Utilities.startsWithCaseinsensitive(columnName, "lower(") && columnName.endsWith(")")) {
-				columnName = columnName.substring(6, columnName.length() - 1).trim();
-				useLowerCase = true;
-			}
-			
-			if (returnValue.length() > 0) {
-				returnValue.append(", ");
-			}
-			if (useLowerCase) {
-				returnValue.append("LOWER(");
-			}
-			if (Utilities.isNotBlank(table1)) {
-				returnValue.append(table1);
-				returnValue.append(".");
-			}
-			returnValue.append(columnName);
-			if (useLowerCase) {
-				returnValue.append(")");
-			}
-			
-			returnValue.append(" = ");
-
-			if (useLowerCase) {
-				returnValue.append("LOWER(");
-			}
-			if (Utilities.isNotBlank(table2)) {
-				returnValue.append(table2);
-				returnValue.append(".");
-			}
-			returnValue.append(columnName);
-			if (useLowerCase) {
-				returnValue.append(")");
-			}
-		}
-		return returnValue.toString();
 	}
 	
 	private Closeable setParameter(PreparedStatement preparedStatement, int columnIndex, SimpleDataType simpleDataType, Object dataValue, String formatInfo) throws Exception {
@@ -877,8 +800,14 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 				if (!new File(valueString).exists()) {
 					throw new Exception("File does not exist: " + valueString);
 				} else if (simpleDataType == SimpleDataType.Blob) {
-					itemToCloseAfterwards = new FileInputStream(valueString);
-					preparedStatement.setBinaryStream(columnIndex, (FileInputStream) itemToCloseAfterwards);
+					if (dbVendor == DbVendor.SQLite) {
+						// SQLite ignores "setBinaryStream"
+						byte[] data = Utilities.readFileToByteArray(new File(valueString));
+						preparedStatement.setBytes(columnIndex, data);
+					} else {
+						itemToCloseAfterwards = new FileInputStream(valueString);
+						preparedStatement.setBinaryStream(columnIndex, (FileInputStream) itemToCloseAfterwards);
+					}
 					importedDataAmount += new File(valueString).length();
 				} else {
 					if (dbVendor == DbVendor.SQLite || dbVendor == DbVendor.PostgreSQL) {
@@ -897,6 +826,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 			} else if ("uc".equalsIgnoreCase(formatInfo)) {
 				valueString = valueString.toUpperCase();
 				preparedStatement.setString(columnIndex, valueString);
+			} else if ("email".equalsIgnoreCase(formatInfo)) {
+				valueString = valueString.toLowerCase().trim();
+				if (!NetworkUtilities.isValidEmail(valueString)) {
+					throw new Exception("Invalid email address: " + valueString);
+				}
+				preparedStatement.setString(columnIndex, valueString);
 			} else {
 				preparedStatement.setTimestamp(columnIndex, new java.sql.Timestamp(new SimpleDateFormat(formatInfo).parse(valueString).getTime()));
 			}
@@ -906,11 +841,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 					preparedStatement.setBytes(columnIndex, Utilities.decodeBase64((String) dataValue));
 				} else if (simpleDataType == SimpleDataType.Double) {
 					String valueString = ((String) dataValue).trim();
-					if (valueString.contains(".")) {
-						preparedStatement.setDouble(columnIndex, Double.parseDouble(valueString));
-					} else {
-						preparedStatement.setInt(columnIndex, Integer.parseInt(valueString));
-					}
+					preparedStatement.setDouble(columnIndex, Double.parseDouble(valueString));
 				} else if (simpleDataType == SimpleDataType.Integer) {
 					String valueString = ((String) dataValue).trim();
 					if (valueString.contains(".")) {
@@ -947,11 +878,15 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	}
 
 	public int getImportedItems() {
-		return importedItems;
+		return validItems;
+	}
+
+	public String getCreatedNewIndexName() {
+		return newIndexName;
 	}
 
 	public List<Integer> getNotImportedItems() {
-		return notImportedItems;
+		return invalidItems;
 	}
 	
 	public long getImportedDataAmount() {
@@ -959,15 +894,15 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 	}
 	
 	public int getIgnoredDuplicates() {
-		return ignoredDuplicates;
+		return duplicatesItems;
 	}
 
 	public int getInsertedItems() {
 		return insertedItems;
 	}
-	
-	public int getItemsForUpdateInImportData() {
-		return itemsForUpdateInImportData;
+
+	public List<String> getDataPropertyNames() {
+		return availableDataPropertyNames;
 	}
 	
 	public static String convertMappingToString(Map<String, Tuple<String, String>> mapping) {
@@ -988,17 +923,15 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> {
 
 	public abstract String getConfigurationLogString();
 	
-	public abstract List<String> getAvailableDataPropertyNames() throws Exception;
+	protected abstract List<String> getAvailableDataPropertyNames() throws Exception;
 
 	protected abstract int getItemsAmountToImport() throws Exception;
-
-	protected abstract void openReader() throws Exception;
 	
 	protected abstract Map<String, Object> getNextItemData() throws Exception;
-
-	protected abstract void closeReader() throws Exception;
 
 	protected abstract Map<String, DbColumnType> scanDataPropertyTypes() throws Exception;
 	
 	protected abstract File filterDataItems(List<Integer> indexList, String fileSuffix) throws Exception;
+
+	public abstract void close();
 }

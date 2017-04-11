@@ -43,7 +43,7 @@ public class DbCsvImportMappingDialog extends JDialog {
 	
 	private List<Triple<Label, JComboBox<String>, JComboBox<String>>> mappingEntries = new ArrayList<Triple<Label, JComboBox<String>, JComboBox<String>>>();
 	
-	public DbCsvImportMappingDialog(Window parent, String title, CaseInsensitiveMap<DbColumnType> columnTypes, List<String> dataColumns) throws Exception {
+	public DbCsvImportMappingDialog(Window parent, String title, CaseInsensitiveMap<DbColumnType> columnTypes, List<String> dataColumns, List<String> keyColumns) throws Exception {
 		super(parent, title, Dialog.ModalityType.DOCUMENT_MODAL);
 		
 		this.columnTypes = columnTypes;
@@ -85,6 +85,15 @@ public class DbCsvImportMappingDialog extends JDialog {
 		
 		List<String> dbColumnNames = new ArrayList<String>(columnTypes.keySet());
 		Collections.sort(dbColumnNames);
+		if (keyColumns != null) {
+			for (String keyColumn : keyColumns) {
+				boolean wasIncluded = dbColumnNames.remove(keyColumn);
+				if (wasIncluded) {
+					dbColumnNames.add(0, keyColumn);
+				}
+			}
+		}
+		
 		for (String dbColumnName : dbColumnNames) {
 			DbColumnType dbColumnType = columnTypes.get(dbColumnName);
 			
@@ -207,7 +216,7 @@ public class DbCsvImportMappingDialog extends JDialog {
 			mapping = new HashMap<String, Tuple<String, String>>();
 			for (String dbColumn : columnTypes.keySet()) {
 				for (String dataColumn : dataColumns) {
-					if (dbColumn.equalsIgnoreCase(dataColumn)) {
+					if (Utilities.trimSimultaneously(Utilities.trimSimultaneously(dbColumn, "\""), "`").equalsIgnoreCase(dataColumn)) {
 						mapping.put(dbColumn, new Tuple<String, String>(dataColumn, ""));
 						break;
 					}

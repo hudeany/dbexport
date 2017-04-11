@@ -2,7 +2,9 @@ package de.soderer.utilities;
 
 import java.awt.HeadlessException;
 import java.io.Console;
+import java.text.MessageFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class BasicUpdateableConsoleApplication implements UpdateParent {
 	private String applicationName;
@@ -20,12 +22,12 @@ public class BasicUpdateableConsoleApplication implements UpdateParent {
 			throw new Exception("Couldn't get Console instance");
 		}
 		if (availableNewVersion == null) {
-			System.out.println("There is no newer version available for " + applicationName + "\nThe current local version is " + applicationVersion.toString());
+			System.out.println(getI18NString("noNewerVersion", applicationName, applicationVersion.toString()));
 			System.out.println();
 			return false;
 		} else {
-			System.out.println("New version " + availableNewVersion + " is available.\nCurrent version is " + applicationVersion.toString() + ".");
-			String input = console.readLine("Install update? (yN): ");
+			System.out.println(getI18NString("newVersion", availableNewVersion, applicationName, applicationVersion.toString()));
+			String input = console.readLine(getI18NString("installUpdate") + ": ");
 			System.out.println();
 			return input != null && (input.toLowerCase().startsWith("y") || input.toLowerCase().startsWith("j"));
 		}
@@ -42,12 +44,12 @@ public class BasicUpdateableConsoleApplication implements UpdateParent {
 		char[] password = null;
 		
 		if (aquireUsername && aquirePassword) {
-			userName = console.readLine("Please enter username: ");
-			password = console.readPassword("Please enter password: ");
+			userName = console.readLine(getI18NString("enterUsername") + ": ");
+			password = console.readPassword(getI18NString("enterPassword") + ": ");
 		} else if (aquireUsername) {
-			userName = console.readLine("Please enter username: ");
+			userName = console.readLine(getI18NString("enterUsername") + ": ");
 		} else if (aquirePassword) {
-			password = console.readPassword("Please enter password: ");
+			password = console.readPassword(getI18NString("enterPassword") + ": ");
 		}
 		
 		if (Utilities.isBlank(userName) && Utilities.isBlank(password)) {
@@ -70,7 +72,7 @@ public class BasicUpdateableConsoleApplication implements UpdateParent {
 	@Override
 	public void showUpdateDone() {
 		System.out.println();
-		System.out.println("Restarting after update");
+		System.out.println(getI18NString("updateDone"));
 		System.out.println();
 	}
 
@@ -81,5 +83,35 @@ public class BasicUpdateableConsoleApplication implements UpdateParent {
 	@Override
 	public void showUpdateDownloadEnd() {
 		// Do nothing
+	}
+	
+	private String getI18NString(String resourceKey, Object... arguments) {
+		if (LangResources.existsKey(resourceKey)) {
+			return LangResources.get(resourceKey, arguments);
+		} else if ("de".equalsIgnoreCase(Locale.getDefault().getLanguage())) {
+			String pattern;
+			switch(resourceKey) {
+				case "noNewerVersion": pattern = "Es ist keine neuere Version verfügbar für {0}.\nDie aktuelle lokale Version ist {1}."; break;
+				case "newVersion": pattern = "Es ist die eine neue Version {0} verfügbar für {1}.\nDie aktuelle lokale Version ist {2}."; break;
+				case "installUpdate": pattern = "Update installieren? (jN)"; break;
+				case "enterUsername": pattern = "Bitte Usernamen eingeben"; break;
+				case "enterPassword": pattern = "Bitte Passwort eingeben"; break;
+				case "updateDone": pattern = "Update beendet"; break;
+				default: pattern = "MessageKey unbekannt: " + resourceKey + " Argumente: " + Utilities.join(arguments, ", ");
+			}
+			return MessageFormat.format(pattern, arguments);
+		} else {
+			String pattern;
+			switch(resourceKey) {
+				case "noNewerVersion": pattern = "There is no newer version available for {0}.\nThe current local version is {1}."; break;
+				case "newVersion": pattern = "New version {0} is available for {1}.\nThe current local version is {2}."; break;
+				case "installUpdate": pattern = "Install update? (yN)"; break;
+				case "enterUsername": pattern = "Please enter username"; break;
+				case "enterPassword": pattern = "Please enter password"; break;
+				case "updateDone": pattern = "Update done"; break;
+				default: pattern = "MessageKey unknown: " + resourceKey + " arguments: " + Utilities.join(arguments, ", ");
+			}
+			return MessageFormat.format(pattern, arguments);
+		}
 	}
 }

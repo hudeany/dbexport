@@ -23,19 +23,16 @@ import java.net.URLClassLoader;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,6 +42,7 @@ import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 
 /**
@@ -56,6 +54,7 @@ public class Utilities {
 	public static final String STANDARD_XML = "<?xml version=\"1.0\" encoding=\"<encoding>\" standalone=\"yes\"?>\n<root>\n</root>\n";
 	public static final String STANDARD_HTML = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n<html xmlns=\"http://www.w3.org/1999/xhtml\">\n\t<head>\n\t\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=<encoding>\" />\n\t\t<title>HtmlTitle</title>\n\t\t<meta name=\"Title\" content=\"HtmlTitle\" />\n\t</head>\n\t<body>\n\t</body>\n</html>\n";
 	public static final String STANDARD_BASHSCRIPTSTART = "#!/bin/bash\n";
+	public static final String STANDARD_JSON = "{\n\t\"property1\": null,\n\t\"property2\": " + Math.PI + ",\n\t\"property3\": true,\n\t\"property4\": \"Text\",\n\t\"property5\": [\n\t\tnull,\n\t\t" + Math.PI + ",\n\t\ttrue,\n\t\t\"Text\"\n\t]\n}\n";
 
 	/** UTF-8 BOM (Byte Order Mark) character for readers. */
 	public static final char BOM_UTF_8_CHAR = (char) 65279;
@@ -259,36 +258,6 @@ public class Utilities {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Check for a number without decimals
-	 *
-	 * @param value
-	 * @return
-	 */
-	public static boolean isInteger(String value) {
-		try {
-			Integer.parseInt(value);
-			return true;
-		} catch (NumberFormatException e) {
-			return false;
-		}
-	}
-
-	/**
-	 * Check for a number with optional decimals after a dot(.) and exponent
-	 *
-	 * @param value
-	 * @return
-	 */
-	public static boolean isDouble(String value) {
-		try {
-			Double.parseDouble(value);
-			return true;
-		} catch (NumberFormatException e) {
-			return false;
-		}
 	}
 
 	/***
@@ -548,8 +517,42 @@ public class Utilities {
 	 */
 	public static <T extends Comparable<? super T>> List<T> asSortedList(Collection<T> c) {
 		List<T> list = new ArrayList<T>(c);
-		java.util.Collections.sort(list);
+		Collections.sort(list);
 		return list;
+	}
+	
+	/**
+	 * Sort a map by a Comparator for the keytype
+	 *
+	 * @param mapToSort
+	 * @param comparator
+	 * @return
+	 */
+	public static <Key, Value> Map<Key, Value> sortMap(Map<Key, Value> mapToSort, Comparator<Key> comparator) {
+		List<Key> keys = new ArrayList<Key>(mapToSort.keySet());
+		Collections.sort(keys, comparator);
+		LinkedHashMap<Key, Value> sortedContent = new LinkedHashMap<Key, Value>();
+		for (Key key : keys) {
+			sortedContent.put(key, mapToSort.get(key));
+		}
+		return sortedContent;
+	}
+	
+	/**
+	 * Sort a map by the String keytype
+	 *
+	 * @param mapToSort
+	 * @param comparator
+	 * @return
+	 */
+	public static <Value> Map<String, Value> sortMap(Map<String, Value> mapToSort) {
+		List<String> keys = new ArrayList<String>(mapToSort.keySet());
+		Collections.sort(keys);
+		LinkedHashMap<String, Value> sortedContent = new LinkedHashMap<String, Value>();
+		for (String key : keys) {
+			sortedContent.put(key, mapToSort.get(key));
+		}
+		return sortedContent;
 	}
 
 	/**
@@ -924,6 +927,27 @@ public class Utilities {
 		}
 	}
 
+	/**
+	 * XMLStreamReader.close() doesn't close the underlying stream.
+	 * So it must be closed separately.
+	 */
+	public static void closeQuietly(XMLStreamReader closeable, InputStream inputStream) {
+		if (closeable != null) {
+			try {
+				closeable.close();
+			} catch (Exception e) {
+				// Do nothing
+			}
+		}
+		if (inputStream != null) {
+			try {
+				inputStream.close();
+			} catch (Exception e) {
+				// Do nothing
+			}
+		}
+	}
+
 	public static void closeQuietly(XMLStreamWriter xmlWriter) {
 		if (xmlWriter != null) {
 			try {
@@ -932,46 +956,6 @@ public class Utilities {
 				e.printStackTrace();
 			}
 			xmlWriter = null;
-		}
-	}
-
-	public static void closeQuietly(Statement statement) {
-		if (statement != null) {
-			try {
-				statement.close();
-			} catch (SQLException e) {
-				// Do nothing
-			}
-		}
-	}
-
-	public static void closeQuietly(ResultSet resultSet) {
-		if (resultSet != null) {
-			try {
-				resultSet.close();
-			} catch (SQLException e) {
-				// Do nothing
-			}
-		}
-	}
-
-	public static void closeQuietly(Connection connection) {
-		if (connection != null) {
-			try {
-				connection.close();
-			} catch (SQLException e) {
-				// Do nothing
-			}
-		}
-	}
-
-	public static void closeQuietly(PreparedStatement preparedStatement) {
-		if (preparedStatement != null) {
-			try {
-				preparedStatement.close();
-			} catch (SQLException e) {
-				// Do nothing
-			}
 		}
 	}
 
@@ -1022,11 +1006,9 @@ public class Utilities {
 		}
 	}
 
-	public static String join(Collection<?> list, String glue) {
-		if (list == null) {
+	public static String join(Iterable<?> iterableObject, String glue) {
+		if (iterableObject == null) {
 			return null;
-		} else if (list.size() == 0) {
-			return "";
 		} else {
 			if (glue == null) {
 				glue = "";
@@ -1034,7 +1016,7 @@ public class Utilities {
 
 			StringBuilder returnValue = new StringBuilder();
 			boolean isFirst = true;
-			for (Object object : list) {
+			for (Object object : iterableObject) {
 				if (!isFirst) {
 					returnValue.append(glue);
 				}
@@ -1145,7 +1127,12 @@ public class Utilities {
 			itemsToDoString = NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsToDo);
 			percentageDone = (int) (itemsDone * 100 / itemsToDo);
 			percentageString = leftPad(percentageDone + "%", 3);
-			int speed = (int) (itemsDone / ((now.getTime() - start.getTime()) / 1000));
+			long elapsedSeconds = (now.getTime() - start.getTime()) / 1000;
+			// Prevent division by zero, when start is fast
+			if (elapsedSeconds == 0) {
+				elapsedSeconds = 1;
+			}
+			int speed = (int) (itemsDone / elapsedSeconds);
 			speedString = getHumanReadableNumber(speed, "", true) + "/s";
 			Date estimatedEnd = DateUtilities.calculateETA(start, itemsToDo, itemsDone);
 			etaString = "eta " + DateUtilities.getShortHumanReadableTimespan(estimatedEnd.getTime() - now.getTime(), false);
@@ -1191,6 +1178,24 @@ public class Utilities {
 		try {
 			return String.format("%1$-" + minimumLength + "s", value);
 		} catch (Exception e) {
+			return value;
+		}
+	}
+
+	/**
+	 * Only trim the value when the sourrounding occures on both ends
+	 * @param value
+	 * @param prefix
+	 * @return
+	 */
+	public static String trimSimultaneously(String value, String sourrounding) {
+		if (value == null) {
+			return null;
+		} else if (isEmpty(sourrounding)) {
+			return value;
+		} else if (value.startsWith(sourrounding) && value.endsWith(sourrounding)) {
+			return value.substring(sourrounding.length(), value.length() - sourrounding.length());
+		} else {
 			return value;
 		}
 	}
@@ -1249,12 +1254,16 @@ public class Utilities {
 		}
 	}
 
-	public static String shortenStringToMaxLengthCutRight(String value, int maxLength) {
+	public static String shortenStringToMaxLengthCutRight(String value, int maxLength, String cutSign) {
 		if (value != null && value.length() > maxLength) {
-			return value.substring(0, maxLength - 4) + " ...";
+			return value.substring(0, maxLength - 4) + cutSign;
 		} else {
 			return value;
 		}
+	}
+
+	public static String shortenStringToMaxLengthCutRight(String value, int maxLength) {
+		return shortenStringToMaxLengthCutRight(value, maxLength, " ...");
 	}
 
 	public static String shortenStringToMaxLengthCutMiddle(String value, int maxLength) {
@@ -1281,7 +1290,9 @@ public class Utilities {
 			List<String> returnList = new ArrayList<String>();
 			String[] parts = stringList.split(",|;|\\|| |\\n|\\r|\\t");
 			for (String part : parts) {
-				returnList.add(part.trim());
+				if (isNotEmpty(part)) {
+					returnList.add(part.trim());
+				}
 			}
 			return returnList;
 		}
@@ -1294,7 +1305,9 @@ public class Utilities {
 			List<String> returnList = new ArrayList<String>();
 			String[] parts = stringList.split(join(separatorChars, "|").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r"));
 			for (String part : parts) {
-				returnList.add(part.trim());
+				if (isNotEmpty(part)) {
+					returnList.add(part.trim());
+				}
 			}
 			return returnList;
 		}
@@ -1416,5 +1429,46 @@ public class Utilities {
 		} else {
 			return data.toLowerCase().startsWith(prefix.toLowerCase());
 		}
+	}
+
+	public static byte[] readStreamToByteArray(InputStream inputStream) throws IOException {
+		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+		copy(inputStream, byteArrayOutputStream);
+		return byteArrayOutputStream.toByteArray();
+	}
+	
+	public static Map<String, String> createMap(String... data) {
+		Map<String, String> returnMap = new HashMap<String, String>();
+		if (data != null && data.length > 0) {
+			for (int i = 0; i < data.length / 2; i++) {
+				String key = data[i * 2];
+				String value = data[i * 2 + 1];
+				returnMap.put(key, value);
+			}
+		}
+		return returnMap;
+	}
+	
+	/**
+	 * Replace ~ by user.home
+	 */
+	public static String replaceHomeTilde(String filePath) {
+		return filePath.replace("~", System.getProperty("user.home"));
+	}
+	
+	/**
+	 * Check whether an iterable collection contains a special object
+	 * 
+	 * @param hayshack
+	 * @param needle
+	 * @return
+	 */
+	public static boolean containsObject(Iterable<?> hayshack, Object needle) {
+		for (Object item : hayshack) {
+			if (item == needle) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

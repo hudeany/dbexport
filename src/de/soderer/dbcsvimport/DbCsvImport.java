@@ -4,6 +4,9 @@ package de.soderer.dbcsvimport;
 import java.awt.GraphicsEnvironment;
 import java.io.Console;
 import java.io.File;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,11 +17,14 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingUtilities;
 
 import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DuplicateMode;
 import de.soderer.dbcsvimport.DbCsvImportDefinition.ImportMode;
 import de.soderer.dbcsvimport.worker.AbstractDbImportWorker;
 import de.soderer.utilities.ApplicationUpdateHelper;
 import de.soderer.utilities.BasicUpdateableConsoleApplication;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbNotExistsException;
+import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Utilities;
@@ -28,12 +34,15 @@ import de.soderer.utilities.WorkerParentSimple;
 /**
  * The Main-Class of DbCsvImport.
  */
+// TODO: Cassandra support
 public class DbCsvImport extends BasicUpdateableConsoleApplication implements WorkerParentSimple {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbCsvImport";
 	
 	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
 	public static final String VERSION_RESOURCE_FILE = "/version.txt";
+	
+	public static final String HELP_RESOURCE_FILE = "/help.txt";
 	
 	/** The Constant CONFIGURATION_FILE. */
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvImport.config");
@@ -47,61 +56,23 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	
 	/** The versioninfo download url is filled in at application start from the version.txt file. */
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
+	
+	/** Trusted CA certificate for updates **/
+	public static String TRUSTED_UPDATE_CA_CERTIFICATE = null;
 
 	/** The usage message. */
 	private static String getUsageMessage() {
-		return "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
-			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvImport.jar [-gui] [optional parameters] dbtype hostname[:port] username dbname tablename [-data] importfilepathOrData [password]\n"
-			+ "\n"
-			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql\n"
-			+ "\thostname: with optional port (not needed for sqlite and derby)\n"
-			+ "\tusername: username (not needed for sqlite and derby)\n"
-			+ "\tdbname: dbname or filepath for sqlite db or derby db\n"
-			+ "\ttablename: table to import to\n"
-			+ "\timportfilepathOrData: file to import, maybe zipped (.zip) or data as text\n"
-			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite and derby)\n"
-			+ "\n"
-			+ "optional parameters\n"
-			+ "\t-data: Declare importfilepathOrData explicitly as inline data (no filepath)\n"
-			+ "\t-x importDataFormat: Data import format, default format is CSV\n"
-			+ "\t\timportDataFormat: CSV | JSON | XML | SQL\n"
-			+ "\t-m: column mappings (separated by semicolon or linebreak): when not configured a simple mapping by column names is used\n"
-			+ "\t\tMapping entry format: dbcolumnname=\"data column name\" <formatinfo>\n"
-			+ "\t\t<formatinfo> may be decimal delimiter (default .), date pattern (default dd.MM.yyyy HH:mm:ss) or file\n"
-			+"\t\tExample: 'db1=\"def 1\" ,;db2=\"def 2\" .;db3=\"def 3\" dd.MM.yyyy HH:mm:ss;db4=\"def 4\" file'\n"
-			+ "\t-mf: column mapping file, containing the mapping entries of -m\n"
-			+ "\t-n 'NULL': set a string for null values (only for csv and xml, default is '')\n"
-			+ "\t-l: log import information in .log files\n"
-			+ "\t-v: progress and e.t.a. import in terminal\n"
-			+ "\t-e: encoding for CSV and JSON data files and clob files (default UTF-8)\n"
-			+ "\t-s: separator character, default ';', encapsulate by '\n"
-			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
-			+ "\t-noheaders: first csv line is data and not headers\n"
-			+ "\t-c: complete commit only (takes more time and makes rollback on any error)\n"
-			+ "\t-a: allow underfilled lines\n"
-			+ "\t-t: trim data values\n"
-			+ "\t-i 'importmode': importmodes: CLEARINSERT | INSERT | UPDATE | UPSERT (default INSERT)\n"
-			+ "\t-u: don't update with null values from import data\n"
-			+ "\t-k 'keycolumnslist': keycolumns list comma separated\n"
-			+ "\t-insvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for inserts. E.g.: id=test_seq.NEXTVAL;flag='abc'\n"
-			+ "\t-updvalues 'valuelist': value list semicolon separated: Sometimes values not included in the data file are needed for updates. E.g.: create=current_timestamp;flag='abc'\n"
-			+ "\t-create: scan data and create suitable table, if not exists\n"
-			+ "\t-logerrors: log error data items in file\n"
-			+ "\n"
-			+ "global/single parameters\n"
-			+ "\t-help: show this help manual\n"
-			+ "\t-gui: open a GUI\n"
-			+ "\t-version: show current local version of this tool\n"
-			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
+		try (InputStream helpInputStream = DbCsvImport.class.getResourceAsStream(HELP_RESOURCE_FILE)) {
+			return "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
+				+ "VERSION: " + VERSION + "\n\n"
+				+ new String(Utilities.readStreamToByteArray(helpInputStream), "UTF-8");
+		} catch (Exception e) {
+			return "Help info is missing";
+		}
 	}
 
 	/** The db csv import definition. */
 	private DbCsvImportDefinition dbCsvImportDefinition;
-	
-	/** The worker. */
-	private AbstractDbImportWorker worker;
 
 	/**
 	 * The main method.
@@ -126,7 +97,12 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			// Try to fill the version and versioninfo download url
 			List<String> versionInfoLines = Utilities.readLines(DbCsvImport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
 			VERSION = versionInfoLines.get(0);
-			VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
+			if (versionInfoLines.size() >= 2) {
+				VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
+			}
+			if (versionInfoLines.size() >= 3) {
+				TRUSTED_UPDATE_CA_CERTIFICATE = versionInfoLines.get(2);
+			}
 		} catch (Exception e) {
 			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
@@ -156,7 +132,13 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					System.out.println(VERSION);
 					return 1;
 				} else if ("-update".equalsIgnoreCase(arguments[i])) {
-					new DbCsvImport().updateApplication();
+					if (arguments.length > i + 2) {
+						new DbCsvImport().updateApplication(arguments[i + 1], arguments[i + 2].toCharArray());
+					} else if (arguments.length > i + 1) {
+						new DbCsvImport().updateApplication(arguments[i + 1], null);
+					} else {
+						new DbCsvImport().updateApplication(null, null);
+					}
 					return 1;
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					if (GraphicsEnvironment.isHeadless()) {
@@ -229,10 +211,21 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					i++;
 					if (i >= arguments.length) {
 						throw new ParameterException(arguments[i - 1], "Missing parameter stringquote character");
+					} else if ("null".equalsIgnoreCase(arguments[i]) || "none".equalsIgnoreCase(arguments[i])) {
+						dbCsvImportDefinition.setStringQuote(null);
 					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
-						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote character");
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote character (use 'null' or 'none' for empty)");
 					} else {
 						dbCsvImportDefinition.setStringQuote(arguments[i].charAt(0));
+					}
+				} else if ("-qe".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter stringquote escape character");
+					} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote escape character");
+					} else {
+						dbCsvImportDefinition.setEscapeStringQuote(arguments[i].charAt(0));
 					}
 				} else if ("-a".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setAllowUnderfilledLines(true);
@@ -245,7 +238,16 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					} else if (Utilities.isBlank(arguments[i])) {
 						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter importmode");
 					} else {
-						dbCsvImportDefinition.setImportmode(ImportMode.getFromString(arguments[i]));
+						dbCsvImportDefinition.setImportMode(ImportMode.getFromString(arguments[i]));
+					}
+				} else if ("-d".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter duplicatemode");
+					} else if (Utilities.isBlank(arguments[i])) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter duplicatemode");
+					} else {
+						dbCsvImportDefinition.setDuplicateMode(DuplicateMode.getFromString(arguments[i]));
 					}
 				} else if ("-u".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setUpdateNullData(false);
@@ -284,8 +286,34 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					dbCsvImportDefinition.setNoHeaders(true);
 				} else if ("-c".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setCompleteCommit(true);
+				} else if ("-nonewindex".equalsIgnoreCase(arguments[i])) {
+					dbCsvImportDefinition.setCreateNewIndexIfNeeded(false);
 				} else if ("-data".equalsIgnoreCase(arguments[i])) {
 					dbCsvImportDefinition.setInlineData(true);
+				} else if ("-dp".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter for data path");
+					} else if (Utilities.isBlank(arguments[i])) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for data path");
+					} else if (Utilities.isNotBlank(dbCsvImportDefinition.getMapping())) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Data path is already defined");
+					} else {
+						dbCsvImportDefinition.setDataPath(arguments[i]);
+					}
+				} else if ("-sp".equalsIgnoreCase(arguments[i])) {
+					i++;
+					if (i >= arguments.length) {
+						throw new ParameterException(arguments[i - 1], "Missing parameter for schema file path");
+					} else if (Utilities.isBlank(arguments[i])) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for schema file path");
+					} else if (!new File(arguments[i]).exists()) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Schema file file does not exist");
+					} else if (Utilities.isNotBlank(dbCsvImportDefinition.getMapping())) {
+						throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Schema file path is already defined");
+					} else {
+						dbCsvImportDefinition.setSchemaFilePath(new String(Utilities.readFileToByteArray(new File(arguments[i])), "UTF-8"));
+					}
 				} else {
 					if (dbCsvImportDefinition.getDbVendor() == null) {
 						dbCsvImportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
@@ -321,7 +349,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					dbCsvImportDefinition.setPassword(new String(passwordArray));
 				}
 
-				// Validdate all given parameters
+				// Validate all given parameters
 				dbCsvImportDefinition.checkParameters();
 				if (!new DbCsvImportDriverSupplier(null, dbCsvImportDefinition.getDbVendor()).supplyDriver()) {
 					throw new Exception("Cannot aquire db driver for db vendor: " + dbCsvImportDefinition.getDbVendor());
@@ -352,6 +380,44 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				e.printStackTrace();
 				return 1;
 			}
+		} else if (DbCsvImportDefinition.CONNECTIONTEST_SIGN.equalsIgnoreCase(dbCsvImportDefinition.getTableName())) {
+			int returnCode = 0;
+			int iterations = Integer.parseInt(dbCsvImportDefinition.getImportFilePathOrData());
+			for (int i = 1; i <= iterations; i++) {
+				System.out.println("Connection test " + i + "/" + iterations);
+				Connection testConnection = null;
+				try {
+					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Creating db connection");
+					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
+						try {
+							testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
+						} catch (DbNotExistsException e) {
+							testConnection = DbUtilities.createNewDatabase(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getDbName());
+						}
+					} else {
+						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
+					}
+					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Successfully created db connection");
+				} catch (SQLException sqle) {
+					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
+					returnCode = 1;
+				} catch (Exception e) {
+					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
+					e.printStackTrace();
+					returnCode = 1;
+				} finally {
+					if (testConnection != null) {
+						try {
+							System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Closing db connection");
+							testConnection.close();
+						} catch (SQLException e) {
+							System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Error closing db connection: " + e.getMessage());
+							returnCode = 1;
+						}
+					}
+				}
+			}
+			return returnCode;
 		} else {
 			// Start the import worker for terminal output 
 			try {
@@ -385,9 +451,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	private void importData(DbCsvImportDefinition dbCsvImportDefinition) throws Exception {
 		this.dbCsvImportDefinition = dbCsvImportDefinition;
 
-		try {
-			worker = dbCsvImportDefinition.getConfiguredWorker(this);
-
+		try (AbstractDbImportWorker worker = dbCsvImportDefinition.getConfiguredWorker(this, false)) {
 			if (dbCsvImportDefinition.isVerbose()) {
 				System.out.println(worker.getConfigurationLogString());
 				System.out.println();
@@ -414,11 +478,15 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				}
 				System.err.println(errorText);
 			}
+
+			if (worker.getCreatedNewIndexName() != null) {
+				System.out.println("Created new index name: " + worker.getCreatedNewIndexName());
+			}
 			
 			System.out.println("Imported items: " + worker.getImportedItems());
 			
 			if (dbCsvImportDefinition.isVerbose()) {
-				System.out.println(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "Byte"));
+				System.out.println(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "Byte", false));
 			}
 		} catch (ExecutionException e) {
 			if (e.getCause() instanceof Exception) {
@@ -474,7 +542,15 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 *
 	 * @throws Exception the exception
 	 */
-	private void updateApplication() throws Exception {
-		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null).executeUpdate();
+	private void updateApplication(String username, char[] password) throws Exception {
+		ApplicationUpdateHelper applicationUpdateHelper = new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null, TRUSTED_UPDATE_CA_CERTIFICATE);
+		applicationUpdateHelper.setUsername(username);
+		applicationUpdateHelper.setPassword(password);
+		applicationUpdateHelper.executeUpdate();
+	}
+
+	@Override
+	public void changeTitle(String text) {
+		// do nothing	
 	}
 }

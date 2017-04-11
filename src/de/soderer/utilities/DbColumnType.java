@@ -10,13 +10,15 @@ public class DbColumnType {
 	private int numericPrecision; // only for numeric types
 	private int numericScale; // only for numeric types
 	private boolean nullable;
+	private boolean autoIncrement;
 
-	public DbColumnType(String typeName, long characterLength, int numericPrecision, int numericScale, boolean nullable) {
+	public DbColumnType(String typeName, long characterLength, int numericPrecision, int numericScale, boolean nullable, boolean autoIncrement) {
 		this.typeName = typeName;
 		this.characterLength = characterLength;
 		this.numericPrecision = numericPrecision;
 		this.numericScale = numericScale;
 		this.nullable = nullable;
+		this.autoIncrement = autoIncrement;
 	}
 
 	public String getTypeName() {
@@ -37,6 +39,10 @@ public class DbColumnType {
 
 	public boolean isNullable() {
 		return nullable;
+	}
+
+	public boolean isAutoIncrement() {
+		return autoIncrement;
 	}
 
 	public SimpleDataType getSimpleDataType() {

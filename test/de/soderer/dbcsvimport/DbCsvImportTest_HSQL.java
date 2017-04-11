@@ -3,7 +3,6 @@ package de.soderer.dbcsvimport;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -16,6 +15,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Element;
 
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DuplicateMode;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -47,7 +47,9 @@ public class DbCsvImportTest_HSQL {
 			// Do nothing
 		}
 		
-		DbUtilities.createNewDatabase(DbVendor.HSQL, HSQL_DB_FILE);
+		try (Connection connection = DbUtilities.createNewDatabase(DbVendor.HSQL, HSQL_DB_FILE)) {
+			// Just close the connection
+		}
 	}
 	
 	@Before
@@ -57,22 +59,16 @@ public class DbCsvImportTest_HSQL {
 		INPUTFILE_XML.delete();
 		BLOB_DATA_FILE.delete();
 		
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
-			
-			statement = connection.createStatement();
-			
+		try (Connection connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null)) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
-				statement.execute("DROP TABLE test_tbl");
+				try (Statement statement = connection.createStatement()) {
+					statement.execute("DROP TABLE test_tbl");
+					connection.commit();
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
@@ -83,24 +79,15 @@ public class DbCsvImportTest_HSQL {
 		INPUTFILE_XML.delete();
 		BLOB_DATA_FILE.delete();
 		
-		Connection connection = null;
-		Statement statement = null;
-		PreparedStatement preparedStatement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
-			
-			statement = connection.createStatement();
-			
+		try (Connection connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null)) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
-				statement.execute("DROP TABLE test_tbl");
+				try (Statement statement = connection.createStatement()) {
+					statement.execute("DROP TABLE test_tbl");
+				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(preparedStatement);
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
@@ -114,12 +101,8 @@ public class DbCsvImportTest_HSQL {
 	}
 	
 	private void createEmptyTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
-			statement = connection.createStatement();
-			
+		try (Connection connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
+				Statement statement = connection.createStatement()) {
 			String dataColumnsPart = "";
 			String dataColumnsPartForInsert = "";
 			for (String dataType : DATA_TYPES) {
@@ -141,42 +124,27 @@ public class DbCsvImportTest_HSQL {
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
 	private void prefillTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
-			statement = connection.createStatement();
+		try (Connection connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
+				Statement statement = connection.createStatement()) {
 			statement.executeUpdate("INSERT INTO test_tbl (column_integer, column_varchar) VALUES (1, '<test_text>_1')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 			statement.executeUpdate("INSERT INTO test_tbl (column_integer, column_varchar) VALUES (3, '<test_text>_3')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 			statement.executeUpdate("INSERT INTO test_tbl (column_integer, column_varchar) VALUES (999, '<test_text>_999')".replace("<test_text>", TextUtilities.GERMAN_TEST_STRING.replace("'", "''")));
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
 	private String exportTestTable() throws Exception {
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null);
+		try (Connection connection = DbUtilities.createConnection(DbVendor.HSQL, "", HSQL_DB_FILE, "", null)) {
 			return DbUtilities.readoutTable(connection, "test_tbl", ';', '\"').replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
-		} finally {
-			Utilities.closeQuietly(statement);
-			Utilities.closeQuietly(connection);
 		}
 	}
 	
@@ -372,8 +340,8 @@ public class DbCsvImportTest_HSQL {
 				+ "1;;;;;1;;\"<test_text>_1\"\n"
 				+ "2;;;;;3;;\"<test_text>_3\"\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;; aBcDeF1234;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123\n"
-				+ "5;; aBcDeF1235;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n",
+				+ "4;; aBcDeF1235;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "5;; aBcDeF1235;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -467,9 +435,9 @@ public class DbCsvImportTest_HSQL {
 				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000;\n"
 				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000;\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;; aBcDeF1234;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n"
-				+ "5;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
-				+ "6;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n",
+				+ "4;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "5;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "6;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -501,9 +469,9 @@ public class DbCsvImportTest_HSQL {
 				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000; aBcDeF123_1\n"
 				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000; aBcDeF123_3\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;; aBcDeF1234;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n"
-				+ "5;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
-				+ "6;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n",
+				+ "4;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "5;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "6;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -534,8 +502,8 @@ public class DbCsvImportTest_HSQL {
 				+ "1;;Original2;;;1;;Update\n"
 				+ "2;;Original2;;;3;;Update\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;;Original1;;;2;;Insert\n"
-				+ "5;;Original;;;4;;Insert\n",
+				+ "4;;Original;;;4;;Insert\n"
+				+ "5;;Original2;;;2;;Insert\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -562,6 +530,27 @@ public class DbCsvImportTest_HSQL {
 				+ "1;;\"<test_text>\";;;1;;Update\n"
 				+ "2;;;;;3;;\"<test_text>_3\"\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportCreateDatabase() {
+		try {
+			DbUtilities.deleteDatabase(DbVendor.HSQL, HSQL_DB_FILE);
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer;column_varchar;column_double;not%included\n");
+			data.append("001;AbcÄ123;1.2300;not Included\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer';column_varchar='column_varchar';column_double='column_double'";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] { "hsql", "", "", HSQL_DB_FILE, "-create", "test_tbl", "~/temp/test_tbl.csv", "-m", mapping, "-i", "UPSERT", "-k", "column_integer", "-u", null }));
+			Assert.assertEquals(
+				"COLUMN_INTEGER;COLUMN_DOUBLE;COLUMN_VARCHAR\n"
+				+ "1;1.23E0;AbcÄ123\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -682,9 +671,10 @@ public class DbCsvImportTest_HSQL {
 				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000;\n"
 				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000;\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;; aBcDeF1234;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n"
-				+ "5;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
-				+ "6;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n",
+				+ "4;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "5;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "6;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
+
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
@@ -776,14 +766,156 @@ public class DbCsvImportTest_HSQL {
 				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000;\n"
 				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000;\n"
 				+ "3;;;;;999;;\"<test_text>_999\"\n"
-				+ "4;; aBcDeF1234;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n"
-				+ "5;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
-				+ "6;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n",
+				+ "4;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "5;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "6;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
 				exportTestTable());
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
 		} finally {
 			Utilities.closeQuietly(jsonWriter);
+		}
+	}
+	
+	@Test
+	public void testCsvImportUpsertWithNullMakeUnique() {
+		try {
+			createEmptyTestTable();
+			prefillTestTable();
+			prefillTestTable();
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer; column_double; column_varchar; column_clob; column_timestamp; column_date\n");
+			data.append("1; 123.456; aBcDeF123_1; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("1; 123.456;; aBcDeF1235_1; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456; aBcDeF123_2; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456;; aBcDeF1235_2; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456; aBcDeF123_3; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456;; aBcDeF1235_3; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("4; 123.456;; aBcDeF1235_4; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("5; 123.456; aBcDeF123_5; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer'; column_double='column_double'; column_varchar='column_varchar'; column_clob='column_clob'; column_blob=; column_timestamp='column_timestamp'dd.MM.yyyy HH:mm:ss; column_date='column_date'dd.MM.yyyy HH:mm:ss";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] {
+				"hsql",
+				"",
+				"",
+				HSQL_DB_FILE,
+				"test_tbl",
+				"~/temp/test_tbl.csv",
+				"-m", mapping,
+				"-i", "UPSERT",
+				"-d", DuplicateMode.MAKE_UNIQUE_JOIN.toString(),
+				"-k", "column_integer" }));
+			Assert.assertEquals(
+				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
+				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000;\n"
+				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000;\n"
+				+ "3;;;;;999;;\"<test_text>_999\"\n"
+				+ "7;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "8;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "9;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportUpsertWithNullWithFirstOnly() {
+		try {
+			createEmptyTestTable();
+			prefillTestTable();
+			prefillTestTable();
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer; column_double; column_varchar; column_clob; column_timestamp; column_date\n");
+			data.append("1; 123.456; aBcDeF123_1; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("1; 123.456;; aBcDeF1235_1; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456; aBcDeF123_2; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456;; aBcDeF1235_2; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456; aBcDeF123_3; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456;; aBcDeF1235_3; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("4; 123.456;; aBcDeF1235_4; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("5; 123.456; aBcDeF123_5; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer'; column_double='column_double'; column_varchar='column_varchar'; column_clob='column_clob'; column_blob=; column_timestamp='column_timestamp'dd.MM.yyyy HH:mm:ss; column_date='column_date'dd.MM.yyyy HH:mm:ss";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] {
+				"hsql",
+				"",
+				"",
+				HSQL_DB_FILE,
+				"test_tbl",
+				"~/temp/test_tbl.csv",
+				"-m", mapping,
+				"-i", "UPSERT",
+				"-k", "column_integer",
+				"-d", DuplicateMode.UPDATE_FIRST_JOIN.toString() }));
+			Assert.assertEquals(
+				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
+				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000;\n"
+				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000;\n"
+				+ "3;;;;;999;;\"<test_text>_999\"\n"
+				+ "4;;;;;1;;\"<test_text>_1\"\n"
+				+ "5;;;;;3;;\"<test_text>_3\"\n"
+				+ "6;;;;;999;;\"<test_text>_999\"\n"
+				+ "7;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "8;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "9;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000;\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCsvImportUpsertWithoutNullWithFirstOnly() {
+		try {
+			createEmptyTestTable();
+			prefillTestTable();
+			prefillTestTable();
+			
+			StringBuilder data = new StringBuilder();
+			data.append("column integer; column_double; column_varchar; column_clob; column_timestamp; column_date\n");
+			data.append("1; 123.456; aBcDeF123_1; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("1; 123.456;; aBcDeF1235_1; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456; aBcDeF123_2; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("2; 123.456;; aBcDeF1235_2; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456; aBcDeF123_3; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("3; 123.456;; aBcDeF1235_3; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("4; 123.456;; aBcDeF1235_4; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			data.append("5; 123.456; aBcDeF123_5; aBcDeF1234; 01.02.2003 11:12:13; 01.03.2003 21:22:23\n");
+			FileUtilities.write(INPUTFILE_CSV, data.toString().getBytes("UTF-8"));
+			
+			String mapping = "column_integer='column integer'; column_double='column_double'; column_varchar='column_varchar'; column_clob='column_clob'; column_blob=; column_timestamp='column_timestamp'dd.MM.yyyy HH:mm:ss; column_date='column_date'dd.MM.yyyy HH:mm:ss";
+			Assert.assertEquals(0, DbCsvImport._main(new String[] {
+				"hsql",
+				"",
+				"",
+				HSQL_DB_FILE,
+				"test_tbl",
+				"~/temp/test_tbl.csv",
+				"-u",
+				"-m", mapping,
+				"-i", "UPSERT",
+				"-k", "column_integer",
+				"-d", DuplicateMode.UPDATE_FIRST_JOIN.toString() }));
+			Assert.assertEquals(
+				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
+				+ "1;; aBcDeF1235_1;2003-03-01;123.456E0;1;2003-02-01 11:12:13.000000; aBcDeF123_1\n"
+				+ "2;; aBcDeF1235_3;2003-03-01;123.456E0;3;2003-02-01 11:12:13.000000; aBcDeF123_3\n"
+				+ "3;;;;;999;;\"<test_text>_999\"\n"
+				+ "4;;;;;1;;\"<test_text>_1\"\n"
+				+ "5;;;;;3;;\"<test_text>_3\"\n"
+				+ "6;;;;;999;;\"<test_text>_999\"\n"
+				+ "7;; aBcDeF1235_4;2003-03-01;123.456E0;4;2003-02-01 11:12:13.000000;\n"
+				+ "8;; aBcDeF1234;2003-03-01;123.456E0;5;2003-02-01 11:12:13.000000; aBcDeF123_5\n"
+				+ "9;; aBcDeF1235_2;2003-03-01;123.456E0;2;2003-02-01 11:12:13.000000; aBcDeF123_2\n",
+				exportTestTable());
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
 		}
 	}
 }

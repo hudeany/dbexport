@@ -201,4 +201,9 @@ public class SimpleProgressDialog<T extends WorkerSimple<?>> extends JDialog imp
 			progressBar.setToolTipText(null);
 		}
 	}
+
+	@Override
+	public void changeTitle(String newTitle) {
+		setTitle(newTitle);
+	}
 }

@@ -13,18 +13,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Stack;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stax.StAXSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
+import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
@@ -40,14 +49,24 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 	private Integer itemsAmount = null;
 	private Map<String, DbColumnType> dataTypes = null;
 	private String itemEntryTagName = null;
-	String rootTagName = null;
+	private String listEnclosingTagName = null;
+	private String dataPath = null;
+	private String schemaFilePath = null;
 	
 	public DbXmlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData);
+		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData, DataType.XML);
 	}
 
 	public void setNullValueText(String nullValueText) {
 		this.nullValueText = nullValueText;
+	}
+
+	public void setDataPath(String dataPath) {
+		this.dataPath = dataPath;
+	}
+
+	public void setSchemaFilePath(String schemaFilePath) {
+		this.schemaFilePath = schemaFilePath;
 	}
 
 	@Override
@@ -67,9 +86,10 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n"
 			+ "Table name: " + tableName + "\n"
 			+ "Import mode: " + importMode + "\n"
+			+ "Duplicate mode: " + duplicateMode + "\n"
 			+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 			+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
-			+ "Mapping: " + convertMappingToString(mapping) + "\n"
+			+ "Mapping: \n" + TextUtilities.addLeadingTab(convertMappingToString(mapping)) + "\n"
 			+ "Additional insert values: " + additionalInsertValues + "\n"
 			+ "Additional update values: " + additionalUpdateValues + "\n"
 			+ "Update with null values: " + updateWithNullValues + "\n";
@@ -113,29 +133,31 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 					SimpleDataType currentType = dataTypes.get(propertyName) == null ? null : dataTypes.get(propertyName).getSimpleDataType();
 					if (currentType != SimpleDataType.Blob) {
 						if (propertyValue == null) {
-							dataTypes.put(propertyName, null);
+							if (!dataTypes.containsKey(propertyName)) {
+								dataTypes.put(propertyName, null);
+							}
 						} else if ("file".equalsIgnoreCase(formatInfo) || (propertyValue instanceof String && ((String) propertyValue).length() > 4000)) {
-							dataTypes.put(propertyName, new DbColumnType("BLOB", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("BLOB", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && Utilities.isNotBlank(formatInfo) && !formatInfo.equals(".") && !formatInfo.equals(",") && !formatInfo.equalsIgnoreCase("file") && propertyValue instanceof String) {
 							String value = ((String) propertyValue).trim();
 							try {
 								new SimpleDateFormat(formatInfo).parse(value);
-								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 							} catch (Exception e1) {
 								try {
 									DateUtilities.ISO_8601_DATETIME_FORMAT.parse(value);
-									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 								} catch (Exception e2) {
-									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes(encoding).length), -1, -1, true));
+									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes(encoding).length), -1, -1, true, false));
 								}
 							}
-							dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.Double && propertyValue instanceof Integer) {
-							dataTypes.put(propertyName, new DbColumnType("INTEGER", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && (propertyValue instanceof Float || propertyValue instanceof Double)) {
-							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true, false));
 						} else {
-							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().getBytes(encoding).length), -1, -1, true));
+							dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), propertyValue.toString().getBytes(encoding).length), -1, -1, true, false));
 						}
 					}
 				}
@@ -145,7 +167,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			
 			itemsAmount = itemCount;
 			
-			closeReader();
+			close();
 		}
 		
 		return new ArrayList<String>(dataTypes.keySet());
@@ -160,9 +182,44 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 		return itemsAmount;
 	}
 
-	@Override
-	protected void openReader() throws Exception {
+	private void openReader() throws Exception {
+		if (xmlReader != null) {
+			throw new Exception("Reader was already opened before");
+		}
+		
 		try {
+			if (Utilities.isNotEmpty(schemaFilePath)) {
+				InputStream validationStream = null;
+				XMLStreamReader xmlStreamReader = null;
+				try {
+					if (!isInlineData) {
+						validationStream = new FileInputStream(new File(importFilePathOrData));
+						if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+							validationStream = new ZipInputStream(validationStream);
+							((ZipInputStream) validationStream).getNextEntry();
+						}
+					} else {
+						validationStream = new ByteArrayInputStream(importFilePathOrData.getBytes("UTF-8"));
+					}
+					
+					xmlStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(validationStream);
+			        SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+			        Schema schema = factory.newSchema(new File(schemaFilePath));
+	
+			        Validator validator = schema.newValidator();
+			        validator.validate(new StAXSource(xmlStreamReader));
+				} catch (Exception e) {
+					throw new Exception("XML data does not comply to XSD '" + schemaFilePath + "': " + e.getMessage());
+				} finally {
+					if (xmlStreamReader != null) {
+						xmlStreamReader.close();
+					}
+					if (validationStream != null) {
+						validationStream.close();
+					}
+				}
+			}
+			
 			if (!isInlineData) {
 				inputStream = new FileInputStream(new File(importFilePathOrData));
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
@@ -176,19 +233,46 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 			xmlReader = xmlInputFactory.createXMLStreamReader(inputStream);
 			
-			// Read root tag
-			xmlReader.nextTag();
-			rootTagName = xmlReader.getLocalName();
+			if (Utilities.isNotEmpty(dataPath)) {
+				// Read xml path
+				if (dataPath.startsWith("/")) {
+					dataPath = dataPath.substring(1);
+				}
+				if (dataPath.endsWith("/")) {
+					dataPath = dataPath.substring(0, dataPath.length() - 1);
+				}
+				Stack<String> currentPath = new Stack<String>();
+				xmlReader.nextTag();
+				currentPath.push(xmlReader.getLocalName());
+				while (currentPath.size() > 0 && !Utilities.join(currentPath, "/").equals(dataPath)) {
+					if (XMLStreamConstants.START_ELEMENT == xmlReader.nextTag()) {
+						currentPath.push(xmlReader.getLocalName());
+					} else {
+						currentPath.pop();
+					}
+				}
+				if (currentPath.size() == 0) {
+					throw new Exception("Path '" + dataPath + "' is not part of the xml data");
+				}
+			} else {
+				// Read root tag
+				xmlReader.nextTag();
+			}
+			listEnclosingTagName = xmlReader.getLocalName();
 			if (!xmlReader.isStartElement()) {
 				throw new Exception("Invalid xml data. roottagname: " + xmlReader.getLocalName());
 			}
 		} catch (Exception e) {
-			closeReader();
+			close();
 		}
 	}
 
 	@Override
 	protected Map<String, Object> getNextItemData() throws Exception {
+		if (xmlReader == null) {
+			openReader();
+		}
+		
 		// Read item entries
 		if (xmlReader.nextTag() > 0) {
 			if (xmlReader.isStartElement()) {
@@ -237,12 +321,13 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 	}
 
 	@Override
-	protected void closeReader() throws Exception {
+	public void close() {
 		if (xmlReader != null) {
-			// Caution: doesn't close the underlying stream
-			xmlReader.close();
+			// Caution: XMLStreamReader.close() doesn't close the underlying stream
+			Utilities.closeQuietly(xmlReader, inputStream);
+			xmlReader = null;
+			inputStream = null;
 		}
-		Utilities.closeQuietly(inputStream);
 	}
 
 	@Override
@@ -264,14 +349,14 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			
 			xmlWriter = new IndentedXMLStreamWriter(outputStream, encoding, "\t");
 			xmlWriter.writeStartDocument("utf-8", "1.0");
-			xmlWriter.writeStartElement(rootTagName);
+			xmlWriter.writeStartElement(listEnclosingTagName);
 			
 			Map<String, Object> item;
 			int itemIndex = 0;
 			while ((item = getNextItemData()) != null) {
 				itemIndex++;
 				if (indexList.contains(itemIndex)) {
-					xmlWriter.writeStartElement("line");
+					xmlWriter.writeStartElement("entry");
 					
 					for (Entry<String, Object> entry : item.entrySet()) {
 						xmlWriter.writeStartElement(entry.getKey());
@@ -295,7 +380,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			
 			return filteredDataFile;
 		} finally {
-			closeReader();
+			close();
 			Utilities.closeQuietly(xmlWriter);
 			Utilities.closeQuietly(outputStream);
 		}

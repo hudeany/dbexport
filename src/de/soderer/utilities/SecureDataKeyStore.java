@@ -43,7 +43,7 @@ public class SecureDataKeyStore {
 			for (String keyAlias : Collections.list(keyStore.aliases())) {
 				SecretKey secretKey = (SecretKey) keyStore.getKey(keyAlias, passwordArray);
 				String data = new String(secretKey.getEncoded(), "UTF-8");
-				List<String> dataParts = CsvReader.parseCsvLine(',', '"', data);
+				List<String> dataParts = CsvReader.parseCsvLine(new CsvFormat().setSeparator(',').setStringQuote('"'), data);
 				String secureDataEntryClassName = dataParts.get(0);
 				try {
 					Class.forName(secureDataEntryClassName);

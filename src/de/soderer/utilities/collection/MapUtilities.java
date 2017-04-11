@@ -87,4 +87,48 @@ public class MapUtilities {
 		}
 		return returnMap;
 	}
+	
+	public static String mapToString(Map<?, ?> map) {
+		return mapToString(map, '\"', false, ',');
+	}
+	
+	public static String mapToString(Map<?, ?> map, char textQuoteChar, boolean alwaysQuote, char entrySeparatorChar) {
+		StringBuilder returnValue = new StringBuilder();
+		
+		String quoteString = Character.toString(textQuoteChar);
+		String doubleQuote = quoteString + quoteString;
+		String entrySeparatorString = Character.toString(entrySeparatorChar);
+		
+		for (Entry<?, ?> entry : map.entrySet()) {
+			if (returnValue.length() > 0) {
+				returnValue.append(entrySeparatorChar);
+			}
+			
+			String key;
+			if (entry.getKey() == null) {
+				key = "null";
+			} else {
+				key = entry.getKey().toString();
+			}
+			if (key.contains(quoteString) || key.contains(entrySeparatorString) || alwaysQuote) {
+				key = quoteString + key.replace(quoteString, doubleQuote) + quoteString;
+			}
+			returnValue.append(key);
+			
+			returnValue.append('=');
+			
+			String value;
+			if (entry.getValue() == null) {
+				value = "null";
+			} else {
+				value = entry.getValue().toString();
+			}
+			if (value.contains(quoteString) || value.contains(entrySeparatorString) || alwaysQuote) {
+				value = quoteString + value.replace(quoteString, doubleQuote) + quoteString;
+			}
+			returnValue.append(value);
+		}
+		
+		return returnValue.toString();
+	}
 }
