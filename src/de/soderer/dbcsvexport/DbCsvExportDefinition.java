@@ -1,5 +1,6 @@
 package de.soderer.dbcsvexport;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +12,7 @@ import de.soderer.dbcsvexport.worker.DbSqlExportWorker;
 import de.soderer.dbcsvexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
@@ -78,6 +80,9 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 
 	/** The export type. */
 	private ExportType exportType = ExportType.CSV;
+	
+	/** Use statement file. */
+	private boolean statementFile = false;
 
 	/** Log activation. */
 	private boolean log = false;
@@ -157,6 +162,14 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 */
 	public void setExportType(String exportType) throws Exception {
 		this.exportType = ExportType.getFromString(exportType);
+	}
+
+	/**
+	 * Read statement or tablepattern from file
+	 * @param useStatementFile
+	 */
+	public void setStatementFile(boolean statementFile) {
+		this.statementFile = statementFile;
 	}
 
 	/**
@@ -285,7 +298,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		if (Utilities.isNotBlank(hostname)) {
 			String[] hostParts = this.hostname.split(":");
 			if (hostParts.length == 2) {
-				if (!Utilities.isInteger(hostParts[1])) {
+				if (!NumberUtilities.isInteger(hostParts[1])) {
 					throw new Exception("Invalid port in hostname: " + hostname);
 				}
 			} else if (hostParts.length > 2) {
@@ -354,7 +367,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		this.outputpath = outputpath;
 		if (this.outputpath != null) {
 			this.outputpath = this.outputpath.trim();
-			this.outputpath = this.outputpath.replace("~", System.getProperty("user.home"));
+			this.outputpath = Utilities.replaceHomeTilde(this.outputpath);
 			if (this.outputpath.endsWith(File.separator)) {
 				this.outputpath = this.outputpath.substring(0, this.outputpath.length() - 1);
 			}
@@ -440,6 +453,15 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 */
 	public ExportType getExportType() {
 		return exportType;
+	}
+
+	/**
+	 * Checks if is log.
+	 *
+	 * @return true, if is log
+	 */
+	public boolean isStatementFile() {
+		return statementFile;
 	}
 
 	/**
@@ -549,12 +571,21 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 			if (zip) {
 				throw new DbCsvExportException("Zipping not allowed for console output");
 			}
-		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
+		} else if ("gui".equalsIgnoreCase(outputpath)) {
+			if (zip) {
+				throw new DbCsvExportException("Zipping not allowed for gui output");
+			} else if (GraphicsEnvironment.isHeadless()) {
+				throw new DbCsvExportException("GUI output only works on non-headless systems");
+			}
+		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
 			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
 				throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
 			}
 		} else {
-			if (!exportStructure) {
+			if (exportStructure) {
 				if (!new File(outputpath).exists()) {
 					throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
 				} else if (!new File(outputpath).isDirectory()) {
@@ -582,7 +613,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				throw new DbCsvExportException("Derby db connections do not support the password parameter");
 			}
 		} else if (dbVendor == DbVendor.HSQL) {
-			dbName = dbName.replace("~", System.getProperty("user.home"));
+			dbName = Utilities.replaceHomeTilde(dbName);
 			if (dbName.startsWith("/")) {
 				if (Utilities.isNotBlank(hostname)) {
 					throw new DbCsvExportException("HSQL file db connections do not support the hostname parameter");
@@ -803,6 +834,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				getDbName(),
 				getUsername(),
 				getPassword(),
+				isStatementFile(),
 				getSqlStatementOrTablelist(),
 				getOutputpath());
 			((DbJsonExportWorker) worker).setBeautify(isBeautify());
@@ -814,6 +846,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				getDbName(),
 				getUsername(),
 				getPassword(),
+				isStatementFile(),
 				getSqlStatementOrTablelist(),
 				getOutputpath());
 			((DbXmlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
@@ -827,6 +860,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				getDbName(),
 				getUsername(),
 				getPassword(),
+				isStatementFile(),
 				getSqlStatementOrTablelist(),
 				getOutputpath());
 			((DbSqlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
@@ -838,6 +872,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 				getDbName(),
 				getUsername(),
 				getPassword(),
+				isStatementFile(),
 				getSqlStatementOrTablelist(),
 				getOutputpath());
 			((DbCsvExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());

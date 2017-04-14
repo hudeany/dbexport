@@ -1,0 +1,41 @@
+Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '"'] [-qe '"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] [-n 'NULL'] dbtype hostname[:port] username dbname [-file] 'statement or list of tablepatterns' outputpath [password]
+Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
+
+mandatory parameters
+	dbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql
+	hostname: with optional port (not needed for sqlite, hsql and derby)
+	username: username (not needed for sqlite and derby)
+	dbname: dbname or filepath for sqlite db or derby db
+	statement or list of tablepatterns: statement, encapsulate by '
+		or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)
+	outputpath: file for single statement or directory for tablepatterns or 'console' for output to terminal
+	password: is asked interactivly, if not given as parameter (not needed for sqlite, hsql or derby)
+
+optional parameters
+	-gui: open a GUI
+	-x exportformat: Data export format, default format is CSV
+		exportformat: CSV | JSON | XML | SQL
+		(don't forget to beautify json for human readable data)
+	-n 'NULL': set a string for null values (only for csv and xml, default is '')
+	-file: read statement or tablepattern from text file
+	-l: log export information in .log files
+	-v: progress and e.t.a. output in terminal
+	-z: output as zipfile (not for console output)
+	-e: encoding (default UTF-8)
+	-s: separator character, default ';', encapsulate by '
+	-q: string quote character, default '"', encapsulate by '
+	-qe: string quote escape character, default '"', encapsulate by '
+	-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\t', encapsulate by '
+	-a: always quote value
+	-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite)
+	-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding
+	-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file
+	-beautify: beautify csv output to make column values equal length (takes extra time)
+		or beautify json output to make it human readable with linebreak and indention
+	-noheaders: don't export csv header line
+	-structure: export the tables structure and column types
+
+global/single parameters
+	-help: show this help manual
+	-version: show current local version of this tool
+	-update: check for online update and ask, whether an available update shell be installed;

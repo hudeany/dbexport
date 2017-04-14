@@ -13,8 +13,8 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	
 	private String indentation = "\t";
 	
-	public DbJsonExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
+	public DbJsonExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 	
 	public void setIndentation(String indentation) {
@@ -24,15 +24,15 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	@Override
 	public String getConfigurationLogString(String fileName, String sqlStatement) {
 		return
-			"File: " + fileName
-			+ "Format: " + getFileExtension().toUpperCase()
-			+ "Zip: " + zip
-			+ "Encoding: " + encoding
-			+ "SqlStatement: " + sqlStatement
-			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
-			+ "CreateBlobFiles: " + createBlobFiles
-			+ "CreateClobFiles: " + createClobFiles
-			+ "Beautify: " + beautify
+			"File: " + fileName + "\n"
+			+ "Format: " + getFileExtension().toUpperCase() + "\n"
+			+ "Zip: " + zip + "\n"
+			+ "Encoding: " + encoding + "\n"
+			+ "SqlStatement: " + sqlStatement + "\n"
+			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+			+ "CreateBlobFiles: " + createBlobFiles + "\n"
+			+ "CreateClobFiles: " + createClobFiles + "\n"
+			+ "Beautify: " + beautify + "\n"
 			+ "Indentation: \"" + indentation + "\"";
 	}
 

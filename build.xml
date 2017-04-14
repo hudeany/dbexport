@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbCsvExport">
-	<property name="version" value="3.20.0" />
-	
+	<property name="version" value="17.1.4" />
+	<echo message="version: ${version}" />
+
 	<property name="projectsPath" value="${user.home}/git" />
 	<echo message="projectsPath: ${projectsPath}" />
-	
+
 	<property name="buildPath" value="build" />
 	<echo message="buildPath: ${buildPath}" />
 	<property name="buildSubDir" value="" />
@@ -24,10 +25,10 @@
 
 		<!-- Compile DbCsvExport -->
 		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*" />
-		
+
 		<copy todir="${buildPath}/bin">
 			<fileset dir="src">
-				<include name="**/LanguageProperties*.properties"/>
+				<include name="**/LanguageProperties*.properties" />
 			</fileset>
 		</copy>
 	</target>
@@ -36,7 +37,7 @@
 		<delete file="${buildPath}/bin/version.txt" />
 		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}Unknown version URL</echo>
 	</target>
-	
+
 	<target name="create_jar" depends="compile, create_versionfile">
 		<jar destfile="${buildPath}${buildSubDir}/DbCsvExport-${version}.jar">
 			<manifest>
@@ -46,18 +47,18 @@
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
-			
-			<zipfileset dir="lib" includes="JavaUtilities-*.jar" />
+
+			<zipfileset dir="src" includes="DbCsvExport_Icon.png" />
 		</jar>
-		
+
 		<jar destfile="${buildPath}${buildSubDir}/DbCsvExport-${version}_sources.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
 				<attribute name="Class-Path" value="." />
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
 			</manifest>
-			
-		    <fileset dir="src" includes="**/*.java"/>
+
+		    <fileset dir="src" includes="**/*.java" />
 		</jar>
 
 		<tstamp>
@@ -65,10 +66,10 @@
 		</tstamp>
 		<checksum file="${buildPath}${buildSubDir}/DbCsvExport-${version}.jar" property="checksumMD5" />
 	</target>
-	
-	<target name="create_versioninfo">		
+
+	<target name="create_versioninfo">
 	</target>
-	
+
 	<target name="cleanup_after">
 		<delete dir="${buildPath}/bin" />
 	</target>

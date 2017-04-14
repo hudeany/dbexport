@@ -1,5 +1,6 @@
 package de.soderer.dbcsvexport.worker;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -36,6 +37,7 @@ import de.soderer.utilities.WorkerDual;
 import de.soderer.utilities.WorkerParentDual;
 import de.soderer.utilities.ZipUtilities;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
+import de.soderer.utilities.collection.CaseInsensitiveSet;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
@@ -44,8 +46,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private String dbName;
 	private String username;
 	private String password;
+	private boolean isStatementFile = false;
 	private String sqlStatementOrTablelist;
 	private String outputpath;
+	private ByteArrayOutputStream guiOutputStream = null;
 	
 	// Default optional parameters
 	protected boolean log = false;
@@ -55,7 +59,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	protected boolean createClobFiles = false;
 	protected Locale dateAndDecimalLocale = Locale.getDefault();
 	protected DateFormat dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
-	protected NumberFormat decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
+	protected NumberFormat decimalFormat ;
 	protected boolean beautify = false;
 	protected boolean exportStructure = false;
 	
@@ -63,14 +67,21 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private long overallExportedDataAmount = 0;
 	
 	private DefaultDBValueConverter dbValueConverter;
+	
+	{
+		// Create the default number format
+		decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
+		decimalFormat.setGroupingUsed(false);
+	}
 
-	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
+	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
 		this.dbName = dbName;
 		this.username = username;
 		this.password = password;
+		this.isStatementFile = isStatementFile;
 		this.sqlStatementOrTablelist = sqlStatementOrTablelist;
 		this.outputpath = outputpath;
 		
@@ -116,6 +127,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		dateFormat = SimpleDateFormat.getDateTimeInstance(SimpleDateFormat.MEDIUM, SimpleDateFormat.MEDIUM, dateAndDecimalLocale);
 		decimalFormat = DecimalFormat.getNumberInstance(dateAndDecimalLocale);
+		decimalFormat.setGroupingUsed(false);
 	}
 
 	public void setBeautify(boolean beautify) {
@@ -128,13 +140,32 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	@Override
 	public Boolean work() throws Exception {
-		Connection connection = null;
-		try {
-			overallExportedLines = 0;
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
-
-			if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")) {
-				if (!"console".equalsIgnoreCase(outputpath)) {
+		File temporaryDerbyDbPath = null;
+		overallExportedLines = 0;
+		
+		try (Connection connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true)) {
+			if (isStatementFile) {
+				if (Utilities.isBlank(sqlStatementOrTablelist)) {
+					throw new DbCsvExportException("Statementfile is missing");
+				} else {
+					sqlStatementOrTablelist = Utilities.replaceHomeTilde(sqlStatementOrTablelist);
+					if (!new File(sqlStatementOrTablelist).exists()) {
+						throw new DbCsvExportException("Statementfile does not exist");
+					} else {
+						sqlStatementOrTablelist = new String(Utilities.readFileToByteArray(new File(sqlStatementOrTablelist)), "UTF-8");
+					}
+				}
+			}
+			
+			if (Utilities.isBlank(sqlStatementOrTablelist)) {
+				throw new DbCsvExportException("SqlStatement or tablelist is missing");
+			}
+			
+			if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
+				if (!"console".equalsIgnoreCase(outputpath) && !"gui".equalsIgnoreCase(outputpath)) {
 					if (!new File(outputpath).exists()) {
 						int lastSeparator = Math.max(outputpath.lastIndexOf("/"), outputpath.lastIndexOf("\\"));
 						if (lastSeparator >= 0) {
@@ -179,14 +210,16 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						showItemStart(tableName);
 	
 						String nextOutputFilePath = outputpath;
-						if (!"console".equalsIgnoreCase(outputpath)) {
-							nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
-						} else {
+						if ("console".equalsIgnoreCase(outputpath)) {
 							System.out.println("Table: " + tableName);
+						} else if ("gui".equalsIgnoreCase(outputpath)) {
+							System.out.println("Table: " + tableName);
+						} else {
+							nextOutputFilePath = outputpath + File.separator + tableName.toLowerCase();
 						}
-						List<String> columnNames = DbUtilities.getColumnNames(connection, tableName);
+						List<String> columnNames = new ArrayList<String>(DbUtilities.getColumnNames(connection, tableName));
 						Collections.sort(columnNames);
-						List<String> keyColumnNames = DbUtilities.getPrimaryKeyColumns(connection, tableName);
+						List<String> keyColumnNames = new ArrayList<String>(DbUtilities.getPrimaryKeyColumns(connection, tableName));
 						Collections.sort(keyColumnNames);
 						List<String> readoutColumns = new ArrayList<String>();
 						readoutColumns.addAll(keyColumnNames);
@@ -211,7 +244,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		} catch (Exception e) {
 			throw e;
 		} finally {
-			Utilities.closeQuietly(connection);
+			if (temporaryDerbyDbPath != null) {
+				// Delete temporary derby DB files
+				Utilities.delete(temporaryDerbyDbPath);
+			}
 		}
 	}
 
@@ -219,7 +255,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		OutputStream outputStream = null;
 
 		try {
-			if (!"console".equalsIgnoreCase(outputFilePath)) {
+			if ("console".equalsIgnoreCase(outputFilePath)) {
+				outputStream = System.out;
+			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
+				guiOutputStream = new ByteArrayOutputStream();
+				outputStream = guiOutputStream;
+			} else {
 				if (zip) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
@@ -249,8 +290,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
-			} else {
-				outputStream = System.out;
 			}
 
 			showProgress();
@@ -263,17 +302,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				// Tablename
 				outputStream.write(("Table " + tablesToExport.get(i).toLowerCase() + ":\n").getBytes("UTF-8"));
 
-				List<String> keyColumnsCamelCase = DbUtilities.getPrimaryKeyColumns(connection, tablesToExport.get(i));
-				Collections.sort(keyColumnsCamelCase);
-				List<String> keyColumns = new ArrayList<String>();
-				for (String keyColumnCamelCase : keyColumnsCamelCase) {
-					keyColumns.add(keyColumnCamelCase.toLowerCase());
-				}
+				CaseInsensitiveSet keyColumns = DbUtilities.getPrimaryKeyColumns(connection, tablesToExport.get(i));
 				CaseInsensitiveMap<DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tablesToExport.get(i));
 				List<List<String>> foreignKeys = DbUtilities.getForeignKeys(connection, tablesToExport.get(i));
 				
 				// Columns (primary key columns first)
-				for (String keyColumn : keyColumns) {
+				for (String keyColumn : Utilities.asSortedList(keyColumns)) {
 					outputStream.write(("\t" + keyColumn + " " + dbColumns.get(keyColumn).getTypeName() + " (Simple: " + dbColumns.get(keyColumn).getSimpleDataType() + ")\n").getBytes("UTF-8"));
 				}
 				List<String> columnNames = new ArrayList<String>(dbColumns.keySet());
@@ -287,7 +321,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				// Primary key
 				if (!keyColumns.isEmpty()) {
 					outputStream.write("Primary key:\n".getBytes("UTF-8"));
-					outputStream.write(("\t" + Utilities.join(keyColumns, ", ").toLowerCase() + "\n").getBytes("UTF-8"));
+					outputStream.write(("\t" + Utilities.join(Utilities.asSortedList(keyColumns), ", ").toLowerCase() + "\n").getBytes("UTF-8"));
 				}
 
 				// Foreign keys
@@ -308,11 +342,13 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	private void exportDbStructure(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
-		Statement statement = null;
-		ResultSet resultSet = null;
-
 		try {
-			if (!"console".equalsIgnoreCase(outputFilePath)) {
+			if ("console".equalsIgnoreCase(outputFilePath)) {
+				outputStream = System.out;
+			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
+				guiOutputStream = new ByteArrayOutputStream();
+				outputStream = guiOutputStream;
+			} else {
 				if (zip) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
@@ -342,21 +378,18 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
-			} else {
-				outputStream = System.out;
 			}
 
-			statement = connection.createStatement();
-			resultSet = statement.executeQuery(sqlStatement);
-			ResultSetMetaData metaData = resultSet.getMetaData();
-			
-			outputStream.write((sqlStatement + "\n\n").getBytes("UTF-8"));
-			for (int i = 1; i <= metaData.getColumnCount(); i ++) {
-				outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes("UTF-8"));
+			try (Statement statement = connection.createStatement();
+					ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+				ResultSetMetaData metaData = resultSet.getMetaData();
+				
+				outputStream.write((sqlStatement + "\n\n").getBytes("UTF-8"));
+				for (int i = 1; i <= metaData.getColumnCount(); i ++) {
+					outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes("UTF-8"));
+				}
 			}
 		} finally {
-			Utilities.closeQuietly(resultSet);
-			Utilities.closeQuietly(statement);
 			Utilities.closeQuietly(outputStream);
 		}
 	}
@@ -364,11 +397,13 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private void export(Connection connection, String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 		OutputStream logOutputStream = null;
-		Statement statement = null;
-		ResultSet resultSet = null;
-
 		try {
-			if (!"console".equalsIgnoreCase(outputFilePath)) {
+			if ("console".equalsIgnoreCase(outputFilePath)) {
+				outputStream = System.out;
+			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
+				guiOutputStream = new ByteArrayOutputStream();
+				outputStream = guiOutputStream;
+			} else {
 				if (zip) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
@@ -410,130 +445,129 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
-			} else {
-				outputStream = System.out;
 			}
-
-			statement = connection.createStatement();
-
+			
 			if (currentItemName == null) {
 				showUnlimitedProgress();
 			} else {
 				showUnlimitedSubProgress();
 			}
 
-			resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") data");
-			resultSet.next();
-			int linesToExport = resultSet.getInt(1);
-			logToFile(logOutputStream, "Lines to export: " + linesToExport);
-
-			if (currentItemName == null) {
-				itemsToDo = linesToExport;
-				showProgress();
-			} else {
-				subItemsToDo = linesToExport;
-				showItemProgress();
-			}
-
-			resultSet.close();
-			resultSet = null;
-
-			openWriter(outputStream);
-
-			resultSet = statement.executeQuery(sqlStatement);
-			ResultSetMetaData metaData = resultSet.getMetaData();
-			
-			// Scan headers
-			List<String> columnNames = new ArrayList<String>();
-			List<String> columnTypes = new ArrayList<String>();
-			for (int i = 1; i <= metaData.getColumnCount(); i++) {
-				columnNames.add(metaData.getColumnName(i));
-				columnTypes.add(metaData.getColumnTypeName(i));
-			}
-
-			if (currentItemName == null) {
-				itemsDone = 0;
-				showProgress();
-			} else {
-				subItemsDone = 0;
-				showItemProgress();
-			}
-
-			if (currentItemName == null) {
-				showProgress();
-			} else {
-				showItemProgress();
-			}
-			
-			startOutput(connection, sqlStatement, columnNames);
-
-			// Write values
-			while (resultSet.next() && !cancel) {
-				startTableLine();
-				for (int columnIndex = 1; columnIndex <= metaData.getColumnCount(); columnIndex++) {
-					String columnName = metaData.getColumnName(columnIndex);
-					Object value = dbValueConverter.convert(resultSet, columnIndex, outputFilePath);
-					if (value != null && value instanceof File) {
-						overallExportedDataAmount += ((File) value).length();
-						value = ((File) value).getName();
+			try (Statement statement = connection.createStatement()) {
+				try (ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM(" + sqlStatement + ") data")) {
+					resultSet.next();
+					int linesToExport = resultSet.getInt(1);
+					logToFile(logOutputStream, "Lines to export: " + linesToExport);
+		
+					if (currentItemName == null) {
+						itemsToDo = linesToExport;
+						showProgress();
+					} else {
+						subItemsToDo = linesToExport;
+						showItemProgress();
 					}
-					writeColumn(columnName, value);
 				}
-				endTableLine();
-
-				if (currentItemName == null) {
-					itemsDone++;
-					showProgress();
-				} else {
-					subItemsDone++;
-					showItemProgress();
-				}
-			}
-			endOutput();
-			
-			long exportedLines;
-			if (currentItemName == null) {
-				exportedLines = itemsDone;
-			} else {
-				exportedLines = subItemsDone;
-			}
-
-			if (currentItemName == null) {
-				setEndTime(new Date());
-			} else {
-				endTimeSub = new Date();
-			}
-
-			if (exportedLines > 0) {
-				logToFile(logOutputStream, "Exported lines: " + exportedLines);
-
-				int elapsedTimeInSeconds;
-				if (currentItemName == null) {
-					elapsedTimeInSeconds = (int) (getEndTime().getTime() - getStartTime().getTime()) / 1000;
-				} else {
-					elapsedTimeInSeconds = (int) (endTimeSub.getTime() - startTimeSub.getTime()) / 1000;
-				}
-				if (elapsedTimeInSeconds > 0) {
-					int linesPerSecond = (int) (exportedLines / elapsedTimeInSeconds);
-					logToFile(logOutputStream, "Export speed: " + linesPerSecond + " lines/second");
-				} else {
-					logToFile(logOutputStream, "Export speed: immediately");
+	
+				openWriter(outputStream);
+	
+				try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+					ResultSetMetaData metaData = resultSet.getMetaData();
+					
+					// Scan headers
+					List<String> columnNames = new ArrayList<String>();
+					List<String> columnTypes = new ArrayList<String>();
+					for (int i = 1; i <= metaData.getColumnCount(); i++) {
+						columnNames.add(metaData.getColumnName(i));
+						columnTypes.add(metaData.getColumnTypeName(i));
+					}
+	
+					if (currentItemName == null) {
+						itemsDone = 0;
+						showProgress();
+					} else {
+						subItemsDone = 0;
+						showItemProgress();
+					}
+		
+					if (currentItemName == null) {
+						showProgress();
+					} else {
+						showItemProgress();
+					}
+					
+					startOutput(connection, sqlStatement, columnNames);
+		
+					// Write values
+					while (resultSet.next() && !cancel) {
+						startTableLine();
+						for (int columnIndex = 1; columnIndex <= metaData.getColumnCount(); columnIndex++) {
+							String columnName = metaData.getColumnName(columnIndex);
+							Object value = dbValueConverter.convert(resultSet, columnIndex, outputFilePath);
+							if (value != null && value instanceof File) {
+								overallExportedDataAmount += ((File) value).length();
+								value = ((File) value).getName();
+							}
+							writeColumn(columnName, value);
+						}
+						endTableLine();
+		
+						if (currentItemName == null) {
+							itemsDone++;
+							showProgress();
+						} else {
+							subItemsDone++;
+							showItemProgress();
+						}
+					}
+					endOutput();
 				}
 				
-				if (new File(outputFilePath).exists()) {
-					logToFile(logOutputStream, "Exported data amount: " + Utilities.getHumanReadableNumber(new File(outputFilePath).length(), "B"));
+				closeWriter();
+				
+				long exportedLines;
+				if (currentItemName == null) {
+					exportedLines = itemsDone;
+				} else {
+					exportedLines = subItemsDone;
 				}
+	
+				if (currentItemName == null) {
+					setEndTime(new Date());
+				} else {
+					endTimeSub = new Date();
+				}
+	
+				if (exportedLines > 0) {
+					logToFile(logOutputStream, "Exported lines: " + exportedLines);
+	
+					int elapsedTimeInSeconds;
+					if (currentItemName == null) {
+						elapsedTimeInSeconds = (int) (getEndTime().getTime() - getStartTime().getTime()) / 1000;
+					} else {
+						elapsedTimeInSeconds = (int) (endTimeSub.getTime() - startTimeSub.getTime()) / 1000;
+					}
+					if (elapsedTimeInSeconds > 0) {
+						int linesPerSecond = (int) (exportedLines / elapsedTimeInSeconds);
+						logToFile(logOutputStream, "Export speed: " + linesPerSecond + " lines/second");
+					} else {
+						logToFile(logOutputStream, "Export speed: immediately");
+					}
+					
+					if (new File(outputFilePath).exists()) {
+						logToFile(logOutputStream, "Exported data amount: " + Utilities.getHumanReadableNumber(new File(outputFilePath).length(), "B"));
+					}
+				}
+	
+				if (currentItemName == null) {
+					logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(getEndTime()));
+					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(getEndTime().getTime() - getStartTime().getTime(), true));
+				} else {
+					logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(endTimeSub));
+					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(endTimeSub.getTime() - startTimeSub.getTime(), true));
+				}
+	
+				overallExportedLines += exportedLines;
 			}
-
-			if (currentItemName == null) {
-				logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(getEndTime()));
-				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(getEndTime().getTime() - getStartTime().getTime(), true));
-			} else {
-				logToFile(logOutputStream, "End: " + DateFormat.getDateTimeInstance().format(endTimeSub));
-				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(endTimeSub.getTime() - startTimeSub.getTime(), true));
-			}
-
-			overallExportedLines += exportedLines;
 		} catch (SQLException sqle) {
 			throw new DbCsvExportException("SQL error: " + sqle.getMessage());
 		} catch (Exception e) {
@@ -544,9 +578,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 			throw e;
 		} finally {
-			Utilities.closeQuietly(resultSet);
-			Utilities.closeQuietly(statement);
-
 			closeWriter();
 			
 			Utilities.closeQuietly(outputStream);
@@ -570,6 +601,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	
 	public long getOverallExportedDataAmount() {
 		return overallExportedDataAmount;
+	}
+
+	public ByteArrayOutputStream getGuiOutputStream() {
+		return guiOutputStream;
 	}
 	
 	public abstract String getConfigurationLogString(String fileName, String sqlStatement);

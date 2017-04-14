@@ -85,6 +85,11 @@ public class DbCsvExportDriverSupplier {
 	 */
 	private boolean checkDriverIsAvailable() {
 		try {
+			if (dbVendor == DbVendor.Derby) {
+				// Prevent creation of file "derby.log"
+				System.setProperty("derby.stream.error.field", "de.soderer.utilities.DbUtilities.DEV_NULL");
+			}
+			
 			Class.forName(dbVendor.getDriverClassName());
 			return true;
 		} catch (ClassNotFoundException e) {

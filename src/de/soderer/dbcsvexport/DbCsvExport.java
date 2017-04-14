@@ -1,9 +1,11 @@
 package de.soderer.dbcsvexport;
 
 import java.awt.GraphicsEnvironment;
-
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +34,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
 	public static final String VERSION_RESOURCE_FILE = "/version.txt";
 	
+	public static final String HELP_RESOURCE_FILE = "/help.txt";
+	
 	/** The Constant CONFIGURATION_FILE. */
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvExport.config");
 	public static final String CONFIGURATION_DRIVERLOCATIONPROPERTYNAME = "driver_location";
@@ -44,50 +48,21 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	
 	/** The versioninfo download url is filled in at application start from the version.txt file. */
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
+	
+	/** Trusted CA certificate for updates **/
+	public static String TRUSTED_UPDATE_CA_CERTIFICATE = null;
 
-	/** The usage message. */
+	/** The usage message. 
+	 * @throws IOException 
+	 * @throws UnsupportedEncodingException */
 	private static String getUsageMessage() {
-		return "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
-			+ "VERSION: " + VERSION + "\n\n"
-			+ "Usage: java -jar DbCsvExport.jar [-gui] [-l] [-z] [-e encoding] [-s ';'] [-q '\"'] [-i 'TAB'] [-a] [-f locale] [-blobfiles] [-clobfiles] [-beautify] [-x CSV|JSON|XML|SQL] [-n 'NULL'] dbtype hostname[:port] username dbname 'statement or list of tablepatterns' outputpath [password]\n"
-			+ "Simple usage: java -jar DbCsvExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath\n"
-			+ "\n"
-			+ "mandatory parameters\n"
-			+ "\tdbtype: mysql | oracle | postgresql | firebird | sqlite | derby | hsql\n"
-			+ "\thostname: with optional port (not needed for sqlite and derby)\n"
-			+ "\tusername: username (not needed for sqlite and derby)\n"
-			+ "\tdbname: dbname or filepath for sqlite db or derby db\n"
-			+ "\tstatement or list of tablepatterns: statement, encapsulate by '\n"
-			+ "\t  or a comma-separated list of tablenames with wildcards *? and !(not, before tablename)\n"
-			+ "\toutputpath: file for single statement or directory for tablepatterns or 'console' for output to terminal\n"
-			+ "\tpassword: is asked interactivly, if not given as parameter (not needed for sqlite and derby)\n"
-			+ "\n"
-			+ "optional parameters\n"
-			+ "\t-gui: open a GUI\n"
-			+ "\t-x exportformat: Data export format, default format is CSV\n"
-			+ "\t\texportformat: CSV | JSON | XML | SQL\n"
-			+ "\t\t(don't forget to beautify json for human readable data)\n"
-			+ "\t-n 'NULL': set a string for null values (only for csv and xml, default is '')\n"
-			+ "\t-l: log export information in .log files\n"
-			+ "\t-v: progress and e.t.a. output in terminal\n"
-			+ "\t-z: output as zipfile (not for console output)\n"
-			+ "\t-e: encoding (default UTF-8)\n"
-			+ "\t-s: separator character, default ';', encapsulate by '\n"
-			+ "\t-q: string quote character, default '\"', encapsulate by '\n"
-			+ "\t-i: indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\\t', encapsulate by '\n"
-			+ "\t-a: always quote value\n"
-			+ "\t-f: number and datetime format locale, default is systems locale, use 'de', 'en', etc. (not needed for sqlite)\n"
-			+ "\t-blobfiles: create a file (.blob or .blob.zip) for each blob instead of base64 encoding\n"
-			+ "\t-clobfiles: create a file (.clob or .clob.zip) for each clob instead of data in csv file\n"
-			+ "\t-beautify: beautify csv output to make column values equal length (takes extra time)\n"
-			+ "\t  or beautify json output to make it human readable with linebreak and indention\n"
-			+ "\t-noheaders: don't export csv header line\n"
-			+ "\t-structure: export the tables structure and column types\n"
-			+ "\n"
-			+ "global/single parameters\n"
-			+ "\t-help: show this help manual\n"
-			+ "\t-version: show current local version of this tool\n"
-			+ "\t-update: check for online update and ask, whether an available update shell be installed\n";
+		try (InputStream helpInputStream = DbCsvExport.class.getResourceAsStream(HELP_RESOURCE_FILE)) {
+			return "DbCsvExport (by Andreas Soderer, mail: dbcsvexport@soderer.de)\n"
+				+ "VERSION: " + VERSION + "\n\n"
+				+ new String(Utilities.readStreamToByteArray(helpInputStream), "UTF-8");
+		} catch (Exception e) {
+			return "Help info is missing";
+		}
 	}
 
 	/** The db csv export definition. */
@@ -120,7 +95,12 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 			// Try to fill the version and versioninfo download url
 			List<String> versionInfoLines = Utilities.readLines(DbCsvExport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
 			VERSION = versionInfoLines.get(0);
-			VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
+			if (versionInfoLines.size() >= 2) {
+				VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
+			}
+			if (versionInfoLines.size() >= 3) {
+				TRUSTED_UPDATE_CA_CERTIFICATE = versionInfoLines.get(2);
+			}
 		} catch (Exception e) {
 			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
@@ -150,7 +130,13 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					System.out.println(VERSION);
 					return 1;
 				} else if ("-update".equalsIgnoreCase(arguments[i])) {
-					new DbCsvExport().updateApplication();
+					if (arguments.length > i + 2) {
+						new DbCsvExport().updateApplication(arguments[i + 1], arguments[i + 2].toCharArray());
+					} else if (arguments.length > i + 1) {
+						new DbCsvExport().updateApplication(arguments[i + 1], null);
+					} else {
+						new DbCsvExport().updateApplication(null, null);
+					}
 					return 1;
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					if (GraphicsEnvironment.isHeadless()) {
@@ -173,6 +159,8 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 					} else {
 						dbCsvExportDefinition.setNullValueString(arguments[i]);
 					}
+				} else if ("-file".equalsIgnoreCase(arguments[i])) {
+					dbCsvExportDefinition.setStatementFile(true);
 				} else if ("-l".equalsIgnoreCase(arguments[i])) {
 					dbCsvExportDefinition.setLog(true);
 				} else if ("-v".equalsIgnoreCase(arguments[i])) {
@@ -388,7 +376,10 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	@Override
 	public void showProgress(Date start, long itemsToDo, long itemsDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
-			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
+			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\r")) {
 				System.out.print("\r" + Utilities.getConsoleProgressString(80, start, itemsToDo, itemsDone));
 			} else {
 				System.out.println();
@@ -436,7 +427,10 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	@Override
 	public void showDone(Date start, Date end, long itemsDone) {
 		if (dbCsvExportDefinition.isVerbose()) {
-			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
+			if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
+					|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\r")) {
 				System.out.print("\r" + Utilities.rightPad("Exported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
 				System.out.println();
 				System.out.println();
@@ -461,7 +455,15 @@ public class DbCsvExport extends BasicUpdateableConsoleApplication implements Wo
 	 *
 	 * @throws Exception the exception
 	 */
-	private void updateApplication() throws Exception {
-		new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null).executeUpdate();
+	private void updateApplication(String username, char[] password) throws Exception {
+		ApplicationUpdateHelper applicationUpdateHelper = new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null, TRUSTED_UPDATE_CA_CERTIFICATE);
+		applicationUpdateHelper.setUsername(username);
+		applicationUpdateHelper.setPassword(password);
+		applicationUpdateHelper.executeUpdate();
+	}
+
+	@Override
+	public void changeTitle(String text) {
+		// Do nothing
 	}
 }

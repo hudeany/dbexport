@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import de.soderer.utilities.CsvFormat;
+import de.soderer.utilities.CsvFormat.QuoteMode;
 import de.soderer.utilities.CsvReader;
 import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -32,8 +34,8 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	
 	private List<String> values = null;
 	
-	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
+	public DbCsvExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 
 	public void setSeparator(char separator) {
@@ -59,17 +61,17 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	@Override
 	public String getConfigurationLogString(String fileName, String sqlStatement) {
 		return
-			"File: " + fileName
-			+ "Format: " + getFileExtension().toUpperCase()
-			+ "Separator: " + separator
-			+ "Zip: " + zip
-			+ "Encoding: " + encoding
-			+ "StringQuote: " + stringQuote
-			+ "AlwaysQuote: " + alwaysQuote
-			+ "SqlStatement: " + sqlStatement
-			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
-			+ "CreateBlobFiles: " + createBlobFiles
-			+ "CreateClobFiles: " + createClobFiles
+			"File: " + fileName + "\n"
+			+ "Format: " + getFileExtension().toUpperCase() + "\n"
+			+ "Separator: " + separator + "\n"
+			+ "Zip: " + zip + "\n"
+			+ "Encoding: " + encoding + "\n"
+			+ "StringQuote: " + stringQuote + "\n"
+			+ "AlwaysQuote: " + alwaysQuote + "\n"
+			+ "SqlStatement: " + sqlStatement + "\n"
+			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+			+ "CreateBlobFiles: " + createBlobFiles + "\n"
+			+ "CreateClobFiles: " + createClobFiles + "\n"
 			+ "Beautify: " + beautify;
 	}
 
@@ -82,12 +84,11 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	protected void openWriter(OutputStream outputStream) throws Exception {
 		if (beautify) {
 			temporaryUglifiedFile = File.createTempFile("DbCsvExport_Uglified", ".csv", new File(System.getProperty("java.io.tmpdir")));
-			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, separator, stringQuote);
-			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
+			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote));
 		} else {
-			csvWriter = new CsvWriter(outputStream, encoding, separator, stringQuote);
+			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
 		}
-		csvWriter.setAlwaysQuote(alwaysQuote);
 	}
 
 	@Override
@@ -159,7 +160,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			try {
 				beautifiedCsvWriter.setColumnPaddings(columnPaddings);
 				beautifiedCsvWriter.setMinimumColumnSizes(minimumColumnSizes);
-				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, separator, stringQuote);
+				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote));
 				List<String> nextLine;
 				while ((nextLine = csvReaderFinal.readNextCsvLine()) != null) {
 					beautifiedCsvWriter.writeValues(nextLine);
@@ -168,6 +169,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 				Utilities.closeQuietly(csvReaderFinal);
 				Utilities.closeQuietly(beautifiedCsvWriter);
 			}
+			beautifiedCsvWriter = null;
 		}
 		
 		if (temporaryUglifiedFile != null) {

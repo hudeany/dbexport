@@ -23,20 +23,20 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	
 	private List<String> values = null;
 	
-	public DbSqlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String sqlStatementOrTablelist, String outputpath) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, sqlStatementOrTablelist, outputpath);
+	public DbSqlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
+		super(parent, dbVendor, hostname, dbName, username, password, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 
 	@Override
 	public String getConfigurationLogString(String fileName, String sqlStatement) {
 		return
-			"File: " + fileName
-			+ "Format: " + getFileExtension().toUpperCase()
-			+ "Zip: " + zip
-			+ "Encoding: " + encoding
-			+ "SqlStatement: " + sqlStatement
-			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage()
-			+ "CreateBlobFiles: " + createBlobFiles
+			"File: " + fileName + "\n"
+			+ "Format: " + getFileExtension().toUpperCase() + "\n"
+			+ "Zip: " + zip + "\n"
+			+ "Encoding: " + encoding + "\n"
+			+ "SqlStatement: " + sqlStatement + "\n"
+			+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+			+ "CreateBlobFiles: " + createBlobFiles + "\n"
 			+ "CreateClobFiles: " + createClobFiles;
 	}
 
@@ -57,7 +57,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 		if (sqlStatement.toUpperCase().startsWith("SELECT * FROM ")) {
 			tableName = sqlStatement.substring(14).trim();
 			if (tableName.contains(" ")) {
-				tableName = tableName.substring(0,  tableName.indexOf(" "));
+				tableName = tableName.substring(0, tableName.indexOf(" "));
 			}
 		} else {
 			tableName = "export_tbl";

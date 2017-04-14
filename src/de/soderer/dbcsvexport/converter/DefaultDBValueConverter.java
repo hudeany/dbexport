@@ -86,6 +86,11 @@ public class DefaultDBValueConverter {
 					value = Utilities.toString(input);
 				}
 			}
+		} else if (metaData.getColumnType(columnIndex) == Types.DATE || metaData.getColumnType(columnIndex) == Types.TIMESTAMP) {
+			value = resultSet.getObject(columnIndex);
+			if ("0000-00-00 00:00:00".equals(value)) {
+				value = null;
+			}
 		} else {
 			value = resultSet.getObject(columnIndex);
 			if (resultSet.wasNull()) {

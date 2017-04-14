@@ -8,9 +8,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
 import java.util.Date;
 import java.util.Locale;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -128,6 +131,11 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	 */
 	public DbCsvExportGui(DbCsvExportDefinition dbCsvExportDefinition) throws Exception {
 		super(DbCsvExport.APPLICATION_NAME, new Version(DbCsvExport.VERSION));
+
+		try (InputStream imageIconStream = this.getClass().getClassLoader().getResourceAsStream("DbCsvExport_Icon.png")) {
+			BufferedImage imageIcon = ImageIO.read(imageIconStream);
+			setIconImage(imageIcon);
+		}
 
 		final DbCsvExportGui dbCsvExportGui = this;
 
@@ -433,7 +441,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				try {
-					new ApplicationUpdateHelper(DbCsvExport.APPLICATION_NAME, DbCsvExport.VERSION, DbCsvExport.VERSIONINFO_DOWNLOAD_URL, dbCsvExportGui, "-gui").executeUpdate();
+					new ApplicationUpdateHelper(DbCsvExport.APPLICATION_NAME, DbCsvExport.VERSION, DbCsvExport.VERSIONINFO_DOWNLOAD_URL, dbCsvExportGui, "-gui", DbCsvExport.TRUSTED_UPDATE_CA_CERTIFICATE).executeUpdate();
 				} catch (Exception e) {
 					TextDialog textDialog = new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.PINK);
 					textDialog.setVisible(true);
@@ -646,7 +654,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	 * Check button status.
 	 */
 	private void checkButtonStatus() {
-		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem()) || DbVendor.Derby.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
+		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())
+			|| DbVendor.Derby.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
 			hostField.setEnabled(false);
 			userField.setEnabled(false);
 			passwordField.setEnabled(false);
@@ -737,7 +746,10 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 				String resultText = LangResources.get("start") + ": " + start + "\n" + LangResources.get("end") + ": " + end + "\n" + LangResources.get("timeelapsed") + ": "
 						+ DateUtilities.getHumanReadableTimespan(end.getTime() - start.getTime(), true);
 
-				if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")) {
+				if (dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
+						|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
+						|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
+						|| dbCsvExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select\r")) {
 					resultText += "\n" + LangResources.get("exported") + " 1 select";
 				} else {
 					resultText += "\n" + LangResources.get("exportedtables") + ": " + itemsDone;
@@ -747,12 +759,16 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 
 				resultText += "\n" + LangResources.get("exportedlines") + ": " + exportedLines;
 
-				if (!dbCsvExportDefinition.getOutputpath().toLowerCase().equalsIgnoreCase("console")) {
+				if ("console".equalsIgnoreCase(dbCsvExportDefinition.getOutputpath())) {
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, LangResources.get("result") + ":\n" + resultText, LangResources.get("close"), false).setVisible(true);
+				} else if ("gui".equalsIgnoreCase(dbCsvExportDefinition.getOutputpath())) {
+					resultText = worker.getGuiOutputStream().toString("UTF-8") + "\n" + resultText;
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, resultText, LangResources.get("close"), false).setVisible(true);
+				} else {
 					long exportedDataAmount = worker.getOverallExportedDataAmount();
 					resultText += "\n" + LangResources.get("exporteddataamount") + ": " + Utilities.getHumanReadableNumber(exportedDataAmount, "B");
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, LangResources.get("result") + ":\n" + resultText, LangResources.get("close"), false).setVisible(true);
 				}
-
-				new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME, LangResources.get("result") + ":\n" + resultText, LangResources.get("close"), false).setVisible(true);
 			}
 		} catch (Exception e) {
 			new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), Color.PINK).setVisible(true);
