@@ -11,7 +11,5 @@
 
 	<target name="create_versioninfo">
 		<echo file="${buildPath}${buildSubDir}/Versions.xml" message="&lt;?xml version=&apos;1.0&apos; encoding=&apos;utf-8&apos; standalone=&apos;yes&apos;?>${line.separator}&lt;ApplicationVersions creationDate=&apos;${buildTime}&apos;>${line.separator}&#9;&lt;DbCsvImport version=&apos;${version}&apos; md5CheckSum=&apos;${checksumMD5}&apos;>https://github.com/hudeany/dbcsvimport/releases/download/${version}/DbCsvImport-${version}.jar&lt;/DbCsvImport>${line.separator}&lt;/ApplicationVersions>" />
-		<delete file="Versions.xml" />
-		<copy file="${buildPath}${buildSubDir}/Versions.xml" tofile="Versions.xml" />
 	</target>
 </project>

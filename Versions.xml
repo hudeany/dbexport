@@ -1,4 +1,0 @@
-<?xml version='1.0' encoding='utf-8' standalone='yes'?>
-<ApplicationVersions creationDate='2017/04/11 06:00:01'>
-	<DbCsvImport version='17.1.4' md5CheckSum='9f2605ec49458b51d13cdd0b4d33b053'>https://github.com/hudeany/dbcsvimport/releases/download/17.1.4/DbCsvImport-17.1.4.jar</DbCsvImport>
-</ApplicationVersions>
