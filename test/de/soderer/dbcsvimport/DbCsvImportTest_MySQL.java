@@ -140,7 +140,7 @@ public class DbCsvImportTest_MySQL {
 	}
 	
 	private String getLogFileData() throws Exception {
-		File dir = new File(System.getProperty("user.home") + "/temp");
+//		File dir = new File(System.getProperty("user.home") + "/temp");
 //		FileFilter fileFilter = new WildcardFileFilter("test_tbl*.log");
 //		File[] files = dir.listFiles(fileFilter);
 		return ""; //FileUtilities.readFileToString(files[0], "UTF-8");
