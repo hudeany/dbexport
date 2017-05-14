@@ -6,8 +6,25 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.security.MessageDigest;
+import java.security.cert.CertPathBuilder;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXCertPathBuilderResult;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509CertSelector;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -118,6 +135,7 @@ public class ApplicationUpdateHelper implements WorkerParentSimple {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private void updateApplication() {
 		try {
 			String jarFilePath = System.getProperty(SystemUtilities.SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR);
@@ -146,8 +164,25 @@ public class ApplicationUpdateHelper implements WorkerParentSimple {
 			boolean downloadSuccess = getNewApplicationVersionFile(downloadTempFile);
 			if (downloadSuccess) {
 				if (Utilities.isNotEmpty(trustedCaCertificateFileName)) {
-					showUpdateError("Update error:\n" + "CA certificate check not available");
-					return;
+					Collection<X509Certificate> trustedCerts = null;
+					ClassLoader applicationClassLoader = getClass().getClassLoader();
+					if (applicationClassLoader == null) {
+						showUpdateError("Update error:\n" + "Applications classloader is not readable");
+						return;
+					}
+					try (InputStream trustedUpdateCertificatesStream = applicationClassLoader.getResourceAsStream(trustedCaCertificateFileName)) {
+						trustedCerts = (Collection<X509Certificate>) CertificateFactory.getInstance("X.509").generateCertificates(trustedUpdateCertificatesStream);
+					} catch (Exception e) {
+						showUpdateError("Update error:\n" + "Trusted CA certificate '" + trustedCaCertificateFileName + "' is not readable: " + e.getMessage());
+						return;
+					}
+					if (trustedCerts == null || trustedCerts.size() == 0) {
+						showUpdateError("Update error:\n" + "Trusted CA certificate is missing");
+						return;
+					} else if (!verifyJarSignature(downloadTempFile, trustedCerts)) {
+						showUpdateError("Update error:\n" + "Signature of updatefile is invalid");
+						return;
+					}
 				} else if (Utilities.isNotEmpty(updateFileMd5Checksum) && !updateFileMd5Checksum.equalsIgnoreCase("NONE")) {
 					String downloadTempFileMd5Checksum = createMd5Checksum(downloadTempFile);
 					if (!updateFileMd5Checksum.equalsIgnoreCase(downloadTempFileMd5Checksum)) {
@@ -486,5 +521,86 @@ public class ApplicationUpdateHelper implements WorkerParentSimple {
 	@Override
 	public void changeTitle(String text) {
 		// do nothing	
+	}
+
+	public static boolean verifyJarSignature(File jarFile, Collection<X509Certificate> trustedCerts) throws Exception {
+		if (trustedCerts == null || trustedCerts.size() == 0) {
+			return false;
+		}
+
+		try (JarFile jar = new JarFile(jarFile)) {
+			Manifest manifest = jar.getManifest();
+			if (manifest == null) {
+				throw new SecurityException("The jar file has no manifest, which contains the file signatures");
+			}
+
+			byte[] buffer = new byte[4096];
+			Enumeration<JarEntry> jarEntriesEnumerator = jar.entries();
+			List<JarEntry> jarEntries = new ArrayList<JarEntry>();
+
+			while (jarEntriesEnumerator.hasMoreElements()) {
+				JarEntry jarEntry = jarEntriesEnumerator.nextElement();
+				jarEntries.add(jarEntry);
+
+				InputStream jarEntryInputStream = null;
+				try {
+					jarEntryInputStream = jar.getInputStream(jarEntry);
+					// Reading the jarEntry throws a SecurityException if signature/digest check fails.
+					while (jarEntryInputStream.read(buffer, 0, buffer.length) != -1) {
+					}
+				} finally {
+					Utilities.closeQuietly(jarEntryInputStream);
+				}
+			}
+
+			for (JarEntry jarEntry : jarEntries) {
+				if (!jarEntry.isDirectory()) {
+					// Every file must be signed, except for files in META-INF
+					Certificate[] certs = jarEntry.getCertificates();
+					if ((certs == null) || (certs.length == 0)) {
+						if (!jarEntry.getName().startsWith("META-INF")) {
+							throw new SecurityException("The jar file contains unsigned files.");
+						}
+					} else {
+						boolean isSignedByTrustedCert = false;
+
+						for (Certificate chainRootCertificate : certs) {
+							if (chainRootCertificate instanceof X509Certificate && verifyChainOfTrust((X509Certificate) chainRootCertificate, trustedCerts)) {
+								isSignedByTrustedCert = true;
+								break;
+							}
+						}
+
+						if (!isSignedByTrustedCert) {
+							throw new SecurityException("The jar file contains untrusted signed files");
+						}
+					}
+				}
+			}
+
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	public static boolean verifyChainOfTrust(X509Certificate cert, Collection<X509Certificate> trustedCerts) throws Exception {
+		CertPathBuilder certifier = CertPathBuilder.getInstance("PKIX");
+		X509CertSelector targetConstraints = new X509CertSelector();
+		targetConstraints.setCertificate(cert);
+
+		Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>();
+		for (X509Certificate trustedRootCert : trustedCerts) {
+			trustAnchors.add(new TrustAnchor(trustedRootCert, null));
+		}
+
+		PKIXBuilderParameters params = new PKIXBuilderParameters(trustAnchors, targetConstraints);
+		params.setRevocationEnabled(false);
+		try {
+			PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) certifier.build(params);
+			return result != null;
+		} catch (Exception cpbe) {
+			return false;
+		}
 	}
 }
