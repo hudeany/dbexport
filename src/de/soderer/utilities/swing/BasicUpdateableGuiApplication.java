@@ -70,7 +70,7 @@ public class BasicUpdateableGuiApplication extends JFrame implements UpdateParen
 			textDialog.setVisible(true);
 			return false;
 		} else {
-			QuestionDialog questionDialog = new QuestionDialog(this, "Update", getI18NString("newVersion", availableNewVersion, applicationName, applicationVersion.toString()) + "\n" + getI18NString("installUpdate"), getI18NString("Yes"), getI18NString("No"));
+			QuestionDialog questionDialog = new QuestionDialog(this, "Update", getI18NString("newVersion", availableNewVersion, applicationName, applicationVersion.toString()) + "\n" + getI18NString("installUpdate"), getI18NString("yes"), getI18NString("no"));
 			questionDialog.setVisible(true);
 			return questionDialog.getAnswerButtonIndex() == 0;
 		}
@@ -98,7 +98,7 @@ public class BasicUpdateableGuiApplication extends JFrame implements UpdateParen
 			switch(resourceKey) {
 				case "noNewerVersion": pattern = "Es ist keine neuere Version verfügbar für {0}.\nDie aktuelle lokale Version ist {1}."; break;
 				case "newVersion": pattern = "Es ist eine neue Version {0} verfügbar für {1}.\nDie aktuelle lokale Version ist {2}."; break;
-				case "installUpdate": pattern = "Update installieren? (jN)"; break;
+				case "installUpdate": pattern = "Update installieren?"; break;
 				case "enterUsername": pattern = "Bitte Usernamen eingeben"; break;
 				case "enterPassword": pattern = "Bitte Passwort eingeben"; break;
 				case "yes": pattern = "Ja"; break;
@@ -114,7 +114,7 @@ public class BasicUpdateableGuiApplication extends JFrame implements UpdateParen
 			switch(resourceKey) {
 				case "noNewerVersion": pattern = "There is no newer version available for {0}.\nThe current local version is {1}."; break;
 				case "newVersion": pattern = "New version {0} is available for {1}.\nThe current local version is {2}."; break;
-				case "installUpdate": pattern = "Install update? (yN)"; break;
+				case "installUpdate": pattern = "Install update?"; break;
 				case "enterUsername": pattern = "Please enter username"; break;
 				case "enterPassword": pattern = "Please enter password"; break;
 				case "yes": pattern = "Yes"; break;
