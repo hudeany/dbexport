@@ -1,6 +1,7 @@
 package de.soderer.utilities.json.schema.validator;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.regex.Pattern;
 
 import de.soderer.utilities.DateUtilities;
@@ -32,7 +33,7 @@ public class FormatValidator extends BaseJsonSchemaValidator {
 			}
 		} else if ("date-time".equalsIgnoreCase((String) validatorData)) {
 			try {
-				DateUtilities.ISO_8601_DATETIME_FORMAT.parse((String) jsonNode.getValue());
+				new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).parse((String) jsonNode.getValue());
 			} catch (ParseException e) {
 				throw new JsonSchemaDataValidationError("Invalid data for format '" + ((String) validatorData) + "' was '" + jsonNode.getValue() + "'", jsonPath);
 			}

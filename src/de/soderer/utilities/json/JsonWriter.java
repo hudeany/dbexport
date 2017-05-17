@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map.Entry;
 import java.util.Stack;
@@ -143,7 +144,7 @@ public class JsonWriter implements Closeable {
 			} else if (propertyValue instanceof Boolean) {
 				write(separator + Boolean.toString((Boolean) propertyValue), false);
 			} else if (propertyValue instanceof Date) {
-				write(separator + "\"" + DateUtilities.ISO_8601_DATETIME_FORMAT.format((Date) propertyValue) + "\"", false);
+				write(separator + "\"" + new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).format((Date) propertyValue) + "\"", false);
 			} else if (propertyValue instanceof Number) {
 				write(separator + ((Number) propertyValue).toString(), false);
 			} else {
@@ -217,7 +218,7 @@ public class JsonWriter implements Closeable {
 			} else if (arrayValue instanceof Boolean) {
 				write(Boolean.toString((Boolean) arrayValue), true);
 			} else if (arrayValue instanceof Date) {
-				write("\"" + DateUtilities.ISO_8601_DATETIME_FORMAT.format((Date) arrayValue) + "\"", true);
+				write("\"" + new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).format((Date) arrayValue) + "\"", true);
 			} else if (arrayValue instanceof Number) {
 				write(((Number) arrayValue).toString(), true);
 			} else {

@@ -1,4 +1,4 @@
-package de.soderer.utilities;
+package de.soderer.utilities.csv;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -7,7 +7,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.soderer.utilities.CsvFormat.QuoteMode;
+import de.soderer.utilities.BasicReader;
+import de.soderer.utilities.csv.CsvFormat.QuoteMode;
 
 /**
  * The Class CsvReader.

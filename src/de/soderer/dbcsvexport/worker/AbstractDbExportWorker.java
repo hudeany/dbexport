@@ -24,6 +24,7 @@ import java.util.zip.ZipOutputStream;
 import de.soderer.dbcsvexport.DbCsvExportException;
 import de.soderer.dbcsvexport.converter.DefaultDBValueConverter;
 import de.soderer.dbcsvexport.converter.FirebirdDBValueConverter;
+import de.soderer.dbcsvexport.converter.MariaDBValueConverter;
 import de.soderer.dbcsvexport.converter.MySQLDBValueConverter;
 import de.soderer.dbcsvexport.converter.OracleDBValueConverter;
 import de.soderer.dbcsvexport.converter.PostgreSQLDBValueConverter;
@@ -93,6 +94,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			dbValueConverter = new SQLiteDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else if (dbVendor == DbVendor.MySQL) {
 			dbValueConverter = new MySQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
+		} else if (dbVendor == DbVendor.MariaDB) {
+			dbValueConverter = new MariaDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else if (dbVendor == DbVendor.PostgreSQL) {
 			dbValueConverter = new PostgreSQLDBValueConverter(zip, createBlobFiles, createClobFiles, getFileExtension());
 		} else if (dbVendor == DbVendor.Firebird) {
@@ -244,6 +247,9 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		} catch (Exception e) {
 			throw e;
 		} finally {
+			if (dbVendor == DbVendor.Derby) {
+				DbUtilities.shutDownDerbyDb(dbName);
+			}
 			if (temporaryDerbyDbPath != null) {
 				// Delete temporary derby DB files
 				Utilities.delete(temporaryDerbyDbPath);

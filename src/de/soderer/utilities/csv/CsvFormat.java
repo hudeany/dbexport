@@ -1,4 +1,4 @@
-package de.soderer.utilities;
+package de.soderer.utilities.csv;
 
 public class CsvFormat {
 	/** The Constant DEFAULT_SEPARATOR. */

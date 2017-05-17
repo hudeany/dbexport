@@ -1,4 +1,4 @@
-package de.soderer.utilities;
+package de.soderer.utilities.csv;
 
 public class CsvDataException extends Exception {
 	private static final long serialVersionUID = 5128483227215628395L;

@@ -27,6 +27,7 @@ import de.soderer.utilities.WorkerParentDual;
 /**
  * The Main-Class of DbCsvExport.
  */
+//TODO: Connection check
 public class DbCsvExport extends BasicUpdateableConsoleApplication implements WorkerParentDual {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbCsvExport";

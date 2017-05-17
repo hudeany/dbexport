@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import de.soderer.utilities.CsvFormat;
-import de.soderer.utilities.CsvFormat.QuoteMode;
-import de.soderer.utilities.CsvReader;
-import de.soderer.utilities.CsvWriter;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.csv.CsvFormat;
+import de.soderer.utilities.csv.CsvReader;
+import de.soderer.utilities.csv.CsvWriter;
+import de.soderer.utilities.csv.CsvFormat.QuoteMode;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentDual;
 

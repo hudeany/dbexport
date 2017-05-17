@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -289,7 +290,7 @@ public class TextTable {
 	public static String getHtmlHeader(String title, boolean mitZeit, String inlineCssStyleSheet) {
 		return "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\">\n" + "<html>\n" + "<head>\n<title>" + title + "</title>\n"
 				+ (Utilities.isEmpty(inlineCssStyleSheet) ? "" : inlineCssStyleSheet) + "</head>\n" + "<body>\n" + "<h2>" + title + "</h2>\n"
-				+ (mitZeit ? "<h4>Stand: " + DateUtilities.DD_MM_YYYY_HH_MM_SS.format(new GregorianCalendar().getTime()) + "</h4>\n" : "");
+				+ (mitZeit ? "<h4>Stand: " + new SimpleDateFormat(DateUtilities.DD_MM_YYYY_HH_MM_SS).format(new GregorianCalendar().getTime()) + "</h4>\n" : "");
 	}
 
 	public static String getHtmlFooter() {

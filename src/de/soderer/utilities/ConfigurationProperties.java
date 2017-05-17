@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -14,6 +15,9 @@ import java.util.Properties;
 import java.util.Set;
 
 import de.soderer.utilities.collection.UniqueFifoQueuedList;
+import de.soderer.utilities.csv.CsvFormat;
+import de.soderer.utilities.csv.CsvReader;
+import de.soderer.utilities.csv.CsvWriter;
 
 public class ConfigurationProperties {
 	public static String MAXSIZE_EXTENSION = ".maxSize";
@@ -100,7 +104,7 @@ public class ConfigurationProperties {
 	}
 
 	public void set(String name, Date value) {
-		properties.setProperty(name, DateUtilities.YYYYMMDD_HHMMSS.format(value));
+		properties.setProperty(name, new SimpleDateFormat(DateUtilities.YYYYMMDD_HHMMSS).format(value));
 	}
 
 	public int getInteger(String name) {
@@ -130,7 +134,7 @@ public class ConfigurationProperties {
 	public Date getDate(String name) {
 		try {
 			if (properties.containsKey(name)) {
-				return DateUtilities.YYYYMMDD_HHMMSS.parse(properties.getProperty(name));
+				return new SimpleDateFormat(DateUtilities.YYYYMMDD_HHMMSS).parse(properties.getProperty(name));
 			} else {
 				return null;
 			}

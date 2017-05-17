@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.sql.Connection;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -78,7 +79,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 		} else if (value instanceof String) {
 			values.add("'" + ((String) value).replace("'", "''") + "'");
 		} else if (value instanceof Date) {
-			values.add("'" + DateUtilities.ANSI_SQL_DATETIME_FORMAT.format(value) + "'");
+			values.add("'" + new SimpleDateFormat(DateUtilities.ANSI_SQL_DATETIME_FORMAT).format(value) + "'");
 		} else if (value instanceof Number) {
 			values.add(value.toString());
 		} else {

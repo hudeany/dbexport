@@ -13,9 +13,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLRecoverableException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -33,9 +35,12 @@ import javax.sql.DataSource;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
+import de.soderer.utilities.csv.CsvFormat;
+import de.soderer.utilities.csv.CsvWriter;
 
 public class DbUtilities {
-	public static final String DOWNLOAD_LOCATION_MYSQL = "https://dev.mysql.com/downloads/connector/j/";
+	public static final String DOWNLOAD_LOCATION_MYSQL = "https://dev.mysql.com/downloads/connector/j";
+	public static final String DOWNLOAD_LOCATION_MARIADB = "https://downloads.mariadb.org/connector-java";
 	public static final String DOWNLOAD_LOCATION_ORACLE = "http://www.oracle.com/technetwork/apps-tech/jdbc-112010-090769.html";
 	public static final String DOWNLOAD_LOCATION_POSTGRESQL = "https://jdbc.postgresql.org/download.html";
 	public static final String DOWNLOAD_LOCATION_FIREBIRD = "http://www.firebirdsql.org/en/jdbc-driver";
@@ -59,6 +64,7 @@ public class DbUtilities {
 	public enum DbVendor {
 		Oracle("oracle.jdbc.OracleDriver", 1521),
 		MySQL("com.mysql.jdbc.Driver", 3306),
+		MariaDB("org.mariadb.jdbc.Driver", 3306),
 		PostgreSQL("org.postgresql.Driver", 5432),
 		Firebird("org.firebirdsql.jdbc.FBDriver", 3050),
 		SQLite("org.sqlite.JDBC", 0),
@@ -108,6 +114,8 @@ public class DbUtilities {
 			}
 		} else if (DbVendor.MySQL == dbVendor) {
 			return "jdbc:mysql://" + dbServerHostname + ":" + (dbServerPort <= 0 ? dbVendor.defaultPort : dbServerPort) + "/" + dbName + "?useEncoding=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull";
+		} else if (DbVendor.MariaDB == dbVendor) {
+			return "jdbc:mariadb://" + dbServerHostname + ":" + (dbServerPort <= 0 ? dbVendor.defaultPort : dbServerPort) + "/" + dbName + "?useEncoding=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull";
 		} else if (DbVendor.PostgreSQL == dbVendor) {
 			return "jdbc:postgresql://" + dbServerHostname + ":" + (dbServerPort <= 0 ? dbVendor.defaultPort : dbServerPort) + "/" + dbName;
 		} else if (DbVendor.SQLite == dbVendor) {
@@ -322,16 +330,18 @@ public class DbUtilities {
 		} catch (Exception e) {
 			try {
 				int port;
-				if (hostname.contains(":")) {
-					try {
-						port = Integer.parseInt(hostname.substring(hostname.indexOf(":") + 1));
-					} catch (Exception e1) {
-						throw new Exception("Invalid port: " + hostname.substring(hostname.indexOf(":") + 1));
+				if (Utilities.isNotEmpty(hostname)) {
+					if (hostname.contains(":")) {
+						try {
+							port = Integer.parseInt(hostname.substring(hostname.indexOf(":") + 1));
+						} catch (Exception e1) {
+							throw new Exception("Invalid port: " + hostname.substring(hostname.indexOf(":") + 1));
+						}
+						NetworkUtilities.testConnection(hostname.substring(0, hostname.indexOf(":")), port);
+					} else {
+						port = dbVendor.getDefaultPort();
+						NetworkUtilities.testConnection(hostname, port);
 					}
-					NetworkUtilities.testConnection(hostname.substring(0, hostname.indexOf(":")), port);
-				} else {
-					port = dbVendor.getDefaultPort();
-					NetworkUtilities.testConnection(hostname, port);
 				}
 				
 				// No Exception from testConnection, so it must be some other problem
@@ -435,6 +445,7 @@ public class DbUtilities {
 		} else if (Utilities.isBlank(tableName)) {
 			throw new Exception("Invalid empty tableName for getColumnNames");
 		} else {
+			DbVendor dbVendor = getDbVendor(connection);
 			List<String> columnNames = new ArrayList<String>(getColumnNames(connection, tableName));
 			Collections.sort(columnNames);
 			List<String> keyColumnNames = new ArrayList<String>(getPrimaryKeyColumns(connection, tableName));
@@ -448,9 +459,9 @@ public class DbUtilities {
 			}
 			String orderPart = "";
 			if (!keyColumnNames.isEmpty()) {
-				orderPart = " ORDER BY " + Utilities.join(keyColumnNames, ", ");
+				orderPart = " ORDER BY " + joinColumnVendorEscaped(dbVendor, keyColumnNames);
 			}
-			return readout(connection, "SELECT " + Utilities.join(readoutColumns, ", ") + " FROM " + tableName + orderPart, separator, stringQuote);
+			return readout(connection, "SELECT " + joinColumnVendorEscaped(dbVendor, readoutColumns) + " FROM " + tableName + orderPart, separator, stringQuote);
 		}
 	}
 
@@ -469,8 +480,10 @@ public class DbUtilities {
 				String productName = databaseMetaData.getDatabaseProductName();
 				if (productName != null && productName.toLowerCase().contains("oracle")) {
 					return DbVendor.Oracle;
-				} else if (productName != null && (productName.toLowerCase().contains("mysql") || productName.toLowerCase().contains("maria"))) {
+				} else if (productName != null && productName.toLowerCase().contains("mysql")) {
 					return DbVendor.MySQL;
+				} else if (productName != null && productName.toLowerCase().contains("maria")) {
+					return DbVendor.MariaDB;
 				} else if (productName != null && productName.toLowerCase().contains("postgres")) {
 					return DbVendor.PostgreSQL;
 				} else if (productName != null && productName.toLowerCase().contains("sqlite")) {
@@ -524,10 +537,11 @@ public class DbUtilities {
 	}
 
 	public static boolean checkTableAndColumnsExist(Connection connection, String tableName, boolean throwExceptionOnError, String... columns) throws Exception {
+		DbVendor dbVendor = getDbVendor(connection);
 		CaseInsensitiveSet dbTableColumns = getColumnNames(connection, tableName);
 		if (columns != null) {
 			for (String column : columns) {
-				if (column != null && !dbTableColumns.contains(column)) {
+				if (column != null && !dbTableColumns.contains(unescapeVendorReservedNames(dbVendor, column))) {
 					if (throwExceptionOnError) {
 						throw new Exception("Column '" + column + "' does not exist in table '" + tableName + "'");
 					} else {
@@ -582,7 +596,7 @@ public class DbUtilities {
 
 		StringBuffer dbmsOutput;
 		try (CallableStatement callableStatement = connection.prepareCall(
-				"declare "
+	"declare "
 				+ "    l_line varchar2(255); "
 				+ "    l_done number; "
 				+ "    l_buffer long; "
@@ -713,6 +727,31 @@ public class DbUtilities {
 					}
 				}
 			} else if (DbVendor.MySQL == dbVendor) {
+				String sql = "SELECT column_name, data_type, character_maximum_length, numeric_precision, numeric_scale, is_nullable, extra FROM information_schema.columns WHERE table_schema = schema() AND LOWER(table_name) = LOWER(?)";
+				try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+					preparedStatement.setString(1, tableName);
+					try (ResultSet resultSet = preparedStatement.executeQuery() ) {
+						while (resultSet.next()) {
+							long characterLength = resultSet.getLong("character_maximum_length");
+							if (resultSet.wasNull()) {
+								characterLength = -1;
+							}
+							int numericPrecision = resultSet.getInt("numeric_precision");
+							if (resultSet.wasNull()) {
+								numericPrecision = -1;
+							}
+							int numericScale = resultSet.getInt("numeric_scale");
+							if (resultSet.wasNull()) {
+								numericScale = -1;
+							}
+							boolean isNullable = resultSet.getString("is_nullable").equalsIgnoreCase("yes");
+							boolean isAutoIncrement = resultSet.getString("extra").equalsIgnoreCase("auto_increment");
+	
+							returnMap.put(resultSet.getString("column_name"), new DbColumnType(resultSet.getString("data_type"), characterLength, numericPrecision, numericScale, isNullable, isAutoIncrement));
+						}
+					}
+				}
+			} else if (DbVendor.MariaDB == dbVendor) {
 				String sql = "SELECT column_name, data_type, character_maximum_length, numeric_precision, numeric_scale, is_nullable, extra FROM information_schema.columns WHERE table_schema = schema() AND LOWER(table_name) = LOWER(?)";
 				try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 					preparedStatement.setString(1, tableName);
@@ -1023,15 +1062,15 @@ public class DbUtilities {
 		if (fieldDefault.equalsIgnoreCase("sysdate") || fieldDefault.equalsIgnoreCase("sysdate()") || fieldDefault.equalsIgnoreCase("current_timestamp")) {
 			if (dbVendor == DbVendor.Oracle) {
 				return "current_timestamp";
-			} else if (dbVendor == DbVendor.MySQL) {
-				return "sysdate()";
+			} else if (dbVendor == DbVendor.MySQL || dbVendor == DbVendor.MariaDB) {
+				return "current_timestamp";
 			} else {
 				throw new Exception("Unsupported db vendor");
 			}
 		} else {
 			if (dbVendor == DbVendor.Oracle) {
 				return "to_date('" + fieldDefault + "', 'DD.MM.YYYY')";
-			} else if (dbVendor == DbVendor.MySQL) {
+			} else if (dbVendor == DbVendor.MySQL || dbVendor == DbVendor.MariaDB) {
 				return "'" + fieldDefault + "'";
 			} else {
 				throw new Exception("Unsupported db vendor");
@@ -1136,6 +1175,8 @@ public class DbUtilities {
 			if (DbVendor.Oracle == dbVendor) {
 				changeColumnStatement = "ALTER TABLE " + tablename + " MODIFY (" + changeColumnStatementPart + ")";
 			} else if (DbVendor.MySQL == dbVendor) {
+				changeColumnStatement = "ALTER TABLE " + tablename + " MODIFY " + changeColumnStatementPart;
+			} else if (DbVendor.MariaDB == dbVendor) {
 				changeColumnStatement = "ALTER TABLE " + tablename + " MODIFY " + changeColumnStatementPart;
 			} else {
 				throw new Exception("Unsupported db vendor");
@@ -1305,6 +1346,27 @@ public class DbUtilities {
 					}
 					return tableNamesToExport;
 				}
+			} else if (DbVendor.MariaDB == dbVendor) {
+				tableQuery = "SELECT DISTINCT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema')";
+				for (String tablePattern : tablePatternExpression.split(",| |;|\\||\n")) {
+					if (Utilities.isNotBlank(tablePattern)) {
+						tablePattern = tablePattern.trim().replace("%", "\\%").replace("_", "\\_").replace("*", "%").replace("?", "_");
+						if (tablePattern.startsWith("!")) {
+							tableQuery += " AND table_name NOT LIKE '" + tablePattern.substring(1) + "'";
+						} else {
+							tableQuery += " AND table_name LIKE '" + tablePattern + "'";
+						}
+					}
+				}
+				tableQuery += " ORDER BY table_name";
+
+				try (ResultSet resultSet = statement.executeQuery(tableQuery)) {
+					List<String> tableNamesToExport = new ArrayList<String>();
+					while (resultSet.next()) {
+						tableNamesToExport.add(resultSet.getString("table_name"));
+					}
+					return tableNamesToExport;
+				}
 			} else if (DbVendor.PostgreSQL == dbVendor) {
 				tableQuery = "SELECT DISTINCT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog')";
 				for (String tablePattern : tablePatternExpression.split(",| |;|\\||\n")) {
@@ -1447,11 +1509,7 @@ public class DbUtilities {
 			
 			String primaryKeyPart = "";
 			if (Utilities.isNotEmpty(keyColumns)) {
-				List<String> escapedKeyColumns = new ArrayList<String>();
-				for (String keyColumn : keyColumns) {
-					escapedKeyColumns.add(escapeVendorReservedNames(dbVendor, keyColumn));
-				}
-				primaryKeyPart = ", PRIMARY KEY (" + Utilities.join(escapedKeyColumns, ", ") + ")";
+				primaryKeyPart = ", PRIMARY KEY (" + joinColumnVendorEscaped(dbVendor, keyColumns) + ")";
 			}
 			statement.execute("CREATE TABLE " + tablename + " (" + columnPart + primaryKeyPart + ")");
 			if (getDbVendor(connection) == DbVendor.Derby) {
@@ -1472,6 +1530,16 @@ public class DbUtilities {
 				default: return "VARCHAR2";
 			}
 		} else if (dbVendor == DbVendor.MySQL) {
+			switch (simpleDataType) {
+				case Blob: return "LONGBLOB";
+				case Clob: return "LONGTEXT";
+				case Date: return "TIMESTAMP NULL";
+				case Integer: return "INT";
+				case Double: return "DOUBLE";
+				case String: return "VARCHAR";
+				default: return "VARCHAR";
+			}
+		} else if (dbVendor == DbVendor.MariaDB) {
 			switch (simpleDataType) {
 				case Blob: return "LONGBLOB";
 				case Clob: return "LONGTEXT";
@@ -1584,6 +1652,8 @@ public class DbUtilities {
 	public static String getDownloadUrl(DbVendor dbVendor) throws Exception {
 		if (dbVendor == DbVendor.MySQL) {
 			return DOWNLOAD_LOCATION_MYSQL;
+		} else if (dbVendor == DbVendor.MariaDB) {
+			return DOWNLOAD_LOCATION_MARIADB;
 		} else if (dbVendor == DbVendor.Oracle) {
 			return DOWNLOAD_LOCATION_ORACLE;
 		} else if (dbVendor == DbVendor.PostgreSQL) {
@@ -1734,7 +1804,7 @@ public class DbUtilities {
 		
 		try (Statement statement = connection.createStatement()) {
 			statement.execute("ALTER TABLE " + tableName + " ADD " + columnName + " INTEGER");
-			String dateSuffix = DateUtilities.YYYYMMDDHHMMSSSSS.format(new Date());
+			String dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSSSSS).format(new Date());
 			try {
 				statement.execute("CREATE INDEX tmp" + dateSuffix + "_idx ON " + tableName + " (" + columnName + ")");
 			} catch (Exception e) {
@@ -1774,7 +1844,7 @@ public class DbUtilities {
 				// Try to create an additional index columns
 				if (Utilities.isNotEmpty(keyColumns)) {
 					try {
-						String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
+						String dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(new Date());
 						statement.execute("CREATE INDEX tmp" + dateSuffix + "_idx ON " + tableName + " (" + joinColumnVendorEscaped(getDbVendor(connection), keyColumns) + ")");
 					} catch (Exception e) {
 						// Work without index. Maybe it already exists or it is a not allowed function based index
@@ -1801,7 +1871,7 @@ public class DbUtilities {
 	public static int joinDuplicates(Connection connection, String tableName, Collection<String> keyColumnsWithFunctions, boolean updateWithNullValues) throws Exception {
 		if (detectDuplicates(connection, tableName, keyColumnsWithFunctions) > 0) {
 			DbVendor dbVendor = getDbVendor(connection);
-			String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
+			String dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(new Date());
 			String interimTableName = "tmp_join_" + dateSuffix;
 			String originalItemIndexColumn = null;
 			String originalDuplicateIndexColumn = null;
@@ -1872,6 +1942,9 @@ public class DbUtilities {
 			if (dbVendor == DbVendor.MySQL) {
 				statement.execute("SELECT @n := 0");
 				statement.execute("UPDATE " + tableName + " SET " + indexColumnName + " = @n := @n + 1");
+			} else if (dbVendor == DbVendor.MariaDB) {
+				statement.execute("SELECT @n := 0");
+				statement.execute("UPDATE " + tableName + " SET " + indexColumnName + " = @n := @n + 1");
 			} else if (dbVendor == DbVendor.Oracle) {
 				statement.executeUpdate("UPDATE " + tableName + " SET " + indexColumnName + " = ROWNUM");
 			} else if (dbVendor == DbVendor.SQLite) {
@@ -1892,7 +1965,7 @@ public class DbUtilities {
 				if (autoIncrementColumn != null) {
 					statement.executeUpdate("UPDATE " + tableName + " SET " + indexColumnName + " = " + autoIncrementColumn);
 				} else {
-					statement.executeUpdate("INSERT INTO " + tableName + " (" + Utilities.join(columnsWithoutAutoIncrement, ", ") + ", " + indexColumnName + ") (SELECT " + Utilities.join(columnsWithoutAutoIncrement, ", ") + ", ROW_NUMBER() OVER() FROM " + tableName + ")");
+					statement.executeUpdate("INSERT INTO " + tableName + " (" + joinColumnVendorEscaped(dbVendor, columnsWithoutAutoIncrement) + ", " + indexColumnName + ") (SELECT " + joinColumnVendorEscaped(dbVendor, columnsWithoutAutoIncrement) + ", ROW_NUMBER() OVER() FROM " + tableName + ")");
 					statement.executeUpdate("DELETE FROM " + tableName + " WHERE " + indexColumnName + " IS NULL");
 				}
 			} else if (dbVendor == DbVendor.PostgreSQL) {
@@ -1909,7 +1982,7 @@ public class DbUtilities {
 				if (autoIncrementColumn != null) {
 					statement.executeUpdate("UPDATE " + tableName + " SET " + indexColumnName + " = " + autoIncrementColumn);
 				} else {
-					statement.executeUpdate("INSERT INTO " + tableName + " (" + Utilities.join(columnsWithoutAutoIncrement, ", ") + ", " + indexColumnName + ") (SELECT " + Utilities.join(columnsWithoutAutoIncrement, ", ") + ", ROW_NUMBER() OVER() FROM " + tableName + ")");
+					statement.executeUpdate("INSERT INTO " + tableName + " (" + joinColumnVendorEscaped(dbVendor, columnsWithoutAutoIncrement) + ", " + indexColumnName + ") (SELECT " + joinColumnVendorEscaped(dbVendor, columnsWithoutAutoIncrement) + ", ROW_NUMBER() OVER() FROM " + tableName + ")");
 					statement.executeUpdate("DELETE FROM " + tableName + " WHERE " + indexColumnName + " IS NULL");
 				}
 			} else {
@@ -1928,7 +2001,7 @@ public class DbUtilities {
 			if (dbVendor == DbVendor.SQLite) {
 				// SQLite cannot drop colmns
 				try (Statement statement = connection.createStatement()) {
-					String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
+					String dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(new Date());
 					
 					String createTableStatement = null;
 					try (ResultSet resultSet = statement.executeQuery("SELECT sql FROM sqlite_master WHERE type = 'table' AND LOWER(name) = LOWER('" + tableName + "')")) {
@@ -1943,7 +2016,7 @@ public class DbUtilities {
 					statement.execute(createTableStatement);
 					Set<String> columns = getColumnNames(connection, tableName);
 					columns.remove(columnName);
-					statement.execute("INSERT INTO " + tableName + " (" + Utilities.join(columns, ", ") + ") SELECT " + Utilities.join(columns, ", ") + " FROM tmp" + dateSuffix + "_old");
+					statement.execute("INSERT INTO " + tableName + " (" + joinColumnVendorEscaped(dbVendor, columns) + ") SELECT " + joinColumnVendorEscaped(dbVendor, columns) + " FROM tmp" + dateSuffix + "_old");
 					statement.execute("DROP TABLE tmp" + dateSuffix + "_old");
 					connection.commit();
 					return true;
@@ -2016,7 +2089,7 @@ public class DbUtilities {
 	
 	public static String createIndex(Connection connection, String tableName, List<String> columns) throws Exception {
 		try (Statement statement = connection.createStatement()) {
-			String indexNameSuffix = "_" + DateUtilities.YYYYMMDDHHMMSS.format(new Date()) + "_ix";
+			String indexNameSuffix = "_" + new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(new Date()) + "_ix";
 			String indexName = Utilities.shortenStringToMaxLengthCutRight(tableName, 30 - indexNameSuffix.length(), "") + indexNameSuffix;
 			statement.execute("CREATE INDEX " + indexName + " ON " + tableName + " (" + joinColumnVendorEscaped(getDbVendor(connection), columns) + ")");
 			return indexName;
@@ -2171,7 +2244,7 @@ public class DbUtilities {
 						// Mark duplicates in temp table
 						List<String> keycolumnParts = new ArrayList<String>();
 						for (String keyColumn : keyColumns) {
-							keycolumnParts.add("src." + keyColumn + " = " + sourceTableName + "." + keyColumn + " AND src." + keyColumn + " IS NOT NULL");
+							keycolumnParts.add("src." + escapeVendorReservedNames(dbVendor, keyColumn) + " = " + sourceTableName + "." + escapeVendorReservedNames(dbVendor, keyColumn) + " AND src." + escapeVendorReservedNames(dbVendor, keyColumn) + " IS NOT NULL");
 						}
 						String updateStatement = "UPDATE " + sourceTableName + " SET " + itemIndexColumn + " = COALESCE((SELECT MIN(src." + originalItemIndexColumn + ") FROM " + destinationTableName + " src WHERE " + Utilities.join(keycolumnParts, " AND ") + "), 0)";
 						statement.executeUpdate(updateStatement);
@@ -2263,15 +2336,30 @@ public class DbUtilities {
 	        	}
 	            return true;
 			}
+        } else if (dbVendor == DbVendor.MariaDB) {
+			try (PreparedStatement statement = connection.prepareStatement("SHOW INDEX FROM " + tableName.toLowerCase() + " WHERE column_name = ?")) {
+	        	for (String keyColumn : keyColumns) {
+	        		keyColumn = escapeVendorReservedNames(dbVendor, keyColumn);
+	        		statement.setString(1, keyColumn.toLowerCase());
+	        		try (ResultSet resultSet = statement.executeQuery()) {
+			            if (!resultSet.next()) {
+			            	return false;
+			            }
+	        		}
+	        	}
+	            return true;
+			}
         } else {
         	return null;
         }
 	}
 	
 	public static String unescapeVendorReservedNames(DbVendor dbVendor, String value) {
-		if (dbVendor == DbVendor.MySQL) {
+		if (dbVendor == DbVendor.MySQL || dbVendor == DbVendor.MariaDB) {
 			return Utilities.trimSimultaneously(value, "`");
 		} else if (dbVendor == DbVendor.Oracle) {
+			return Utilities.trimSimultaneously(value, "\"");
+		} else if (dbVendor == DbVendor.Derby) {
 			return Utilities.trimSimultaneously(value, "\"");
 		} else {
 			return value;
@@ -2279,7 +2367,7 @@ public class DbUtilities {
 	}
 	
 	public static String escapeVendorReservedNames(DbVendor dbVendor, String value) {
-		if (dbVendor == DbVendor.MySQL) {
+		if (dbVendor == DbVendor.MySQL || dbVendor == DbVendor.MariaDB) {
 			switch (value.toLowerCase()) {
 				case "accessible":
 				case "account":
@@ -3392,6 +3480,219 @@ public class DbUtilities {
 				default:
 					return value;
 			}
+		} else if (dbVendor == DbVendor.Derby) {
+			switch (value.toLowerCase()) {
+				case "add":
+				case "all":
+				case "allocate":
+				case "alter":
+				case "and":
+				case "any":
+				case "are":
+				case "as":
+				case "asc":
+				case "assertion":
+				case "at":
+				case "authorization":
+				case "avg":
+				case "begin":
+				case "between":
+				case "bit":
+				case "boolean":
+				case "both":
+				case "by":
+				case "call":
+				case "cascade":
+				case "cascaded":
+				case "case":
+				case "cast":
+				case "char":
+				case "character":
+				case "check":
+				case "close":
+				case "collate":
+				case "collation":
+				case "column":
+				case "commit":
+				case "connect":
+				case "connection":
+				case "constraint":
+				case "constraints":
+				case "continue":
+				case "convert":
+				case "corresponding":
+				case "count":
+				case "create":
+				case "current":
+				case "current_date":
+				case "current_time":
+				case "current_timestamp":
+				case "current_user":
+				case "cursor":
+				case "deallocate":
+				case "dec":
+				case "decimal":
+				case "declare":
+				case "deferrable":
+				case "deferred":
+				case "delete":
+				case "desc":
+				case "describe":
+				case "diagnostics":
+				case "disconnect":
+				case "distinct":
+				case "double":
+				case "drop":
+				case "else":
+				case "end":
+				case "endexec":
+				case "escape":
+				case "except":
+				case "exception":
+				case "exec":
+				case "execute":
+				case "exists":
+				case "explain":
+				case "external":
+				case "false":
+				case "fetch":
+				case "first":
+				case "float":
+				case "for":
+				case "foreign":
+				case "found":
+				case "from":
+				case "full":
+				case "function":
+				case "get":
+				case "get_current_connection":
+				case "global":
+				case "go":
+				case "goto":
+				case "grant":
+				case "group":
+				case "having":
+				case "hour":
+				case "identity":
+				case "immediate":
+				case "in":
+				case "indicator":
+				case "initially":
+				case "inner":
+				case "inout":
+				case "input":
+				case "insensitive":
+				case "insert":
+				case "int":
+				case "integer":
+				case "intersect":
+				case "into":
+				case "is":
+				case "isolation":
+				case "join":
+				case "key":
+				case "last":
+				case "left":
+				case "like":
+				case "longint":
+				case "lower":
+				case "ltrim":
+				case "match":
+				case "max":
+				case "min":
+				case "minute":
+				case "national":
+				case "natural":
+				case "nchar":
+				case "nvarchar":
+				case "next":
+				case "no":
+				case "not":
+				case "null":
+				case "nullif":
+				case "numeric":
+				case "of":
+				case "on":
+				case "only":
+				case "open":
+				case "option":
+				case "or":
+				case "order":
+				case "out":
+				case "outer":
+				case "output":
+				case "overlaps":
+				case "pad":
+				case "partial":
+				case "prepare":
+				case "preserve":
+				case "primary":
+				case "prior":
+				case "privileges":
+				case "procedure":
+				case "public":
+				case "read":
+				case "real":
+				case "references":
+				case "relative":
+				case "restrict":
+				case "revoke":
+				case "right":
+				case "rollback":
+				case "rows":
+				case "rtrim":
+				case "schema":
+				case "scroll":
+				case "second":
+				case "select":
+				case "session_user":
+				case "set":
+				case "smallint":
+				case "some":
+				case "space":
+				case "sql":
+				case "sqlcode":
+				case "sqlerror":
+				case "sqlstate":
+				case "substr":
+				case "substring":
+				case "sum":
+				case "system_user":
+				case "table":
+				case "temporary":
+				case "timezone_hour":
+				case "timezone_minute":
+				case "to":
+				case "trailing":
+				case "transaction":
+				case "translate":
+				case "translation":
+				case "true":
+				case "union":
+				case "unique":
+				case "unknown":
+				case "update":
+				case "upper":
+				case "user":
+				case "using":
+				case "values":
+				case "varchar":
+				case "varying":
+				case "view":
+				case "whenever":
+				case "where":
+				case "with":
+				case "work":
+				case "write":
+				case "xml":
+				case "xmlexists":
+				case "xmlparse":
+				case "xmlserialize":
+				case "year":
+					return "\"" + value + "\"";
+				default:
+					return value;
+			}
 		} else {
 			return value;
 		}
@@ -3406,5 +3707,25 @@ public class DbUtilities {
 			returnValue.append(escapeVendorReservedNames(dbVendor, columnName));
 		}
 		return returnValue.toString();
+	}
+
+	/**
+	 * Special shutdown command to free single user derby db for next connection maybe of another thread
+	 * 
+	 * @param dbName
+	 * @throws Exception
+	 */
+	public static void shutDownDerbyDb(String dbName) throws Exception {
+		dbName = Utilities.replaceHomeTilde(dbName);
+		if (!new File(dbName).exists()) {
+			throw new DbNotExistsException("Derby db directory '" + dbName + "' is not available");
+		} else if (!new File(dbName).isDirectory()) {
+			throw new Exception("Derby db directory '" + dbName + "' is not a directory");
+		}
+		try {
+			DriverManager.getConnection("jdbc:derby:" + Utilities.replaceHomeTilde(dbName) + ";shutdown=true");
+		} catch (SQLNonTransientConnectionException e) {
+			// Derby shutdown ALWAYS throws a SQLNonTransientConnectionException by intention (see also: http://db.apache.org/derby/docs/10.3/devguide/tdevdvlp20349.html)
+		}
 	}
 }
