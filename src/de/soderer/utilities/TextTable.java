@@ -516,7 +516,7 @@ public class TextTable {
 	}
 
 	public static String htmlEncodeString(String value) {
-		return value.replace("&", "&amp;").replace("<", "&lt;").replace("Ä", "&Auml;").replace("ä", "&auml;").replace("Ö", "&Ouml;").replace("ö", "&ouml;").replace("Ü", "&Uuml;")
-				.replace("ü", "&uuml;").replace("ß", "&slig;");
+		return value.replace("&", "&amp;").replace("<", "&lt;").replace("Ã„", "&Auml;").replace("Ã¤", "&auml;").replace("Ã–", "&Ouml;").replace("Ã¶", "&ouml;").replace("Ãœ", "&Uuml;")
+				.replace("Ã¼", "&uuml;").replace("ÃŸ", "&slig;");
 	}
 }
