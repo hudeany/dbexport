@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbCsvExport">
-	<property name="version" value="17.1.4" />
+	<property name="version" value="17.1.10" />
 	<echo message="version: ${version}" />
 
 	<property name="projectsPath" value="${user.home}/git" />
