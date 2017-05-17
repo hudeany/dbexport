@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
@@ -31,14 +32,15 @@ import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbNotExistsException;
 import de.soderer.utilities.DbUtilities;
-import de.soderer.utilities.LangResources;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.LangResources;
 import de.soderer.utilities.NetworkUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
 import de.soderer.utilities.WorkerSimple;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
+import de.soderer.utilities.collection.CaseInsensitiveSet;
 
 public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> implements Closeable {
 	// Mandatory parameters
@@ -150,8 +152,11 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 				}
 			}
 			
+			Set<String> mappedDbColumns = new CaseInsensitiveSet();
 			for (Entry<String, Tuple<String, String>> mappingEntry : mapping.entrySet()) {
-				if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
+				if (Utilities.isNotBlank(mappingEntry.getKey()) && !mappedDbColumns.add(mappingEntry.getKey())) {
+					throw new DbCsvImportException("Mapping contains db column multiple times: " + mappingEntry.getKey());
+				} else if (!dataPropertyNames.contains(mappingEntry.getValue().getFirst())) {
 					throw new DbCsvImportException("Data does not contain mapped property: " + mappingEntry.getValue().getFirst());
 				}
 			}
@@ -307,7 +312,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 				invalidItems = new ArrayList<Integer>();
 				
 				if (log && !isInlineData) {
-					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
+					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + new SimpleDateFormat(DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName).format(getStartTime()) + ".import.log"));
 					
 					logToFile(logOutputStream, getConfigurationLogString());
 				}
@@ -351,13 +356,13 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 					}
 					
 					// Create temp table
-					String dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(getStartTime());
+					String dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(getStartTime());
 					tempTableName = "tmp_" + dateSuffix;
 					int i = 0;
 					while (DbUtilities.checkTableExist(connection, tempTableName) && i < 10) {
 						Thread.sleep(1000);
 						i++;
-						dateSuffix = DateUtilities.YYYYMMDDHHMMSS.format(new Date());
+						dateSuffix = new SimpleDateFormat(DateUtilities.YYYYMMDDHHMMSS).format(new Date());
 						tempTableName = "tmp_" + dateSuffix;
 					}
 					if (i >= 10) {
@@ -505,7 +510,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 				showProgress(true);
 				
 				if (logErrorneousData & invalidItems.size() > 0) {
-					errorneousDataFile = filterDataItems(invalidItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
+					errorneousDataFile = filterDataItems(invalidItems, new SimpleDateFormat(DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName).format(getStartTime()) + ".errors");
 				}
 				
 				setEndTime(new Date());
@@ -543,6 +548,10 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 					connection.rollback();
 					connection.setAutoCommit(previousAutoCommit);
 					connection.close();
+					connection = null;
+					if (dbVendor == DbVendor.Derby) {
+						DbUtilities.shutDownDerbyDb(dbName);
+					}
 				}
 			}
 		}
@@ -856,6 +865,9 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 				} else {
 					throw new Exception("Unknown data type field to insert without mapping format");
 				}
+			} else if (simpleDataType == SimpleDataType.Double && dataValue instanceof Float) {
+				// Keep the right precision when inserting a float value to a double column
+				preparedStatement.setDouble(columnIndex, Double.parseDouble(dataValue.toString()));
 			} else {
 				preparedStatement.setObject(columnIndex, dataValue);
 			}

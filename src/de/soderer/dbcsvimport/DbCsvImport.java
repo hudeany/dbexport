@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,6 +36,9 @@ import de.soderer.utilities.WorkerParentSimple;
  * The Main-Class of DbCsvImport.
  */
 // TODO: Cassandra support
+// TODO: Connection check
+// TODO: Invalid null in notnull column => error message
+// TODO: Missing mapping for notnull column => error message
 public class DbCsvImport extends BasicUpdateableConsoleApplication implements WorkerParentSimple {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbCsvImport";
@@ -387,7 +391,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				System.out.println("Connection test " + i + "/" + iterations);
 				Connection testConnection = null;
 				try {
-					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Creating db connection");
+					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Creating db connection");
 					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
 						try {
 							testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
@@ -397,21 +401,21 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					} else {
 						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
 					}
-					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Successfully created db connection");
+					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Successfully created db connection");
 				} catch (SQLException sqle) {
-					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
+					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
 					returnCode = 1;
 				} catch (Exception e) {
-					System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
+					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
 					e.printStackTrace();
 					returnCode = 1;
 				} finally {
 					if (testConnection != null) {
 						try {
-							System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Closing db connection");
+							System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Closing db connection");
 							testConnection.close();
 						} catch (SQLException e) {
-							System.out.println(DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date()) + ": Error closing db connection: " + e.getMessage());
+							System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error closing db connection: " + e.getMessage());
 							returnCode = 1;
 						}
 					}

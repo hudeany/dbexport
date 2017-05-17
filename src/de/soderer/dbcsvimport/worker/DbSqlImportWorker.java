@@ -10,14 +10,15 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipInputStream;
 
-import de.soderer.dbcsvimport.DbCsvImportException;
 import de.soderer.dbcsvimport.DbCsvImportDefinition.DataType;
+import de.soderer.dbcsvimport.DbCsvImportException;
 import de.soderer.utilities.CsvDataException;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
@@ -112,6 +113,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 		} catch (Exception e) {
 			Utilities.closeQuietly(sqlScriptReader);
 			Utilities.closeQuietly(inputStream);
+			throw e;
 		}
 	}
 
@@ -155,7 +157,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 	
 			try {
 				if (log) {
-					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".import.log"));
+					logOutputStream = new FileOutputStream(new File(importFilePathOrData + "." + new SimpleDateFormat(DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName).format(getStartTime()) + ".import.log"));
 					
 					logToFile(logOutputStream, getConfigurationLogString());
 				}
@@ -190,7 +192,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 				}
 				
 				if (logErrorneousData & invalidItems.size() > 0) {
-					errorneousDataFile = filterDataItems(invalidItems, DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName.format(getStartTime()) + ".errors");
+					errorneousDataFile = filterDataItems(invalidItems, new SimpleDateFormat(DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName).format(getStartTime()) + ".errors");
 				}
 				
 				setEndTime(new Date());

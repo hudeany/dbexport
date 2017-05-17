@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -56,8 +57,8 @@ public class FileComparer {
 		String dataString2 = fileReader2.readFileToString();
 
 		StringBuilder result = new StringBuilder();
-		result.append(generateUnifiedDiff(file1.getAbsolutePath() + " " + DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date(file1.lastModified())), dataString1,
-				file2.getAbsolutePath() + " " + DateUtilities.YYYY_MM_DD_HHMMSS.format(new Date(file2.lastModified())), dataString2, ignoreLeadingAndTrailingWhitespaces, blockSensitiveCompare,
+		result.append(generateUnifiedDiff(file1.getAbsolutePath() + " " + new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date(file1.lastModified())), dataString1,
+				file2.getAbsolutePath() + " " + new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date(file2.lastModified())), dataString2, ignoreLeadingAndTrailingWhitespaces, blockSensitiveCompare,
 				outputMode));
 
 		return result.toString();

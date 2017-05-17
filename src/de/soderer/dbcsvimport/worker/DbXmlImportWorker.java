@@ -145,7 +145,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 							} catch (Exception e1) {
 								try {
-									DateUtilities.ISO_8601_DATETIME_FORMAT.parse(value);
+									new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).parse(value);
 									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 								} catch (Exception e2) {
 									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes(encoding).length), -1, -1, true, false));
@@ -264,6 +264,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 			}
 		} catch (Exception e) {
 			close();
+			throw e;
 		}
 	}
 
@@ -363,7 +364,7 @@ public class DbXmlImportWorker extends AbstractDbImportWorker {
 						if (entry.getValue() == null) {
 							xmlWriter.writeCharacters(nullValueText);
 						} else if (entry.getValue() instanceof Date) {
-							xmlWriter.writeCharacters(DateUtilities.YYYY_MM_DD_HHMMSS.format(entry.getValue()));
+							xmlWriter.writeCharacters(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(entry.getValue()));
 						} else if (entry.getValue() instanceof Number) {
 							xmlWriter.writeCharacters(entry.getValue().toString());
 						} else if (entry.getValue() instanceof String) {

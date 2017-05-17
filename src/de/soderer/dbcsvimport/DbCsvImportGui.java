@@ -527,7 +527,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		optionalParametersPanel.add(noHeadersBox);
 
 		createTableBox = new JCheckBox(LangResources.get("createTable"));
-		createTableBox.setToolTipText(LangResources.get("noheaders_help"));
+		createTableBox.setToolTipText(LangResources.get("createTable_help"));
 		optionalParametersPanel.add(createTableBox);
 		
 		onlyCommitOnFullSuccessBox = new JCheckBox(LangResources.get("onlyCommitOnFullSuccess"));

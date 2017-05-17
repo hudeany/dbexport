@@ -334,6 +334,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 		} catch (Exception e) {
 			Utilities.closeQuietly(csvReader);
 			Utilities.closeQuietly(inputStream);
+			throw e;
 		}
 	}
 
@@ -403,7 +404,7 @@ public class DbCsvImportWorker extends AbstractDbImportWorker {
 						} else if (item.get(columnName) instanceof String) {
 							values.add((String) item.get(columnName));
 						} else if (item.get(columnName) instanceof Date) {
-							values.add(DateUtilities.YYYY_MM_DD_HHMMSS.format(item.get(columnName)));
+							values.add(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(item.get(columnName)));
 						} else if (item.get(columnName) instanceof Number) {
 							values.add(item.get(columnName).toString());
 						} else {

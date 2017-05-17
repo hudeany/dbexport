@@ -127,7 +127,7 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 								dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 							} catch (Exception e1) {
 								try {
-									DateUtilities.ISO_8601_DATETIME_FORMAT.parse(value);
+									new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).parse(value);
 									dataTypes.put(propertyName, new DbColumnType("DATE", -1, -1, -1, true, false));
 								} catch (Exception e2) {
 									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterLength(), value.getBytes("UTF-8").length), -1, -1, true, false));
@@ -226,6 +226,7 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 		} catch (Exception e) {
 			Utilities.closeQuietly(jsonReader);
 			Utilities.closeQuietly(inputStream);
+			throw e;
 		}
 	}
 
