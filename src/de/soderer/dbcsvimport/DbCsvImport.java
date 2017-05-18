@@ -36,7 +36,6 @@ import de.soderer.utilities.WorkerParentSimple;
  * The Main-Class of DbCsvImport.
  */
 // TODO: Cassandra support
-// TODO: Connection check
 // TODO: Invalid null in notnull column => error message
 // TODO: Missing mapping for notnull column => error message
 public class DbCsvImport extends BasicUpdateableConsoleApplication implements WorkerParentSimple {
@@ -332,7 +331,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					} else if (dbCsvImportDefinition.getImportFilePathOrData() == null) {
 						dbCsvImportDefinition.setImportFilePathOrData(arguments[i]);
 					} else if (dbCsvImportDefinition.getPassword() == null && dbCsvImportDefinition.getDbVendor() != DbVendor.SQLite && dbCsvImportDefinition.getDbVendor() != DbVendor.Derby) {
-						dbCsvImportDefinition.setPassword(arguments[i]);
+						dbCsvImportDefinition.setPassword(arguments[i] == null ? null : arguments[i].toCharArray());
 					} else {
 						throw new ParameterException(arguments[i], "Invalid parameter");
 					}
@@ -350,7 +349,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					}
 
 					char[] passwordArray = console.readPassword(LangResources.get("enterDbPassword") + ": ");
-					dbCsvImportDefinition.setPassword(new String(passwordArray));
+					dbCsvImportDefinition.setPassword(passwordArray);
 				}
 
 				// Validate all given parameters
@@ -394,12 +393,12 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Creating db connection");
 					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
 						try {
-							testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
+							testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
 						} catch (DbNotExistsException e) {
 							testConnection = DbUtilities.createNewDatabase(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getDbName());
 						}
 					} else {
-						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), (dbCsvImportDefinition.getPassword() == null ? null : dbCsvImportDefinition.getPassword().toCharArray()));
+						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
 					}
 					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Successfully created db connection");
 				} catch (SQLException sqle) {
@@ -417,6 +416,13 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 						} catch (SQLException e) {
 							System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error closing db connection: " + e.getMessage());
 							returnCode = 1;
+						}
+					}
+					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby) {
+						try {
+							DbUtilities.shutDownDerbyDb(dbCsvImportDefinition.getDbName());
+						} catch (Exception e) {
+							System.err.println(e.getMessage());
 						}
 					}
 				}

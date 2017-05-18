@@ -9,6 +9,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
@@ -63,6 +65,8 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 
 	/** The db type combo. */
 	private JComboBox<String> dbTypeCombo;
+	
+	private JButton connectionCheckButton;
 
 	/** The host field. */
 	private JTextField hostField;
@@ -74,7 +78,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 	private JTextField userField;
 
 	/** The password field. */
-	private JTextField passwordField;
+	private JPasswordField passwordField;
 
 	/** The tablename field. */
 	private JTextField tableNameField;
@@ -181,7 +185,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 
 		// DBType Pane
 		JPanel dbTypePanel = new JPanel();
-		dbTypePanel.setLayout(new FlowLayout());
+		dbTypePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel dbTypeLabel = new JLabel(LangResources.get("dbtype"));
 		dbTypePanel.add(dbTypeLabel);
 		dbTypeCombo = new JComboBox<String>();
@@ -196,6 +200,21 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			}
 		});
 		dbTypePanel.add(dbTypeCombo, BorderLayout.EAST);
+		
+		connectionCheckButton = new JButton(LangResources.get("connectionCheck"));
+		connectionCheckButton.setPreferredSize(new Dimension(150, dbTypeCombo.getPreferredSize().height));
+		connectionCheckButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				try (Connection connection = DbUtilities.createConnection(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()), hostField.getText(), dbNameField.getText(), userField.getText(), passwordField.getPassword())) {
+					new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " OK", "OK\n", LangResources.get("close"), false).setVisible(true);
+				} catch (Exception e) {
+					new TextDialog(dbCsvImportGui, DbCsvImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.RED).setVisible(true);
+				}
+			}
+		});
+		dbTypePanel.add(connectionCheckButton);
+		
 		mandatoryParameterPanel.add(dbTypePanel);
 		
 		// Host Panel
@@ -206,6 +225,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		hostField = new JTextField();
 		hostField.setToolTipText(LangResources.get("host_help"));
 		hostField.setPreferredSize(new Dimension(200, hostField.getPreferredSize().height));
+		hostField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		hostPanel.add(hostField);
 		mandatoryParameterPanel.add(hostPanel);
 
@@ -217,6 +242,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		dbNameField = new JTextField();
 		dbNameField.setToolTipText(LangResources.get("dbname_help"));
 		dbNameField.setPreferredSize(new Dimension(200, dbNameField.getPreferredSize().height));
+		dbNameField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		dbNamePanel.add(dbNameField);
 		mandatoryParameterPanel.add(dbNamePanel);
 
@@ -228,6 +259,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		userField = new JTextField();
 		userField.setToolTipText(LangResources.get("user_help"));
 		userField.setPreferredSize(new Dimension(200, userField.getPreferredSize().height));
+		userField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		userPanel.add(userField);
 		mandatoryParameterPanel.add(userPanel);
 
@@ -239,6 +276,12 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		passwordField = new JPasswordField();
 		passwordField.setToolTipText(LangResources.get("password_help"));
 		passwordField.setPreferredSize(new Dimension(200, passwordField.getPreferredSize().height));
+		passwordField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		passwordPanel.add(passwordField);
 		mandatoryParameterPanel.add(passwordPanel);
 
@@ -285,7 +328,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		mandatoryParameterPanel.add(importFilePathPanel);
 		
 		JButton browseButton = new JButton("...");
-		browseButton.setPreferredSize(new Dimension(20, importFilePathOrDataField.getPreferredSize().height));
+		browseButton.setPreferredSize(new Dimension(20, 50));
 		browseButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -324,7 +367,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		schemaFilePathPanel.add(schemaFilePathField);
 		
 		schemaFileButton = new JButton("...");
-		schemaFileButton.setPreferredSize(new Dimension(20, 15));
+		schemaFileButton.setPreferredSize(new Dimension(20, schemaFilePathField.getPreferredSize().height));
 		schemaFileButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -674,7 +717,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			throw new Exception("TableName is needed for mapping");
 		}
 		
-		try (Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword().toCharArray(), true)) {
+		try (Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword(), true)) {
 			CaseInsensitiveMap<DbColumnType> columnTypes = null;
 			if (DbUtilities.checkTableExist(connection, configurationAsDefinition.getTableName())) {
 				columnTypes = DbUtilities.getColumnDataTypes(connection, configurationAsDefinition.getTableName());
@@ -739,7 +782,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		dbCsvImportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
 		dbCsvImportDefinition.setDbName(dbNameField.getText());
 		dbCsvImportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
-		dbCsvImportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getText() : null);
+		dbCsvImportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
 		dbCsvImportDefinition.setTableName(tableNameField.getText());
 		dbCsvImportDefinition.setImportFilePathOrData(importFilePathOrDataField.getText());
 		dbCsvImportDefinition.setDataType(DataType.getFromString((String) dataTypeCombo.getSelectedItem()));
@@ -786,7 +829,7 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 		hostField.setText(dbCsvImportDefinition.getHostname());
 		dbNameField.setText(dbCsvImportDefinition.getDbName());
 		userField.setText(dbCsvImportDefinition.getUsername());
-		passwordField.setText(dbCsvImportDefinition.getPassword());
+		passwordField.setText(dbCsvImportDefinition.getPassword() == null ? "" : new String(dbCsvImportDefinition.getPassword()));
 
 		tableNameField.setText(dbCsvImportDefinition.getTableName());
 		importFilePathOrDataField.setText(dbCsvImportDefinition.getImportFilePathOrData());
@@ -923,10 +966,18 @@ public class DbCsvImportGui extends BasicUpdateableGuiApplication {
 			hostField.setEnabled(false);
 			userField.setEnabled(false);
 			passwordField.setEnabled(false);
+			
+			connectionCheckButton.setEnabled(Utilities.isNotBlank(dbNameField.getText()));
 		} else {
 			hostField.setEnabled(true);
 			userField.setEnabled(true);
 			passwordField.setEnabled(true);
+			
+			connectionCheckButton.setEnabled(
+				Utilities.isNotBlank(dbNameField.getText())
+				&& Utilities.isNotBlank(hostField.getText())
+				&& Utilities.isNotBlank(userField.getText())
+				&& Utilities.isNotBlank(passwordField.getPassword()));
 		}
 
 		if (DataType.CSV.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {

@@ -113,7 +113,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	private boolean isInlineData = false;
 
 	/** The password, may be entered interactivly */
-	private String password;
+	private char[] password;
 
 	// Default optional parameters
 	
@@ -249,11 +249,11 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		}
 	}
 
-	public String getPassword() {
+	public char[] getPassword() {
 		return password;
 	}
 
-	public void setPassword(String password) {
+	public void setPassword(char[] password) {
 		this.password = password;
 	}
 
@@ -547,7 +547,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 			hostname,
 			dbName,
 			username,
-			password,
+			new String(password),
 			tableName,
 			Boolean.toString(isInlineData),
 			importFilePathOrData,
@@ -592,7 +592,7 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 		hostname = valueStrings.get(i++);
 		dbName = valueStrings.get(i++);
 		username = valueStrings.get(i++);
-		password = valueStrings.get(i++);
+		password = valueStrings.get(i++).toCharArray();
 		tableName = valueStrings.get(i++);
 		isInlineData = Utilities.interpretAsBool(valueStrings.get(i++));
 		importFilePathOrData = valueStrings.get(i++);

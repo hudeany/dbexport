@@ -32,7 +32,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 	private SqlScriptReader sqlScriptReader = null;
 	private Integer itemsAmount = null;
 	
-	public DbSqlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isInlineData, String importFilePathOrData) throws Exception {
+	public DbSqlImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, char[] password, boolean isInlineData, String importFilePathOrData) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, null, isInlineData, importFilePathOrData, DataType.SQL);
 	}
 
@@ -148,7 +148,7 @@ public class DbSqlImportWorker extends AbstractDbImportWorker {
 		Connection connection = null; 
 		boolean previousAutoCommit = false;
 		try {
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true);
+			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), true);
 			previousAutoCommit = connection.getAutoCommit();
 			connection.setAutoCommit(false);
 			

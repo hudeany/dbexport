@@ -60,4 +60,4 @@ global/single parameters
 	-update: check for online update and ask, whether an available update shell be installed. [username [password]]
 
 connection test:
-	Set tablename to "connectiontest" and importfilepathOrData to iterations wanted
+	Set tablename to "connectiontest" and importfilepathOrData to number of iterations wanted

@@ -52,7 +52,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 	protected String hostname;
 	protected String dbName;
 	protected String username;
-	protected String password;
+	protected char[] password;
 	protected String tableName;
 	protected boolean createTableIfNotExists = false;
 	protected boolean tableWasCreated = false;
@@ -90,7 +90,7 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 	protected boolean logErrorneousData = false;
 	protected File errorneousDataFile = null;
 
-	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData, DataType dataType) throws Exception {
+	public AbstractDbImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, char[] password, String tableName, boolean isInlineData, String importFilePathOrData, DataType dataType) throws Exception {
 		super(parent);
 		
 		this.dbVendor = dbVendor;
@@ -297,12 +297,12 @@ public abstract class AbstractDbImportWorker extends WorkerSimple<Boolean> imple
 	
 				if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
 					try {
-						connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true);
+						connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), true);
 					} catch (DbNotExistsException e) {
 						connection = DbUtilities.createNewDatabase(dbVendor, dbName);
 					}
 				} else {
-					connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()));
+					connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password));
 				}
 				
 				previousAutoCommit = connection.getAutoCommit();

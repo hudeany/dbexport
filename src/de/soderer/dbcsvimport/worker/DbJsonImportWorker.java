@@ -40,7 +40,7 @@ public class DbJsonImportWorker extends AbstractDbImportWorker {
 	private String dataPath = null;
 	private String schemaFilePath = null;
 	
-	public DbJsonImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
+	public DbJsonImportWorker(WorkerParentSimple parent, DbVendor dbVendor, String hostname, String dbName, String username, char[] password, String tableName, boolean isInlineData, String importFilePathOrData) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, tableName, isInlineData, importFilePathOrData, DataType.JSON);
 	}
 
