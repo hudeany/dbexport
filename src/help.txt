@@ -39,3 +39,6 @@ global/single parameters
 	-help: show this help manual
 	-version: show current local version of this tool
 	-update: check for online update and ask, whether an available update shell be installed;
+
+connection test:
+	Set statement to "connectiontest" and outputpath to number of iterations wanted

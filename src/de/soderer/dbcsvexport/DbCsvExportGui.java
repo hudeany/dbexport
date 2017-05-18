@@ -8,8 +8,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
+import java.sql.Connection;
 import java.util.Date;
 import java.util.Locale;
 
@@ -54,6 +57,8 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 
 	/** The db type combo. */
 	private JComboBox<String> dbTypeCombo;
+	
+	private JButton connectionCheckButton;
 
 	/** The host field. */
 	private JTextField hostField;
@@ -65,7 +70,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 	private JTextField userField;
 
 	/** The password field. */
-	private JTextField passwordField;
+	private JPasswordField passwordField;
 
 	/** The export type combo. */
 	private JComboBox<String> exportTypeCombo;
@@ -154,7 +159,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 
 		// DBType Pane
 		JPanel dbTypePanel = new JPanel();
-		dbTypePanel.setLayout(new FlowLayout());
+		dbTypePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JLabel dbTypeLabel = new JLabel(LangResources.get("dbtype"));
 		dbTypePanel.add(dbTypeLabel);
 		dbTypeCombo = new JComboBox<String>();
@@ -169,6 +174,21 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			}
 		});
 		dbTypePanel.add(dbTypeCombo, BorderLayout.EAST);
+		
+		connectionCheckButton = new JButton(LangResources.get("connectionCheck"));
+		connectionCheckButton.setPreferredSize(new Dimension(150, dbTypeCombo.getPreferredSize().height));
+		connectionCheckButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				try (Connection connection = DbUtilities.createConnection(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()), hostField.getText(), dbNameField.getText(), userField.getText(), passwordField.getPassword())) {
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " OK", "OK\n", LangResources.get("close"), false).setVisible(true);
+				} catch (Exception e) {
+					new TextDialog(dbCsvExportGui, DbCsvExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage(), LangResources.get("close"), false, Color.RED).setVisible(true);
+				}
+			}
+		});
+		dbTypePanel.add(connectionCheckButton);
+		
 		mandatoryParameterPanel.add(dbTypePanel);
 
 		// Host Panel
@@ -179,6 +199,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		hostField = new JTextField();
 		hostField.setToolTipText(LangResources.get("host_help"));
 		hostField.setPreferredSize(new Dimension(200, hostField.getPreferredSize().height));
+		hostField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		hostPanel.add(hostField);
 		mandatoryParameterPanel.add(hostPanel);
 
@@ -190,6 +216,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbNameField = new JTextField();
 		dbNameField.setToolTipText(LangResources.get("dbname_help"));
 		dbNameField.setPreferredSize(new Dimension(200, dbNameField.getPreferredSize().height));
+		dbNameField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		dbNamePanel.add(dbNameField);
 		mandatoryParameterPanel.add(dbNamePanel);
 
@@ -201,6 +233,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		userField = new JTextField();
 		userField.setToolTipText(LangResources.get("user_help"));
 		userField.setPreferredSize(new Dimension(200, userField.getPreferredSize().height));
+		userField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		userPanel.add(userField);
 		mandatoryParameterPanel.add(userPanel);
 
@@ -212,6 +250,12 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		passwordField = new JPasswordField();
 		passwordField.setToolTipText(LangResources.get("password_help"));
 		passwordField.setPreferredSize(new Dimension(200, passwordField.getPreferredSize().height));
+		passwordField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				checkButtonStatus();
+			}
+		});
 		passwordPanel.add(passwordField);
 		mandatoryParameterPanel.add(passwordPanel);
 
@@ -493,7 +537,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		dbCsvExportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
 		dbCsvExportDefinition.setDbName(dbNameField.getText());
 		dbCsvExportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
-		dbCsvExportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getText() : null);
+		dbCsvExportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
 		dbCsvExportDefinition.setOutputpath(outputpathField.getText());
 		dbCsvExportDefinition.setSqlStatementOrTablelist(statementField.getText());
 
@@ -547,7 +591,7 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 		hostField.setText(dbCsvExportDefinition.getHostname());
 		dbNameField.setText(dbCsvExportDefinition.getDbName());
 		userField.setText(dbCsvExportDefinition.getUsername());
-		passwordField.setText(dbCsvExportDefinition.getPassword());
+		passwordField.setText(dbCsvExportDefinition.getPassword() == null ? "" : new String(dbCsvExportDefinition.getPassword()));
 		outputpathField.setText(dbCsvExportDefinition.getOutputpath());
 		statementField.setText(dbCsvExportDefinition.getSqlStatementOrTablelist());
 
@@ -659,10 +703,18 @@ public class DbCsvExportGui extends BasicUpdateableGuiApplication {
 			hostField.setEnabled(false);
 			userField.setEnabled(false);
 			passwordField.setEnabled(false);
+			
+			connectionCheckButton.setEnabled(Utilities.isNotBlank(dbNameField.getText()));
 		} else {
 			hostField.setEnabled(true);
 			userField.setEnabled(true);
 			passwordField.setEnabled(true);
+			
+			connectionCheckButton.setEnabled(
+				Utilities.isNotBlank(dbNameField.getText())
+				&& Utilities.isNotBlank(hostField.getText())
+				&& Utilities.isNotBlank(userField.getText())
+				&& Utilities.isNotBlank(passwordField.getPassword()));
 		}
 
 		if (ExportType.CSV.toString().equalsIgnoreCase((String) exportTypeCombo.getSelectedItem())) {

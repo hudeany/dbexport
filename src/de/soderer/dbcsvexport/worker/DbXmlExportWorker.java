@@ -18,7 +18,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private String indentation = "\t";
 	private String nullValueText = "";
 	
-	public DbXmlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
+	public DbXmlExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, char[] password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 	

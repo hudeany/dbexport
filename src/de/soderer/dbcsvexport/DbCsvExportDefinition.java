@@ -21,6 +21,7 @@ import de.soderer.utilities.WorkerParentDual;
  * The Class DbCsvExportDefinition.
  */
 public class DbCsvExportDefinition extends SecureDataEntry {
+	public static final String CONNECTIONTEST_SIGN = "connectiontest";
 
 	/**
 	 * The Enum ExportType.
@@ -71,7 +72,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	private String outputpath;
 
 	/** The password, may be entered interactivly */
-	private String password;
+	private char[] password;
 
 	// Default optional parameters
 	
@@ -343,7 +344,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 * @param password
 	 *            the new password
 	 */
-	public void setPassword(String password) {
+	public void setPassword(char[] password) {
 		this.password = password;
 	}
 
@@ -433,7 +434,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 *
 	 * @return the password
 	 */
-	public String getPassword() {
+	public char[] getPassword() {
 		return password;
 	}
 
@@ -565,6 +566,12 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 *             the exception
 	 */
 	public void checkParameters() throws Exception {
+		if (CONNECTIONTEST_SIGN.equalsIgnoreCase(sqlStatementOrTablelist)) {
+			if (!NumberUtilities.isDigit(outputpath)) {
+				throw new DbCsvExportException("Connection test iterations must be nummeric: " + outputpath);
+			}
+		}
+		
 		if (outputpath == null) {
 			throw new DbCsvExportException("Outputpath is missing");
 		} else if ("console".equalsIgnoreCase(outputpath)) {
@@ -759,7 +766,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 			hostname,
 			dbName,
 			username,
-			password,
+			new String(password),
 			sqlStatementOrTablelist,
 			outputpath,
 			exportType.toString(),
@@ -797,7 +804,7 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 		hostname = valueStrings.get(i++);
 		dbName = valueStrings.get(i++);
 		username = valueStrings.get(i++);
-		password = valueStrings.get(i++);
+		password = valueStrings.get(i++).toCharArray();
 		sqlStatementOrTablelist = valueStrings.get(i++);
 		outputpath = valueStrings.get(i++);
 		exportType = ExportType.getFromString(valueStrings.get(i++));

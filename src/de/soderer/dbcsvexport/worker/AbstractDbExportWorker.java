@@ -46,7 +46,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private String hostname;
 	private String dbName;
 	private String username;
-	private String password;
+	private char[] password;
 	private boolean isStatementFile = false;
 	private String sqlStatementOrTablelist;
 	private String outputpath;
@@ -75,7 +75,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
-	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, String password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
+	public AbstractDbExportWorker(WorkerParentDual parent, DbVendor dbVendor, String hostname, String dbName, String username, char[] password, boolean isStatementFile, String sqlStatementOrTablelist, String outputpath) throws Exception {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
@@ -143,10 +143,9 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	@Override
 	public Boolean work() throws Exception {
-		File temporaryDerbyDbPath = null;
 		overallExportedLines = 0;
 		
-		try (Connection connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password.toCharArray()), true)) {
+		try (Connection connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), true)) {
 			if (isStatementFile) {
 				if (Utilities.isBlank(sqlStatementOrTablelist)) {
 					throw new DbCsvExportException("Statementfile is missing");
@@ -249,10 +248,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		} finally {
 			if (dbVendor == DbVendor.Derby) {
 				DbUtilities.shutDownDerbyDb(dbName);
-			}
-			if (temporaryDerbyDbPath != null) {
-				// Delete temporary derby DB files
-				Utilities.delete(temporaryDerbyDbPath);
 			}
 		}
 	}
