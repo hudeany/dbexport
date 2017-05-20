@@ -76,6 +76,11 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 
 	// Default optional parameters
 	
+	/** Execute a connection test in console mode only */
+	private boolean doConnectionTest = false;
+	private int iterations = 1;
+	private int sleepTime = 1;
+	
 	/** Open a gui. */
 	private boolean openGui = false;
 
@@ -138,6 +143,30 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 */
 	public void setOpenGUI(boolean openGui) {
 		this.openGui = openGui;
+	}
+
+	public boolean isDoConnectionTest() {
+		return doConnectionTest;
+	}
+
+	public void setDoConnectionTest(boolean doConnectionTest) {
+		this.doConnectionTest = doConnectionTest;
+	}
+
+	public int getIterations() {
+		return iterations;
+	}
+
+	public void setIterations(int iterations) {
+		this.iterations = iterations;
+	}
+
+	public int getSleepTime() {
+		return sleepTime;
+	}
+
+	public void setSleepTime(int sleepTime) {
+		this.sleepTime = sleepTime;
 	}
 
 	/**
@@ -566,37 +595,45 @@ public class DbCsvExportDefinition extends SecureDataEntry {
 	 *             the exception
 	 */
 	public void checkParameters() throws Exception {
-		if (CONNECTIONTEST_SIGN.equalsIgnoreCase(sqlStatementOrTablelist)) {
-			if (!NumberUtilities.isDigit(outputpath)) {
-				throw new DbCsvExportException("Connection test iterations must be nummeric: " + outputpath);
-			}
+		if (doConnectionTest && openGui) {
+			throw new DbCsvExportException("Connectiontest is only available for console mode");
 		}
 		
-		if (outputpath == null) {
-			throw new DbCsvExportException("Outputpath is missing");
-		} else if ("console".equalsIgnoreCase(outputpath)) {
-			if (zip) {
-				throw new DbCsvExportException("Zipping not allowed for console output");
-			}
-		} else if ("gui".equalsIgnoreCase(outputpath)) {
-			if (zip) {
-				throw new DbCsvExportException("Zipping not allowed for gui output");
-			} else if (GraphicsEnvironment.isHeadless()) {
-				throw new DbCsvExportException("GUI output only works on non-headless systems");
-			}
-		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
-				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
-				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
-				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
-			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
-				throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
-			}
-		} else {
-			if (exportStructure) {
-				if (!new File(outputpath).exists()) {
-					throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
-				} else if (!new File(outputpath).isDirectory()) {
-					throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
+		if (iterations < 0) {
+			throw new DbCsvExportException("Invalid connectiontest iterations");
+		}
+		
+		if (sleepTime < 0) {
+			throw new DbCsvExportException("Invalid connectiontest sleep time");
+		}
+		
+		if (!doConnectionTest) {
+			if (outputpath == null) {
+				throw new DbCsvExportException("Outputpath is missing");
+			} else if ("console".equalsIgnoreCase(outputpath)) {
+				if (zip) {
+					throw new DbCsvExportException("Zipping not allowed for console output");
+				}
+			} else if ("gui".equalsIgnoreCase(outputpath)) {
+				if (zip) {
+					throw new DbCsvExportException("Zipping not allowed for gui output");
+				} else if (GraphicsEnvironment.isHeadless()) {
+					throw new DbCsvExportException("GUI output only works on non-headless systems");
+				}
+			} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
+					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
+				if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
+					throw new DbCsvExportException("Outputpath file already exists: " + outputpath);
+				}
+			} else {
+				if (exportStructure) {
+					if (!new File(outputpath).exists()) {
+						throw new DbCsvExportException("Outputpath directory does not exist: " + outputpath);
+					} else if (!new File(outputpath).isDirectory()) {
+						throw new DbCsvExportException("Outputpath is not a directory: " + outputpath);
+					}
 				}
 			}
 		}
