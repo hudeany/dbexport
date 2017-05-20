@@ -11,14 +11,11 @@ import de.soderer.dbcsvimport.worker.DbSqlImportWorker;
 import de.soderer.dbcsvimport.worker.DbXmlImportWorker;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
-import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.SecureDataEntry;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WorkerParentSimple;
 
 public class DbCsvImportDefinition extends SecureDataEntry {
-	public static final String CONNECTIONTEST_SIGN = "connectiontest";
-	
 	/**
 	 * The Enum DataType.
 	 */
@@ -116,6 +113,11 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	private char[] password;
 
 	// Default optional parameters
+	
+	/** Execute a connection test in console mode only */
+	private boolean doConnectionTest = false;
+	private int iterations = 1;
+	private int sleepTime = 1;
 	
 	/** Open a gui. */
 	private boolean openGui = false;
@@ -255,6 +257,30 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 
 	public void setPassword(char[] password) {
 		this.password = password;
+	}
+
+	public boolean isDoConnectionTest() {
+		return doConnectionTest;
+	}
+
+	public void setDoConnectionTest(boolean doConnectionTest) {
+		this.doConnectionTest = doConnectionTest;
+	}
+
+	public int getIterations() {
+		return iterations;
+	}
+
+	public void setIterations(int iterations) {
+		this.iterations = iterations;
+	}
+
+	public int getSleepTime() {
+		return sleepTime;
+	}
+
+	public void setSleepTime(int sleepTime) {
+		this.sleepTime = sleepTime;
 	}
 
 	public boolean isOpenGui() {
@@ -458,17 +484,27 @@ public class DbCsvImportDefinition extends SecureDataEntry {
 	}
 
 	public void checkParameters() throws DbCsvImportException {
-		if (CONNECTIONTEST_SIGN.equalsIgnoreCase(tableName)) {
-			if (!NumberUtilities.isDigit(importFilePathOrData)) {
-				throw new DbCsvImportException("Connection test iterations must be nummeric: " + importFilePathOrData);
-			}
-		} else if (importFilePathOrData == null) {
-			throw new DbCsvImportException("ImportFilePath or data is missing");
-		} else if (!isInlineData) {
-			if (!new File(importFilePathOrData).exists()) {
-				throw new DbCsvImportException("ImportFilePath does not exist: " + importFilePathOrData);
-			} else if (!new File(importFilePathOrData).isFile()) {
-				throw new DbCsvImportException("ImportFilePath is not a file: " + importFilePathOrData);
+		if (doConnectionTest && openGui) {
+			throw new DbCsvImportException("Connectiontest is only available for console mode");
+		}
+		
+		if (iterations < 0) {
+			throw new DbCsvImportException("Invalid connectiontest iterations");
+		}
+		
+		if (sleepTime < 0) {
+			throw new DbCsvImportException("Invalid connectiontest sleep time");
+		}
+		
+		if (!doConnectionTest) {
+			if (importFilePathOrData == null) {
+				throw new DbCsvImportException("ImportFilePath or data is missing");
+			} else if (!isInlineData) {
+				if (!new File(importFilePathOrData).exists()) {
+					throw new DbCsvImportException("ImportFilePath does not exist: " + importFilePathOrData);
+				} else if (!new File(importFilePathOrData).isFile()) {
+					throw new DbCsvImportException("ImportFilePath is not a file: " + importFilePathOrData);
+				}
 			}
 		}
 	

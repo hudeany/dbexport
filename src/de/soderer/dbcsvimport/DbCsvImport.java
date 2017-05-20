@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import de.soderer.utilities.DbNotExistsException;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
+import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.WorkerParentSimple;
@@ -143,6 +145,34 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 						new DbCsvImport().updateApplication(null, null);
 					}
 					return 1;
+				} else if ("connectiontest".equalsIgnoreCase(arguments[i])) {
+					dbCsvImportDefinition.setDoConnectionTest(true);
+				} else if ("-iter".equalsIgnoreCase(arguments[i])) {
+					if (!dbCsvImportDefinition.isDoConnectionTest()) {
+						throw new Exception("Iterations parameter is only allowed for connectiontests");
+					} else {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter for connectiontest iterations");
+						} else if (!NumberUtilities.isInteger(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for connectiontest iterations");
+						} else {
+							dbCsvImportDefinition.setIterations(Integer.parseInt(arguments[i]));
+						}
+					}
+				} else if ("-sleep".equalsIgnoreCase(arguments[i])) {
+					if (!dbCsvImportDefinition.isDoConnectionTest()) {
+						throw new Exception("Sleep parameter is only allowed for connectiontests");
+					} else {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter for connectiontest sleep time");
+						} else if (!NumberUtilities.isInteger(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for connectiontest sleep time");
+						} else {
+							dbCsvImportDefinition.setSleepTime(Integer.parseInt(arguments[i]));
+						}
+					}
 				} else if ("-gui".equalsIgnoreCase(arguments[i])) {
 					if (GraphicsEnvironment.isHeadless()) {
 						throw new DbCsvImportException("GUI can only be shown on a non-headless environment");
@@ -368,7 +398,9 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			return 1;
 		}
 
-		if (dbCsvImportDefinition.isOpenGui()) {
+		if (dbCsvImportDefinition.isDoConnectionTest()) {
+			return connectionTest(dbCsvImportDefinition);
+		} else if (dbCsvImportDefinition.isOpenGui()) {
 			// open the preconfigured GUI
 			try {
 				DbCsvImportGui dbCsvImportGui = new DbCsvImportGui(dbCsvImportDefinition);
@@ -383,51 +415,6 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				e.printStackTrace();
 				return 1;
 			}
-		} else if (DbCsvImportDefinition.CONNECTIONTEST_SIGN.equalsIgnoreCase(dbCsvImportDefinition.getTableName())) {
-			int returnCode = 0;
-			int iterations = Integer.parseInt(dbCsvImportDefinition.getImportFilePathOrData());
-			for (int i = 1; i <= iterations; i++) {
-				System.out.println("Connection test " + i + "/" + iterations);
-				Connection testConnection = null;
-				try {
-					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Creating db connection");
-					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
-						try {
-							testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
-						} catch (DbNotExistsException e) {
-							testConnection = DbUtilities.createNewDatabase(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getDbName());
-						}
-					} else {
-						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
-					}
-					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Successfully created db connection");
-				} catch (SQLException sqle) {
-					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
-					returnCode = 1;
-				} catch (Exception e) {
-					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
-					e.printStackTrace();
-					returnCode = 1;
-				} finally {
-					if (testConnection != null) {
-						try {
-							System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Closing db connection");
-							testConnection.close();
-						} catch (SQLException e) {
-							System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error closing db connection: " + e.getMessage());
-							returnCode = 1;
-						}
-					}
-					if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby) {
-						try {
-							DbUtilities.shutDownDerbyDb(dbCsvImportDefinition.getDbName());
-						} catch (Exception e) {
-							System.err.println(e.getMessage());
-						}
-					}
-				}
-			}
-			return returnCode;
 		} else {
 			// Start the import worker for terminal output 
 			try {
@@ -507,6 +494,88 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 		} catch (Exception e) {
 			throw e;
 		}
+	}
+
+	private static int connectionTest(DbCsvImportDefinition dbCsvImportDefinition) {
+		int returnCode = 0;
+		int connectionCheckCount = 0;
+		int successfullConnectionCount = 0;
+		for (int i = 1; i <= dbCsvImportDefinition.getIterations() || dbCsvImportDefinition.getIterations() == 0; i++) {
+			connectionCheckCount++;
+			System.out.println("Connection test " + i + (dbCsvImportDefinition.getIterations() > 0 ? " / " + dbCsvImportDefinition.getIterations() : ""));
+			Connection testConnection = null;
+			try {
+				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Creating db connection");
+				if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
+					try {
+						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
+					} catch (DbNotExistsException e) {
+						testConnection = DbUtilities.createNewDatabase(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getDbName());
+					}
+				} else {
+					testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
+				}
+				
+				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Successfully created db connection");
+				
+				if (Utilities.isNotBlank(dbCsvImportDefinition.getTableName())) {
+					try (Statement statement = testConnection.createStatement()) {
+						String statementString = dbCsvImportDefinition.getTableName();
+						if ("check".equalsIgnoreCase(statementString)) {
+							statementString = dbCsvImportDefinition.getDbVendor().getTestStatement();
+						}
+					
+						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Executing \"" + statementString + "\"");
+						statement.executeQuery(statementString);
+					}
+				}
+				
+				successfullConnectionCount++;
+			} catch (SQLException sqle) {
+				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
+				returnCode = 1;
+			} catch (Exception e) {
+				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
+				e.printStackTrace();
+				returnCode = 1;
+			} finally {
+				if (testConnection != null) {
+					try {
+						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Closing db connection");
+						testConnection.close();
+					} catch (SQLException e) {
+						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error closing db connection: " + e.getMessage());
+						returnCode = 1;
+					}
+				}
+				if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby) {
+					try {
+						DbUtilities.shutDownDerbyDb(dbCsvImportDefinition.getDbName());
+					} catch (Exception e) {
+						System.err.println(e.getMessage());
+					}
+				}
+			}
+			
+			if (dbCsvImportDefinition.getIterations() == 0) {
+				int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
+				System.out.println("Successfull connections checks: " + successfullConnectionCount + " / " + connectionCheckCount + " (" + successPercentage + "%)");
+			}
+			
+			if ((connectionCheckCount < dbCsvImportDefinition.getIterations() || dbCsvImportDefinition.getIterations() == 0) && dbCsvImportDefinition.getSleepTime() > 0) {
+				try {
+					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Sleeping for " + dbCsvImportDefinition.getSleepTime() + " seconds");
+					Thread.sleep(dbCsvImportDefinition.getSleepTime() * 1000);
+				} catch (InterruptedException e) {
+					// do nothing
+				}
+			}
+		}
+		
+		int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
+		System.out.println("Successfull connections checks: " + successfullConnectionCount + " / " + connectionCheckCount + " (" + successPercentage + "%)");
+		
+		return returnCode;
 	}
 
 	/* (non-Javadoc)

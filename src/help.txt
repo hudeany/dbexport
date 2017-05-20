@@ -60,4 +60,8 @@ global/single parameters
 	-update: check for online update and ask, whether an available update shell be installed. [username [password]]
 
 connection test:
-	Set tablename to "connectiontest" and importfilepathOrData to number of iterations wanted
+	Usage: java -jar DbCsvImport.jar connectiontest [-iter n] [-sleep n] dbtype hostname[:port] username dbname [checkstatement or "check"] [password]
+	
+	-iter n: Iterations to execute. default = 1, 0 = unlimited
+	-sleep n: Sleep for n seconds after each check, default = 1
+	checkstatement or "check": You may use any SQL statement to check or the keyword "check" for the vendors default check statement
