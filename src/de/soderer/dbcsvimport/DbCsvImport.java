@@ -39,29 +39,29 @@ import de.soderer.utilities.WorkerParentSimple;
  */
 // TODO: Cassandra support
 // TODO: Invalid null in notnull column => error message
-// TODO: Missing mapping for notnull column => error message
+// TODO: Missing mapping for not null column => error message
 public class DbCsvImport extends BasicUpdateableConsoleApplication implements WorkerParentSimple {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbCsvImport";
-	
+
 	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
 	public static final String VERSION_RESOURCE_FILE = "/version.txt";
-	
+
 	public static final String HELP_RESOURCE_FILE = "/help.txt";
-	
+
 	/** The Constant CONFIGURATION_FILE. */
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvImport.config");
 	public static final String CONFIGURATION_DRIVERLOCATIONPROPERTYNAME = "driver_location";
-	
+
 	/** The Constant SECURE_PREFERENCES_FILE. */
 	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + ".DbCsvImport.secpref");
 
 	/** The version is filled in at application start from the version.txt file. */
 	public static String VERSION = null;
-	
+
 	/** The versioninfo download url is filled in at application start from the version.txt file. */
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
-	
+
 	/** Trusted CA certificate for updates **/
 	public static String TRUSTED_UPDATE_CA_CERTIFICATE = null;
 
@@ -69,9 +69,9 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	private static String getUsageMessage() {
 		try (InputStream helpInputStream = DbCsvImport.class.getResourceAsStream(HELP_RESOURCE_FILE)) {
 			return "DbCsvImport (by Andreas Soderer, mail: dbcsvimport@soderer.de)\n"
-				+ "VERSION: " + VERSION + "\n\n"
-				+ new String(Utilities.readStreamToByteArray(helpInputStream), "UTF-8");
-		} catch (Exception e) {
+					+ "VERSION: " + VERSION + "\n\n"
+					+ new String(Utilities.readStreamToByteArray(helpInputStream), "UTF-8");
+		} catch (final Exception e) {
 			return "Help info is missing";
 		}
 	}
@@ -84,23 +84,23 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 *
 	 * @param arguments the arguments
 	 */
-	public static void main(String[] arguments) {
-		int returnCode = _main(arguments);
+	public static void main(final String[] arguments) {
+		final int returnCode = _main(arguments);
 		if (returnCode >= 0) {
 			System.exit(returnCode);
 		}
 	}
-	
+
 	/**
 	 * Method used for main but with no System.exit call to make it junit testable
-	 * 
+	 *
 	 * @param arguments
 	 * @return
 	 */
 	protected static int _main(String[] arguments) {
 		try {
 			// Try to fill the version and versioninfo download url
-			List<String> versionInfoLines = Utilities.readLines(DbCsvImport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
+			final List<String> versionInfoLines = Utilities.readLines(DbCsvImport.class.getResourceAsStream(VERSION_RESOURCE_FILE), "UTF-8");
 			VERSION = versionInfoLines.get(0);
 			if (versionInfoLines.size() >= 2) {
 				VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(1);
@@ -108,13 +108,13 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			if (versionInfoLines.size() >= 3) {
 				TRUSTED_UPDATE_CA_CERTIFICATE = versionInfoLines.get(2);
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
 			return 1;
 		}
 
-		DbCsvImportDefinition dbCsvImportDefinition = new DbCsvImportDefinition();
+		final DbCsvImportDefinition dbCsvImportDefinition = new DbCsvImportDefinition();
 
 		try {
 			if (arguments.length == 0) {
@@ -373,12 +373,12 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				if (Utilities.isNotBlank(dbCsvImportDefinition.getHostname()) && dbCsvImportDefinition.getPassword() == null
 						&& dbCsvImportDefinition.getDbVendor() != DbVendor.SQLite
 						&& dbCsvImportDefinition.getDbVendor() != DbVendor.Derby) {
-					Console console = System.console();
+					final Console console = System.console();
 					if (console == null) {
 						throw new Exception("Couldn't get Console instance");
 					}
 
-					char[] passwordArray = console.readPassword(LangResources.get("enterDbPassword") + ": ");
+					final char[] passwordArray = console.readPassword(LangResources.get("enterDbPassword") + ": ");
 					dbCsvImportDefinition.setPassword(passwordArray);
 				}
 
@@ -388,12 +388,12 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					throw new Exception("Cannot aquire db driver for db vendor: " + dbCsvImportDefinition.getDbVendor());
 				}
 			}
-		} catch (ParameterException e) {
+		} catch (final ParameterException e) {
 			System.err.println(e.getMessage());
 			System.err.println();
 			System.err.println(getUsageMessage());
 			return 1;
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			System.err.println(e.getMessage());
 			return 1;
 		}
@@ -403,7 +403,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 		} else if (dbCsvImportDefinition.isOpenGui()) {
 			// open the preconfigured GUI
 			try {
-				DbCsvImportGui dbCsvImportGui = new DbCsvImportGui(dbCsvImportDefinition);
+				final DbCsvImportGui dbCsvImportGui = new DbCsvImportGui(dbCsvImportDefinition);
 				SwingUtilities.invokeLater(new Runnable() {
 					@Override
 					public void run() {
@@ -411,19 +411,19 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					}
 				});
 				return -1;
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 				return 1;
 			}
 		} else {
-			// Start the import worker for terminal output 
+			// Start the import worker for terminal output
 			try {
 				new DbCsvImport().importData(dbCsvImportDefinition);
 				return 0;
-			} catch (DbCsvImportException e) {
+			} catch (final DbCsvImportException e) {
 				System.err.println(e.getMessage());
 				return 1;
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 				return 1;
 			}
@@ -445,7 +445,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 * @param dbCsvImportDefinition the db csv import definition
 	 * @throws Exception the exception
 	 */
-	private void importData(DbCsvImportDefinition dbCsvImportDefinition) throws Exception {
+	private void importData(final DbCsvImportDefinition dbCsvImportDefinition) throws Exception {
 		this.dbCsvImportDefinition = dbCsvImportDefinition;
 
 		try (AbstractDbImportWorker worker = dbCsvImportDefinition.getConfiguredWorker(this, false)) {
@@ -459,12 +459,12 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 
 			// Get result to trigger possible Exception
 			worker.get();
-			
+
 			// Only show errors. Other statistics are kept in log file if verbose was set
 			if (worker.getNotImportedItems().size() > 0) {
 				String errorText = "Not imported items (Number of Errors): " + worker.getNotImportedItems().size() + "\n";
 				if (worker.getNotImportedItems().size() > 0) {
-					List<String> errorList = new ArrayList<String>();
+					final List<String> errorList = new ArrayList<>();
 					for (int i = 0; i < Math.min(10, worker.getNotImportedItems().size()); i++) {
 						errorList.add(Integer.toString(worker.getNotImportedItems().get(i)));
 					}
@@ -479,24 +479,24 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 			if (worker.getCreatedNewIndexName() != null) {
 				System.out.println("Created new index name: " + worker.getCreatedNewIndexName());
 			}
-			
+
 			System.out.println("Imported items: " + worker.getImportedItems());
-			
+
 			if (dbCsvImportDefinition.isVerbose()) {
 				System.out.println(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "Byte", false));
 			}
-		} catch (ExecutionException e) {
+		} catch (final ExecutionException e) {
 			if (e.getCause() instanceof Exception) {
 				throw (Exception) e.getCause();
 			} else {
 				throw e;
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			throw e;
 		}
 	}
 
-	private static int connectionTest(DbCsvImportDefinition dbCsvImportDefinition) {
+	private static int connectionTest(final DbCsvImportDefinition dbCsvImportDefinition) {
 		int returnCode = 0;
 		int connectionCheckCount = 0;
 		int successfullConnectionCount = 0;
@@ -509,32 +509,32 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby || (dbCsvImportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbCsvImportDefinition.getHostname())) || dbCsvImportDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
-					} catch (DbNotExistsException e) {
+					} catch (final DbNotExistsException e) {
 						testConnection = DbUtilities.createNewDatabase(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getDbName());
 					}
 				} else {
 					testConnection = DbUtilities.createConnection(dbCsvImportDefinition.getDbVendor(), dbCsvImportDefinition.getHostname(), dbCsvImportDefinition.getDbName(), dbCsvImportDefinition.getUsername(), dbCsvImportDefinition.getPassword());
 				}
-				
+
 				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Successfully created db connection");
-				
+
 				if (Utilities.isNotBlank(dbCsvImportDefinition.getTableName())) {
 					try (Statement statement = testConnection.createStatement()) {
 						String statementString = dbCsvImportDefinition.getTableName();
 						if ("check".equalsIgnoreCase(statementString)) {
 							statementString = dbCsvImportDefinition.getDbVendor().getTestStatement();
 						}
-					
+
 						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Executing \"" + statementString + "\"");
 						statement.executeQuery(statementString);
 					}
 				}
-				
+
 				successfullConnectionCount++;
-			} catch (SQLException sqle) {
+			} catch (final SQLException sqle) {
 				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
 				returnCode = 1;
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
 				e.printStackTrace();
 				returnCode = 1;
@@ -543,7 +543,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 					try {
 						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Closing db connection");
 						testConnection.close();
-					} catch (SQLException e) {
+					} catch (final SQLException e) {
 						System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Error closing db connection: " + e.getMessage());
 						returnCode = 1;
 					}
@@ -551,30 +551,30 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 				if (dbCsvImportDefinition.getDbVendor() == DbVendor.Derby) {
 					try {
 						DbUtilities.shutDownDerbyDb(dbCsvImportDefinition.getDbName());
-					} catch (Exception e) {
+					} catch (final Exception e) {
 						System.err.println(e.getMessage());
 					}
 				}
 			}
-			
+
 			if (dbCsvImportDefinition.getIterations() == 0) {
-				int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
+				final int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
 				System.out.println("Successfull connections checks: " + successfullConnectionCount + " / " + connectionCheckCount + " (" + successPercentage + "%)");
 			}
-			
+
 			if ((connectionCheckCount < dbCsvImportDefinition.getIterations() || dbCsvImportDefinition.getIterations() == 0) && dbCsvImportDefinition.getSleepTime() > 0) {
 				try {
 					System.out.println(new SimpleDateFormat(DateUtilities.YYYY_MM_DD_HHMMSS).format(new Date()) + ": Sleeping for " + dbCsvImportDefinition.getSleepTime() + " seconds");
 					Thread.sleep(dbCsvImportDefinition.getSleepTime() * 1000);
-				} catch (InterruptedException e) {
+				} catch (final InterruptedException e) {
 					// do nothing
 				}
 			}
 		}
-		
-		int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
+
+		final int successPercentage = successfullConnectionCount * 100 / connectionCheckCount;
 		System.out.println("Successfull connections checks: " + successfullConnectionCount + " / " + connectionCheckCount + " (" + successPercentage + "%)");
-		
+
 		return returnCode;
 	}
 
@@ -590,7 +590,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void showProgress(Date start, long itemsToDo, long itemsDone) {
+	public void showProgress(final Date start, final long itemsToDo, final long itemsDone) {
 		if (dbCsvImportDefinition.isVerbose()) {
 			System.out.print("\r" + Utilities.getConsoleProgressString(80, start, itemsToDo, itemsDone));
 		}
@@ -600,7 +600,7 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 * @see de.soderer.utilities.WorkerParentSimple#showDone(java.util.Date, java.util.Date, long)
 	 */
 	@Override
-	public void showDone(Date start, Date end, long itemsDone) {
+	public void showDone(final Date start, final Date end, final long itemsDone) {
 		if (dbCsvImportDefinition.isVerbose()) {
 			System.out.print("\r" + Utilities.rightPad("Imported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(end.getTime() - start.getTime(), false), 80));
 			System.out.println();
@@ -621,15 +621,15 @@ public class DbCsvImport extends BasicUpdateableConsoleApplication implements Wo
 	 *
 	 * @throws Exception the exception
 	 */
-	private void updateApplication(String username, char[] password) throws Exception {
-		ApplicationUpdateHelper applicationUpdateHelper = new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null, TRUSTED_UPDATE_CA_CERTIFICATE);
+	private void updateApplication(final String username, final char[] password) throws Exception {
+		final ApplicationUpdateHelper applicationUpdateHelper = new ApplicationUpdateHelper(APPLICATION_NAME, VERSION, VERSIONINFO_DOWNLOAD_URL, this, null, TRUSTED_UPDATE_CA_CERTIFICATE);
 		applicationUpdateHelper.setUsername(username);
 		applicationUpdateHelper.setPassword(password);
 		applicationUpdateHelper.executeUpdate();
 	}
 
 	@Override
-	public void changeTitle(String text) {
-		// do nothing	
+	public void changeTitle(final String text) {
+		// do nothing
 	}
 }
