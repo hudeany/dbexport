@@ -2,7 +2,7 @@
 
 Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]<br />
 <br />
-Mandatory parameters for db import<br />
+## Mandatory parameters for db import<br />
     dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra<br />
     hostname: With optional port (Not needed for sqlite and derby)<br />
     dbname: Dbname or filepath for sqlite db or derby db<br />
@@ -12,8 +12,8 @@ Mandatory parameters for db import<br />
     -table tablename: Table to import to (* for name by filename)<br />
     -import importfilepathOrData: File to import (?, * as wildcards, automapping only), maybe zipped (.zip)<br />
                                 or data as text (See optional parameter '-data')<br />
-<br />
-Optional parameters for db import<br />
+
+## Optional parameters for db import<br />
     -data: Declare importfilepathOrData explicitly as inline data (No filepath)<br />
     -x importDataFormat: Data import format, default format is CSV<br />
         importDataFormat: CSV | JSON | XML | SQL | EXCEL | ODS<br />
@@ -65,30 +65,30 @@ Optional parameters for db import<br />
     -secure: Use TLS/SSL for secure communication with database<br />
     -truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted DB connections of some DB vendors<br />
     -truststorepassword '<password>': Optional password for TrustStore<br />
-<br />
-Global standalone parameters<br />
+
+## Global standalone parameters<br />
     help: Show this help manual<br />
     gui: Open a GUI<br />
     menu: Open a Console menu<br />
     version: Show current local version of this tool<br />
     update: Check for online update and ask, whether an available update shell be installed. [username [password]]<br />
-<br />
-Blob import:<br />
+
+## Blob import:<br />
     Usage: java -jar DbImport.jar importblob dbtype hostname[:port] dbname username -updatesql sqlUpdateStatementWithPlaceholder -blobfile filePath [password]<br />
     <br />
     -updatesql sqlUpdateStatementWithPlaceholder: Import a single file as BLOB into a DB. (Placeholder for filedata is '?' like in prepared statements)<br />
     -blobfile filePath: Import blob file path<br />
     password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)<br />
-<br />
-Connection test:<br />
+
+## Connection test:<br />
     Usage: java -jar DbImport.jar connectiontest dbtype hostname[:port] dbname username [-iter n] [-sleep n] [-check checksql] [password]<br />
     <br />
     -iter n: Iterations to execute. Default = 1, 0 = unlimited<br />
     -sleep n: Sleep for n seconds after each check. Default = 1<br />
     -check checksql: SQL statement to check or the keyword "vendor" for the vendors default check statement<br />
     password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)<br />
-<br />
-Create TrustStore:<br />
+
+## Create TrustStore:<br />
     Usage: java -jar DbImport.jar createtruststore hostname:port truststorefilePath [truststorepassword]<br />
     <br />
     truststorefilePath: Filepath to create the TrustStore file in <br />
