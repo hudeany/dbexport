@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="build_jar" name="Create all Jars for Project DbCsvExport">
+<project default="build_jar" name="Create all Jars for Project DbExport">
 	<property name="version" value="22.5.11" />
 	<echo message="version: ${version}" />
 	
@@ -34,7 +34,7 @@
 		<!-- Compile JarInJarLoader -->
 		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="${projectsPath}/JavaUtilities/src/main/java/de/soderer/utilities/jarinjarloader" includeantruntime="false" encoding="UTF-8" />
 
-		<!-- Compile DbCsvExport -->
+		<!-- Compile DbExport -->
 		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8">
 			<classpath refid="build.classpath" />
 		</javac>
@@ -52,7 +52,7 @@
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}${buildSubDir}/DbCsvExport-${version}.jar">
+		<jar destfile="${buildPath}${buildSubDir}/DbExport-${version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
@@ -78,7 +78,7 @@
 		<tstamp>
 			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
 		</tstamp>
-		<checksum file="${buildPath}${buildSubDir}/DbCsvExport-${version}.jar" property="checksumMD5" />
+		<checksum file="${buildPath}${buildSubDir}/DbExport-${version}.jar" property="checksumMD5" />
 	</target>
 
 	<target name="create_versioninfo">
