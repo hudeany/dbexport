@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="build_jar" name="Create all Jars for Project DbCsvImport">
-	<property name="version" value="18.0.0" />
+<project default="build_jar" name="Create all Jars for Project DbImport">
+	<property name="version" value="22.5.11" />
 	<echo message="version: ${version}" />
+	
+	<tstamp>
+		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en"/>
+	</tstamp>
+	<echo message="buildTime: ${buildTime}" />
 
 	<property name="projectsPath" value="${user.home}/git" />
 	<echo message="projectsPath: ${projectsPath}" />
@@ -20,11 +25,19 @@
 	</target>
 
 	<target name="compile">
+		<path id="build.classpath">
+			<fileset dir="lib">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
 		<!-- Compile JarInJarLoader -->
 		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="${projectsPath}/JavaUtilities/src/main/java/de/soderer/utilities/jarinjarloader" includeantruntime="false" encoding="UTF-8" />
 
-		<!-- Compile DbCsvImport -->
-		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*" />
+		<!-- Compile DbImport -->
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8">
+			<classpath refid="build.classpath" />
+		</javac>
 
 		<copy todir="${buildPath}/bin">
 			<fileset dir="src">
@@ -39,23 +52,23 @@
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}${buildSubDir}/DbCsvImport-${version}.jar">
+		<jar destfile="${buildPath}${buildSubDir}/DbImport-${version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
 				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvimport.DbCsvImport" />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
 
-			<zipfileset dir="src" includes="DbCsvImport_Icon.png" />
+			<zipfileset dir="src" includes="DbImport_Icon.png" />
 		</jar>
 
-		<jar destfile="${buildPath}${buildSubDir}/DbCsvImport-${version}_sources.jar">
+		<jar destfile="${buildPath}${buildSubDir}/DbImport-${version}_sources.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
 				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvimport.DbCsvImport" />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
 			</manifest>
 
 		    <fileset dir="src" includes="**/*.java" />
@@ -64,7 +77,7 @@
 		<tstamp>
 			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
 		</tstamp>
-		<checksum file="${buildPath}${buildSubDir}/DbCsvImport-${version}.jar" property="checksumMD5" />
+		<checksum file="${buildPath}${buildSubDir}/DbImport-${version}.jar" property="checksumMD5" />
 	</target>
 
 	<target name="create_versioninfo">

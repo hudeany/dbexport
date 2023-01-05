@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.LineNumberReader;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,38 +30,62 @@ public class TextUtilities {
 	public static final String GERMAN_TEST_STRING = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 äöüßÄÖÜµ!?§@€$%&/\\<>(){}[]'\"´`^°¹²³*#.,;:=+-~_|½¼¬";
 
 	/**
+	 * A simple string for testing, which includes all special characters
+	 */
+	public static final String SPECIAL_TEST_STRING = "\n\r\t\b\f\u00c4\u00e4\u00d6\u00f6\u00dc\u00fc\u00df";
+
+	/**
 	 * Enum to represent a linebreak type of an text
 	 */
-	public enum LineBreakType {
-		Unknown, Mixed, Unix, Mac, Windows;
+	public enum LineBreak {
+		/**
+		 * No linebreak
+		 */
+		Unknown(null),
 
-		public static LineBreakType getLineBreakTypeByName(String lineBreakTypeName) {
+		/**
+		 * Multiple linebreak types
+		 */
+		Mixed(null),
+
+		/**
+		 * Unix/Linux linebreak ("\n")
+		 */
+		Unix("\n"),
+
+		/**
+		 * Mac/Apple linebreak ("\r")
+		 */
+		Mac("\r"),
+
+		/**
+		 * Windows linebreak ("\r\n")
+		 */
+		Windows("\r\n");
+
+		private final String representationString;
+
+		@Override
+		public String toString() {
+			return representationString;
+		}
+
+		LineBreak(final String representationString) {
+			this.representationString = representationString;
+		}
+
+		public static LineBreak getLineBreakTypeByName(final String lineBreakTypeName) {
 			if ("WINDOWS".equalsIgnoreCase(lineBreakTypeName)) {
-				return LineBreakType.Windows;
+				return LineBreak.Windows;
 			} else if ("UNIX".equalsIgnoreCase(lineBreakTypeName)) {
-				return LineBreakType.Unix;
+				return LineBreak.Unix;
 			} else if ("MAC".equalsIgnoreCase(lineBreakTypeName)) {
-				return LineBreakType.Mac;
+				return LineBreak.Mac;
 			} else {
-				return LineBreakType.Unknown;
+				return LineBreak.Unknown;
 			}
 		}
 	}
-
-	/**
-	 * Mac/Apple linebreak character
-	 */
-	public static String LinebreakMac = "\r";
-
-	/**
-	 * Unix/Linux linebreak character
-	 */
-	public static String LinebreakUnix = "\n";
-
-	/**
-	 * Windows linebreak characters
-	 */
-	public static String LinebreakWindows = "\r\n";
 
 	/**
 	 * Trim a string to an exact length with alignment right for display purposes If the string underruns the length, it will be filled up with blanks on the left side. If the string exceeds the
@@ -71,7 +95,7 @@ public class TextUtilities {
 	 * @param length
 	 * @return
 	 */
-	public static String trimStringToLengthAlignedRight(String inputString, int length) {
+	public static String trimStringToLengthAlignedRight(final String inputString, final int length) {
 		if (inputString.length() > length) {
 			// Takes the last characters of length
 			return inputString.subSequence(inputString.length() - length, inputString.length()).toString();
@@ -88,7 +112,7 @@ public class TextUtilities {
 	 * @param length
 	 * @return
 	 */
-	public static String trimStringToLengthAlignedLeft(String inputString, int length) {
+	public static String trimStringToLengthAlignedLeft(final String inputString, final int length) {
 		if (inputString.length() > length) {
 			// Takes the first characters of length
 			return inputString.subSequence(0, length).toString();
@@ -104,7 +128,7 @@ public class TextUtilities {
 	 * @param repeatTimes
 	 * @return
 	 */
-	public static String repeatString(String itemString, int repeatTimes) {
+	public static String repeatString(final String itemString, final int repeatTimes) {
 		return repeatString(itemString, repeatTimes, null);
 	}
 
@@ -119,8 +143,8 @@ public class TextUtilities {
 	 *            Number of repetitions
 	 * @return
 	 */
-	public static String repeatString(String itemString, int repeatTimes, String separatorString) {
-		StringBuilder returnStringBuilder = new StringBuilder();
+	public static String repeatString(final String itemString, final int repeatTimes, final String separatorString) {
+		final StringBuilder returnStringBuilder = new StringBuilder();
 		for (int i = 0; i < repeatTimes; i++) {
 			if (separatorString != null && returnStringBuilder.length() > 0) {
 				returnStringBuilder.append(separatorString);
@@ -137,8 +161,8 @@ public class TextUtilities {
 	 * @param chunkSize
 	 * @return
 	 */
-	public static List<String> chopToChunks(String text, int chunkSize) {
-		List<String> returnList = new ArrayList<String>((text.length() + chunkSize - 1) / chunkSize);
+	public static List<String> chopToChunks(final String text, final int chunkSize) {
+		final List<String> returnList = new ArrayList<>((text.length() + chunkSize - 1) / chunkSize);
 
 		for (int start = 0; start < text.length(); start += chunkSize) {
 			returnList.add(text.substring(start, Math.min(text.length(), start + chunkSize)));
@@ -154,17 +178,17 @@ public class TextUtilities {
 	 * @param maxLines
 	 * @return
 	 */
-	public static String trimToMaxNumberOfLines(String value, int maxLines) {
-		String normalizedValue = normalizeLineBreaks(value, LineBreakType.Unix);
+	public static String trimToMaxNumberOfLines(final String value, final int maxLines) {
+		final String normalizedValue = normalizeLineBreaks(value, LineBreak.Unix);
 		int count = 0;
 		int nextLinebreak = 0;
 		while (nextLinebreak != -1 && count < maxLines) {
-			nextLinebreak = normalizedValue.indexOf(LinebreakUnix, nextLinebreak + 1);
+			nextLinebreak = normalizedValue.indexOf(LineBreak.Unix.toString(), nextLinebreak + 1);
 			count++;
 		}
 
 		if (nextLinebreak != -1) {
-			LineBreakType originalLineBreakType = detectLinebreakType(value);
+			final LineBreak originalLineBreakType = detectLinebreakType(value);
 			return normalizeLineBreaks(normalizedValue.substring(0, nextLinebreak + 1), originalLineBreakType) + "...";
 		} else {
 			return value;
@@ -177,8 +201,8 @@ public class TextUtilities {
 	 * @param value
 	 * @return
 	 */
-	public static LineBreakType detectLinebreakType(String value) {
-		TextPropertiesReader textPropertiesReader = new TextPropertiesReader(value);
+	public static LineBreak detectLinebreakType(final String value) {
+		final TextPropertiesReader textPropertiesReader = new TextPropertiesReader(value);
 		textPropertiesReader.readProperties();
 		return textPropertiesReader.getLinebreakType();
 	}
@@ -190,14 +214,26 @@ public class TextUtilities {
 	 * @param type
 	 * @return
 	 */
-	public static String normalizeLineBreaks(String value, LineBreakType type) {
-		String returnString = value.replace(LinebreakWindows, LinebreakUnix).replace(LinebreakMac, LinebreakUnix);
-		if (type == LineBreakType.Mac) {
-			return returnString.replace(LinebreakUnix, LinebreakMac);
-		} else if (type == LineBreakType.Windows) {
-			return returnString.replace(LinebreakUnix, LinebreakWindows);
+	public static String normalizeLineBreaks(final String value, final LineBreak type) {
+		if (value == null) {
+			return value;
 		} else {
-			return returnString;
+			final String returnString = value.replace(LineBreak.Windows.toString(), LineBreak.Unix.toString()).replace(LineBreak.Mac.toString(), LineBreak.Unix.toString());
+			if (type == LineBreak.Mac) {
+				return returnString.replace(LineBreak.Unix.toString(), LineBreak.Mac.toString());
+			} else if (type == LineBreak.Windows) {
+				return returnString.replace(LineBreak.Unix.toString(), LineBreak.Windows.toString());
+			} else {
+				return returnString;
+			}
+		}
+	}
+
+	public static String normalizeLineBreaksForCurrentSystem(final String value) {
+		if (SystemUtilities.isWindowsSystem()) {
+			return normalizeLineBreaks(value, LineBreak.Windows);
+		} else {
+			return normalizeLineBreaks(value, LineBreak.Unix);
 		}
 	}
 
@@ -208,19 +244,16 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<String> getLines(String dataString) throws IOException {
-		List<String> list = new ArrayList<String>();
-		LineNumberReader lineNumberReader = null;
-		try {
-			lineNumberReader = new LineNumberReader(new StringReader(dataString));
+	public static List<String> getLines(final String dataString) throws IOException {
+		try (LineNumberReader lineNumberReader = new LineNumberReader(new StringReader(dataString))) {
+			final List<String> list = new ArrayList<>();
+
 			String line;
 			while ((line = lineNumberReader.readLine()) != null) {
 				list.add(line);
 			}
 
 			return list;
-		} finally {
-			Utilities.closeQuietly(lineNumberReader);
 		}
 	}
 
@@ -231,22 +264,18 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static int getLineCount(String dataString) throws IOException {
+	public static int getLineCount(final String dataString) throws IOException {
 		if (dataString == null) {
 			return 0;
 		} else if ("".equals(dataString)) {
 			return 1;
 		} else {
-			LineNumberReader lineNumberReader = null;
-			try {
-				lineNumberReader = new LineNumberReader(new StringReader(dataString));
+			try (LineNumberReader lineNumberReader = new LineNumberReader(new StringReader(dataString))) {
 				while (lineNumberReader.readLine() != null) {
 					// do nothing
 				}
 
 				return lineNumberReader.getLineNumber();
-			} finally {
-				Utilities.closeQuietly(lineNumberReader);
 			}
 		}
 	}
@@ -257,10 +286,10 @@ public class TextUtilities {
 	 * @param dataString
 	 * @return
 	 */
-	public static int countWords(String dataString) {
+	public static int countWords(final String dataString) {
 		int counter = 0;
 		boolean isWord = false;
-		int endOfLine = dataString.length() - 1;
+		final int endOfLine = dataString.length() - 1;
 
 		for (int i = 0; i < dataString.length(); i++) {
 			if (!Character.isWhitespace(dataString.charAt(i)) && i != endOfLine) {
@@ -282,7 +311,7 @@ public class TextUtilities {
 	 * @param lineNumber
 	 * @return
 	 */
-	public static int getStartIndexOfLine(String dataString, int lineNumber) {
+	public static int getStartIndexOfLine(final String dataString, final int lineNumber) {
 		if (dataString == null || lineNumber < 0) {
 			return -1;
 		} else if (lineNumber == 1) {
@@ -291,9 +320,9 @@ public class TextUtilities {
 			int lineCount = 1;
 			int position = 0;
 			while (lineCount < lineNumber) {
-				int nextLineBreakMac = dataString.indexOf(LinebreakMac, position);
-				int nextLineBreakUnix = dataString.indexOf(LinebreakUnix, position);
-				int nextLineBreakWindows = dataString.indexOf(LinebreakWindows, position);
+				final int nextLineBreakMac = dataString.indexOf(LineBreak.Mac.toString(), position);
+				final int nextLineBreakUnix = dataString.indexOf(LineBreak.Unix.toString(), position);
+				final int nextLineBreakWindows = dataString.indexOf(LineBreak.Windows.toString(), position);
 				int nextPosition = -1;
 				int lineBreakSize = 0;
 				if (nextLineBreakMac >= 0 && (nextLineBreakUnix < 0 || nextLineBreakMac < nextLineBreakUnix) && (nextLineBreakWindows < 0 || nextLineBreakMac < nextLineBreakWindows)) {
@@ -328,22 +357,22 @@ public class TextUtilities {
 	 * @param index
 	 * @return
 	 */
-	public static int getStartIndexOfLineAtIndex(String dataString, int index) {
+	public static int getStartIndexOfLineAtIndex(final String dataString, final int index) {
 		if (dataString == null || index < 0) {
 			return -1;
 		} else if (index == 0) {
 			return 0;
 		} else {
-			int nextLineBreakMac = dataString.lastIndexOf(LinebreakMac, index);
-			int nextLineBreakUnix = dataString.lastIndexOf(LinebreakUnix, index);
-			int nextLineBreakWindows = dataString.lastIndexOf(LinebreakWindows, index);
+			final int nextLineBreakMac = dataString.lastIndexOf(LineBreak.Mac.toString(), index);
+			final int nextLineBreakUnix = dataString.lastIndexOf(LineBreak.Unix.toString(), index);
+			final int nextLineBreakWindows = dataString.lastIndexOf(LineBreak.Windows.toString(), index);
 
 			if (nextLineBreakMac >= 0 && (nextLineBreakUnix < 0 || nextLineBreakMac < nextLineBreakUnix) && (nextLineBreakWindows < 0 || nextLineBreakMac < nextLineBreakWindows)) {
-				return nextLineBreakMac + LinebreakMac.length();
+				return nextLineBreakMac + LineBreak.Mac.toString().length();
 			} else if (nextLineBreakUnix >= 0 && (nextLineBreakWindows < 0 || nextLineBreakUnix < nextLineBreakWindows)) {
-				return nextLineBreakUnix + LinebreakUnix.length();
+				return nextLineBreakUnix + LineBreak.Unix.toString().length();
 			} else if (nextLineBreakWindows >= 0) {
-				return nextLineBreakWindows + LinebreakWindows.length();
+				return nextLineBreakWindows + LineBreak.Windows.toString().length();
 			} else {
 				return 0;
 			}
@@ -357,15 +386,15 @@ public class TextUtilities {
 	 * @param index
 	 * @return
 	 */
-	public static int getEndIndexOfLineAtIndex(String dataString, int index) {
+	public static int getEndIndexOfLineAtIndex(final String dataString, final int index) {
 		if (dataString == null || index < 0) {
 			return -1;
 		} else if (index == 0) {
 			return 0;
 		} else {
-			int nextLineBreakMac = dataString.indexOf(LinebreakMac, index);
-			int nextLineBreakUnix = dataString.indexOf(LinebreakUnix, index);
-			int nextLineBreakWindows = dataString.indexOf(LinebreakWindows, index);
+			final int nextLineBreakMac = dataString.indexOf(LineBreak.Mac.toString(), index);
+			final int nextLineBreakUnix = dataString.indexOf(LineBreak.Unix.toString(), index);
+			final int nextLineBreakWindows = dataString.indexOf(LineBreak.Windows.toString(), index);
 
 			if (nextLineBreakMac >= 0 && (nextLineBreakUnix < 0 || nextLineBreakMac > nextLineBreakUnix) && (nextLineBreakWindows < 0 || nextLineBreakMac > nextLineBreakWindows)) {
 				return nextLineBreakMac;
@@ -393,12 +422,12 @@ public class TextUtilities {
 	 * @param searchReversely
 	 * @return Tuple First = Startindex, Second = Length of found substring
 	 */
-	public static Tuple<Integer, Integer> searchNextPosition(String text, int startPosition, String searchTextOrPattern, boolean searchTextIsRegularExpression, boolean searchCaseSensitive,
-			boolean searchReversely) {
+	public static Tuple<Integer, Integer> searchNextPosition(final String text, final int startPosition, final String searchTextOrPattern, final boolean searchTextIsRegularExpression, final boolean searchCaseSensitive,
+			final boolean searchReversely) {
 		if (Utilities.isBlank(text) || startPosition < 0 || text.length() < startPosition || Utilities.isEmpty(searchTextOrPattern)) {
 			return null;
 		} else {
-			String fullText = text;
+			final String fullText = text;
 			int nextPosition = -1;
 			int length = -1;
 
@@ -417,7 +446,7 @@ public class TextUtilities {
 				}
 			}
 
-			Matcher matcher = searchPattern.matcher(fullText);
+			final Matcher matcher = searchPattern.matcher(fullText);
 
 			if (searchReversely) {
 				while (matcher.find()) {
@@ -454,7 +483,7 @@ public class TextUtilities {
 			if (nextPosition < 0) {
 				return null;
 			} else {
-				return new Tuple<Integer, Integer>(nextPosition, length);
+				return new Tuple<>(nextPosition, length);
 			}
 		}
 	}
@@ -468,9 +497,9 @@ public class TextUtilities {
 	 * @param searchCaseSensitive
 	 * @return
 	 */
-	public static int countOccurences(String text, String searchTextOrPattern, boolean searchTextIsRegularExpression, boolean searchCaseSensitive) {
+	public static int countOccurences(final String text, final String searchTextOrPattern, final boolean searchTextIsRegularExpression, final boolean searchCaseSensitive) {
 		if (text != null && searchTextOrPattern != null) {
-			String fullText = text;
+			final String fullText = text;
 			int occurences = 0;
 
 			Pattern searchPattern;
@@ -488,7 +517,7 @@ public class TextUtilities {
 				}
 			}
 
-			Matcher matcher = searchPattern.matcher(fullText);
+			final Matcher matcher = searchPattern.matcher(fullText);
 			while (matcher.find()) {
 				occurences++;
 			}
@@ -505,7 +534,7 @@ public class TextUtilities {
 	 * @param textPosition
 	 * @return
 	 */
-	public static int getLineNumberOfTextposition(String dataString, int textPosition) {
+	public static int getLineNumberOfTextposition(final String dataString, final int textPosition) {
 		if (dataString == null) {
 			return -1;
 		} else {
@@ -515,14 +544,14 @@ public class TextUtilities {
 					textPart = dataString.substring(0, textPosition);
 				}
 				int lineNumber = getLineCount(textPart);
-				if (textPart.endsWith(LinebreakUnix) || textPart.endsWith(LinebreakMac)) {
+				if (textPart.endsWith(LineBreak.Unix.toString()) || textPart.endsWith(LineBreak.Mac.toString())) {
 					lineNumber++;
 				}
 				return lineNumber;
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				e.printStackTrace();
 				return -1;
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 				return -1;
 			}
@@ -539,35 +568,31 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static int getNumberOfLineContainingText(String dataString, String searchTextOrPattern, boolean searchCaseSensitive, boolean searchTextIsRegularExpression) throws IOException {
-		LineNumberReader lineNumberReader = null;
-		try {
-			Pattern searchPattern;
-			if (searchTextIsRegularExpression) {
-				if (searchCaseSensitive) {
-					searchPattern = Pattern.compile(searchTextOrPattern, Pattern.MULTILINE);
-				} else {
-					searchPattern = Pattern.compile(searchTextOrPattern, Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
-				}
+	public static int getNumberOfLineContainingText(final String dataString, final String searchTextOrPattern, final boolean searchCaseSensitive, final boolean searchTextIsRegularExpression) throws IOException {
+		Pattern searchPattern;
+		if (searchTextIsRegularExpression) {
+			if (searchCaseSensitive) {
+				searchPattern = Pattern.compile(searchTextOrPattern, Pattern.MULTILINE);
 			} else {
-				if (searchCaseSensitive) {
-					searchPattern = Pattern.compile(searchTextOrPattern, Pattern.LITERAL | Pattern.MULTILINE);
-				} else {
-					searchPattern = Pattern.compile(searchTextOrPattern, Pattern.CASE_INSENSITIVE | Pattern.LITERAL | Pattern.MULTILINE);
-				}
+				searchPattern = Pattern.compile(searchTextOrPattern, Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
 			}
+		} else {
+			if (searchCaseSensitive) {
+				searchPattern = Pattern.compile(searchTextOrPattern, Pattern.LITERAL | Pattern.MULTILINE);
+			} else {
+				searchPattern = Pattern.compile(searchTextOrPattern, Pattern.CASE_INSENSITIVE | Pattern.LITERAL | Pattern.MULTILINE);
+			}
+		}
 
-			lineNumberReader = new LineNumberReader(new StringReader(dataString));
+		try (LineNumberReader lineNumberReader = new LineNumberReader(new StringReader(dataString))) {
 			String lineContent;
 			while ((lineContent = lineNumberReader.readLine()) != null) {
-				Matcher matcher = searchPattern.matcher(lineContent);
+				final Matcher matcher = searchPattern.matcher(lineContent);
 				if (matcher.find()) {
 					return lineNumberReader.getLineNumber();
 				}
 			}
 			return -1;
-		} finally {
-			Utilities.closeQuietly(lineNumberReader);
 		}
 	}
 
@@ -580,10 +605,10 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static String insertTextBeforeLine(String dataString, String insertText, int lineNumber) throws IOException {
+	public static String insertTextBeforeLine(final String dataString, final String insertText, final int lineNumber) throws IOException {
 		if (lineNumber > -1) {
-			int startIndex = TextUtilities.getStartIndexOfLine(dataString, lineNumber);
-			StringBuilder dataBuilder = new StringBuilder(dataString);
+			final int startIndex = TextUtilities.getStartIndexOfLine(dataString, lineNumber);
+			final StringBuilder dataBuilder = new StringBuilder(dataString);
 			dataBuilder.insert(startIndex, insertText);
 			return dataBuilder.toString();
 		} else {
@@ -600,10 +625,10 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static String insertTextAfterLine(String dataString, String insertText, int lineNumber) throws IOException {
+	public static String insertTextAfterLine(final String dataString, final String insertText, final int lineNumber) throws IOException {
 		if (lineNumber > -1) {
-			int startIndex = TextUtilities.getStartIndexOfLine(dataString, lineNumber + 1);
-			StringBuilder dataBuilder = new StringBuilder(dataString);
+			final int startIndex = TextUtilities.getStartIndexOfLine(dataString, lineNumber + 1);
+			final StringBuilder dataBuilder = new StringBuilder(dataString);
 			dataBuilder.insert(startIndex, insertText);
 			return dataBuilder.toString();
 		} else {
@@ -617,21 +642,20 @@ public class TextUtilities {
 	 *
 	 * @param data
 	 * @return
-	 * @throws UnsupportedEncodingException
 	 */
-	public static Tuple<String, Boolean> detectEncoding(byte[] data) throws UnsupportedEncodingException {
-		if (data.length > 2 && data[0] == Utilities.BOM_UTF_16_BIG_ENDIAN[0] && data[1] == Utilities.BOM_UTF_16_BIG_ENDIAN[1]) {
-			return new Tuple<String, Boolean>("UTF-16BE", true);
-		} else if (data.length > 2 && data[0] == Utilities.BOM_UTF_16_LOW_ENDIAN[0] && data[1] == Utilities.BOM_UTF_16_LOW_ENDIAN[1]) {
-			return new Tuple<String, Boolean>("UTF-16LE", true);
-		} else if (data.length > 3 && data[0] == Utilities.BOM_UTF_8[0] && data[1] == Utilities.BOM_UTF_8[1] && data[2] == Utilities.BOM_UTF_8[2]) {
-			return new Tuple<String, Boolean>("UTF-8", true);
+	public static Tuple<String, Boolean> detectEncoding(final byte[] data) {
+		if (data.length > 2 && data[0] == BOM.UTF_16_BE.getBytes()[0] && data[1] == BOM.UTF_16_BE.getBytes()[1]) {
+			return new Tuple<>("UTF-16BE", true);
+		} else if (data.length > 2 && data[0] == BOM.UTF_16_LE.getBytes()[0] && data[1] == BOM.UTF_16_LE.getBytes()[1]) {
+			return new Tuple<>("UTF-16LE", true);
+		} else if (data.length > 3 && data[0] == BOM.UTF_8.getBytes()[0] && data[1] == BOM.UTF_8.getBytes()[1] && data[2] == BOM.UTF_8.getBytes()[2]) {
+			return new Tuple<>(StandardCharsets.UTF_8.name(), true);
 		} else {
 			// Detect Xml Encoding
 			try {
 				// Use first data part only to speed up
-				String interimString = new String(data, 0, Math.min(data.length, 100), "UTF-8").toLowerCase();
-				String reducedInterimString = interimString.replace("\u0000", "");
+				final String interimString = new String(data, 0, Math.min(data.length, 100), StandardCharsets.UTF_8).toLowerCase();
+				final String reducedInterimString = interimString.replace("\u0000", "");
 				int encodingStart = reducedInterimString.indexOf("encoding");
 				if (encodingStart >= 0) {
 					encodingStart = reducedInterimString.indexOf("=", encodingStart);
@@ -643,34 +667,39 @@ public class TextUtilities {
 						if (reducedInterimString.charAt(encodingStart) == '"' || reducedInterimString.charAt(encodingStart) == '\'') {
 							encodingStart++;
 						}
-						StringBuilder encodingString = new StringBuilder();
+						final StringBuilder encodingString = new StringBuilder();
 						while (Character.isLetter(reducedInterimString.charAt(encodingStart)) || Character.isDigit(reducedInterimString.charAt(encodingStart))
 								|| reducedInterimString.charAt(encodingStart) == '-') {
 							encodingString.append(reducedInterimString.charAt(encodingStart));
 							encodingStart++;
 						}
 						Charset.forName(encodingString.toString());
-						if (encodingString.toString().startsWith("utf-16") && data[0] == 0) {
-							return new Tuple<String, Boolean>("UTF-16BE", false);
-						} else if (encodingString.toString().startsWith("utf-16") && data[1] == 0) {
-							return new Tuple<String, Boolean>("UTF-16LE", false);
+						if (encodingString.toString().toLowerCase().startsWith("utf-16") && data[0] == 0) {
+							return new Tuple<>("UTF-16BE", false);
+						} else if (encodingString.toString().toLowerCase().startsWith("utf-16") && data[1] == 0) {
+							return new Tuple<>("UTF-16LE", false);
 						} else {
-							return new Tuple<String, Boolean>(encodingString.toString().toUpperCase(), false);
+							return new Tuple<>(encodingString.toString().toUpperCase(), false);
 						}
 					}
 				}
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				e.printStackTrace();
 			}
 
-			String interimString = new String(data, "UTF-8").toLowerCase();
-			int zeroIndex = interimString.indexOf('\u0000');
+			final String interimString = new String(data, StandardCharsets.UTF_8).toLowerCase();
+
+			final int zeroIndex = interimString.indexOf('\u0000');
 			if (zeroIndex >= 0 && zeroIndex <= 100) {
 				if (zeroIndex % 2 == 0) {
-					return new Tuple<String, Boolean>("UTF-16BE", false);
+					return new Tuple<>("UTF-16BE", false);
 				} else {
-					return new Tuple<String, Boolean>("UTF-16LE", false);
+					return new Tuple<>("UTF-16LE", false);
 				}
+			}
+
+			if (interimString.contains("ä") || interimString.contains("ö") || interimString.contains("ü") || interimString.contains("Ä") || interimString.contains("Ö") || interimString.contains("Ü") || interimString.contains("ß")) {
+				return new Tuple<>(StandardCharsets.UTF_8.name(), false);
 			}
 
 			return null;
@@ -685,12 +714,12 @@ public class TextUtilities {
 	 * @param replacement
 	 * @return
 	 */
-	public static String replaceIndentingBlanks(String data, int blankCount, String replacement) {
+	public static String replaceIndentingBlanks(final String data, final int blankCount, final String replacement) {
 		String result = data;
-		Pattern pattern = Pattern.compile("^(  )+", Pattern.MULTILINE);
+		final Pattern pattern = Pattern.compile("^(  )+", Pattern.MULTILINE);
 		Matcher matcher = pattern.matcher(result);
 		while (matcher.find()) {
-			int replacementCount = (matcher.end() - matcher.start()) / blankCount;
+			final int replacementCount = (matcher.end() - matcher.start()) / blankCount;
 			result = matcher.replaceFirst(Utilities.repeat(replacement, replacementCount));
 			matcher = pattern.matcher(result);
 		}
@@ -703,9 +732,9 @@ public class TextUtilities {
 	 * @param data
 	 * @return
 	 */
-	public static String removeFirstLeadingWhitespace(String data) {
-		Pattern pattern = Pattern.compile("^[\\t ]", Pattern.MULTILINE);
-		Matcher matcher = pattern.matcher(data);
+	public static String removeFirstLeadingWhitespace(final String data) {
+		final Pattern pattern = Pattern.compile("^[\\t ]", Pattern.MULTILINE);
+		final Matcher matcher = pattern.matcher(data);
 		return matcher.replaceAll("");
 	}
 
@@ -715,7 +744,7 @@ public class TextUtilities {
 	 * @param data
 	 * @return
 	 */
-	public static String addLeadingTab(String data) {
+	public static String addLeadingTab(final String data) {
 		return addLeadingTabs(data, 1);
 	}
 
@@ -726,9 +755,9 @@ public class TextUtilities {
 	 * @param numberOfTabs
 	 * @return
 	 */
-	public static String addLeadingTabs(String data, int numberOfTabs) {
-		Pattern pattern = Pattern.compile("^", Pattern.MULTILINE);
-		Matcher matcher = pattern.matcher(data);
+	public static String addLeadingTabs(final String data, final int numberOfTabs) {
+		final Pattern pattern = Pattern.compile("^", Pattern.MULTILINE);
+		final Matcher matcher = pattern.matcher(data);
 		return matcher.replaceAll(Utilities.repeat("\t", numberOfTabs));
 	}
 
@@ -739,9 +768,9 @@ public class TextUtilities {
 	 * @param length
 	 * @return
 	 */
-	public static List<String> truncate(String value, int length) {
-		List<String> parts = new ArrayList<String>();
-		int valueLength = value.length();
+	public static List<String> truncate(final String value, final int length) {
+		final List<String> parts = new ArrayList<>();
+		final int valueLength = value.length();
 		for (int i = 0; i < valueLength; i += length) {
 			parts.add(value.substring(i, Math.min(valueLength, i + length)));
 		}
@@ -755,9 +784,9 @@ public class TextUtilities {
 	 * @param length
 	 * @return
 	 */
-	public static List<String> truncate(String[] lines, int length) {
-		List<String> linesTruncated = new ArrayList<String>();
-		for (String line : lines) {
+	public static List<String> truncate(final String[] lines, final int length) {
+		final List<String> linesTruncated = new ArrayList<>();
+		for (final String line : lines) {
 			linesTruncated.addAll(truncate(line, length));
 		}
 		return linesTruncated;
@@ -770,9 +799,9 @@ public class TextUtilities {
 	 * @param length
 	 * @return
 	 */
-	public static List<String> truncate(List<String> lines, int length) {
-		List<String> linesTruncated = new ArrayList<String>();
-		for (String line : lines) {
+	public static List<String> truncate(final List<String> lines, final int length) {
+		final List<String> linesTruncated = new ArrayList<>();
+		for (final String line : lines) {
 			linesTruncated.addAll(truncate(line, length));
 		}
 		return linesTruncated;
@@ -785,12 +814,12 @@ public class TextUtilities {
 	 * @return
 	 */
 	public static String removeLeadingAndTrailingWhitespaces(String data) {
-		Pattern pattern1 = Pattern.compile("^\\s*", Pattern.MULTILINE);
-		Matcher matcher1 = pattern1.matcher(data);
+		final Pattern pattern1 = Pattern.compile("^\\s*", Pattern.MULTILINE);
+		final Matcher matcher1 = pattern1.matcher(data);
 		data = matcher1.replaceAll("");
 
-		Pattern pattern2 = Pattern.compile("\\s*$", Pattern.MULTILINE);
-		Matcher matcher2 = pattern2.matcher(data);
+		final Pattern pattern2 = Pattern.compile("\\s*$", Pattern.MULTILINE);
+		final Matcher matcher2 = pattern2.matcher(data);
 		data = matcher2.replaceAll("");
 
 		return data;
@@ -803,8 +832,8 @@ public class TextUtilities {
 	 * @return
 	 */
 	public static String removeTrailingWhitespaces(String data) {
-		Pattern pattern = Pattern.compile("\\s*$", Pattern.MULTILINE);
-		Matcher matcher = pattern.matcher(data);
+		final Pattern pattern = Pattern.compile("\\s*$", Pattern.MULTILINE);
+		final Matcher matcher = pattern.matcher(data);
 		data = matcher.replaceAll("");
 
 		return data;
@@ -817,8 +846,8 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Long> scanLineStartIndexes(InputStream input) throws IOException {
-		List<Long> returnList = new ArrayList<Long>();
+	public static List<Long> scanLineStartIndexes(final InputStream input) throws IOException {
+		final List<Long> returnList = new ArrayList<>();
 		long position = 0;
 		int bufferPrevious = 0;
 		int bufferNext;
@@ -849,8 +878,8 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Long> scanLineStartIndexes(InputStream input, long startIndex) throws IOException {
-		List<Long> returnList = new ArrayList<Long>();
+	public static List<Long> scanLineStartIndexes(final InputStream input, final long startIndex) throws IOException {
+		final List<Long> returnList = new ArrayList<>();
 		long position = 0;
 		int bufferPrevious = 0;
 		int bufferNext;
@@ -885,8 +914,8 @@ public class TextUtilities {
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Long> scanLinebreakIndexes(InputStream dataInputStream) throws IOException {
-		List<Long> returnList = new ArrayList<Long>();
+	public static List<Long> scanLinebreakIndexes(final InputStream dataInputStream) throws IOException {
+		final List<Long> returnList = new ArrayList<>();
 		long position = 0;
 		int bufferPrevious = 0;
 		int bufferNext;
@@ -910,7 +939,7 @@ public class TextUtilities {
 	 * @param maximumLength
 	 * @return
 	 */
-	public static String breakLinesAfterMaximumLength(String dataString, int maximumLength) {
+	public static String breakLinesAfterMaximumLength(final String dataString, final int maximumLength) {
 		return Utilities.join(dataString.split("(?<=\\G.{" + maximumLength + "})"), "\n");
 	}
 
@@ -920,9 +949,9 @@ public class TextUtilities {
 	 * @param data
 	 * @return
 	 */
-	public static List<Character> getUsedChars(String data) {
-		List<Character> usedCharsList = new ArrayList<Character>();
-		for (char item : data.toCharArray()) {
+	public static List<Character> getUsedChars(final String data) {
+		final List<Character> usedCharsList = new ArrayList<>();
+		for (final char item : data.toCharArray()) {
 			if (!usedCharsList.contains(item)) {
 				usedCharsList.add(item);
 			}
@@ -937,13 +966,13 @@ public class TextUtilities {
 	 * @param suffix
 	 * @return
 	 */
-	public static boolean endsWithIgnoreCase(String str, String suffix) {
+	public static boolean endsWithIgnoreCase(final String str, final String suffix) {
 		if (str == null || suffix == null) {
 			return (str == null && suffix == null);
 		} else if (suffix.length() > str.length()) {
 			return false;
 		} else {
-			int strOffset = str.length() - suffix.length();
+			final int strOffset = str.length() - suffix.length();
 			return str.regionMatches(true, strOffset, suffix, 0, suffix.length());
 		}
 	}
@@ -955,7 +984,7 @@ public class TextUtilities {
 	 * @param prefix
 	 * @return
 	 */
-	public static boolean startsWithIgnoreCase(String str, String prefix) {
+	public static boolean startsWithIgnoreCase(final String str, final String prefix) {
 		if (str == null || prefix == null) {
 			return (str == null && prefix == null);
 		} else if (prefix.length() > str.length()) {
@@ -973,12 +1002,12 @@ public class TextUtilities {
 	 * @param cutoffSign
 	 * @return
 	 */
-	public static String trimStringToMaximumLength(String inputString, int maxLength, String cutoffSign) {
+	public static String trimStringToMaximumLength(final String inputString, final int maxLength, final String cutoffSign) {
 		if (inputString == null || inputString.length() <= maxLength) {
 			return inputString;
 		} else {
-			int takeFirstLength = (maxLength - cutoffSign.length()) / 2;
-			int takeLastLength = maxLength - cutoffSign.length() - takeFirstLength;
+			final int takeFirstLength = (maxLength - cutoffSign.length()) / 2;
+			final int takeLastLength = maxLength - cutoffSign.length() - takeFirstLength;
 			return inputString.substring(0, takeFirstLength) + cutoffSign + inputString.substring(inputString.length() - takeLastLength);
 		}
 	}
@@ -990,7 +1019,7 @@ public class TextUtilities {
 	 * @param substr
 	 * @return
 	 */
-	public static boolean containsIgnoreCase(String str, String substr) {
+	public static boolean containsIgnoreCase(final String str, final String substr) {
 		if (str == substr) {
 			return true;
 		} else if (str == null) {
@@ -1004,9 +1033,9 @@ public class TextUtilities {
 		}
 	}
 
-	public static String mapToString(Map<? extends Object, ? extends Object> map) {
-		StringBuilder returnValue = new StringBuilder();
-		for (Entry<? extends Object, ? extends Object> entry : map.entrySet()) {
+	public static String mapToString(final Map<? extends Object, ? extends Object> map) {
+		final StringBuilder returnValue = new StringBuilder();
+		for (final Entry<? extends Object, ? extends Object> entry : map.entrySet()) {
 			if (returnValue.length() > 0) {
 				returnValue.append("\n");
 			}
@@ -1024,9 +1053,10 @@ public class TextUtilities {
 		return returnValue.toString();
 	}
 
-	public static String mapToStringWithSortedKeys(Map<? extends String, ? extends Object> map) {
-		StringBuilder returnValue = new StringBuilder();
+	public static String mapToStringWithSortedKeys(final Map<? extends String, ? extends Object> map) {
+		final StringBuilder returnValue = new StringBuilder();
 		for (String key : Utilities.asSortedList(map.keySet())) {
+			@SuppressWarnings("unlikely-arg-type")
 			Object value = map.get(key);
 			if (returnValue.length() > 0) {
 				returnValue.append("\n");
@@ -1043,16 +1073,108 @@ public class TextUtilities {
 		return returnValue.toString();
 	}
 
-	public static int getColumnNumberFromColumnChars(String columnChars) {
+	public static int getColumnNumberFromColumnChars(final String columnChars) {
 		int value = 0;
-		for (char columnChar : columnChars.toLowerCase().toCharArray()) {
-			int columnIndex = (byte) columnChar - (byte) 'a' + 1;
+		for (final char columnChar : columnChars.toLowerCase().toCharArray()) {
+			final int columnIndex = (byte) columnChar - (byte) 'a' + 1;
 			value = value * 26 + columnIndex;
 		}
 		return value;
 	}
 
-	public static boolean isValidBase64(String value) {
+	public static boolean isValidBase64(final String value) {
 		return Pattern.matches("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$", value);
+	}
+
+	public static String getLineStartingWith(final String text, final String starter) throws Exception {
+		for (final String line : TextUtilities.getLines(text)) {
+			if (line.startsWith(starter)) {
+				return line;
+			}
+		}
+		return null;
+	}
+
+	public static String getProsaParameter(final String text, final String parameterName) throws Exception {
+		if (Utilities.isBlank(text)) {
+			return null;
+		} else {
+			final Pattern parameterPattern = Pattern.compile("^\\s*" + parameterName + "\\s*:(.*)$", Pattern.MULTILINE);
+			final Matcher parameterMatcher = parameterPattern.matcher(text);
+			if (parameterMatcher.find()) {
+				return parameterMatcher.group(1).trim();
+			} else {
+				return null;
+			}
+		}
+	}
+
+	public static String removeLinesContainingText(final String text, final String searchLinePart) {
+		if (text == null) {
+			return null;
+		}
+
+		final StringBuilder resultText = new StringBuilder();
+
+		StringBuilder nextLine = new StringBuilder();
+		boolean foundLinebreakStart = false;
+		char lastChar = 'x';
+		for (final char nextChar : text.toCharArray()) {
+			if ((nextChar == '\r' && lastChar != '\r' && lastChar != '\n') || (nextChar == '\n' && (lastChar == '\r' || lastChar != '\n'))) {
+				foundLinebreakStart = true;
+			} else if (foundLinebreakStart) {
+				if (!nextLine.toString().contains(searchLinePart)) {
+					resultText.append(nextLine);
+				}
+				nextLine = new StringBuilder();
+				foundLinebreakStart = false;
+			}
+			nextLine.append(nextChar);
+			lastChar = nextChar;
+		}
+		if (nextLine.length() > 0) {
+			if (!nextLine.toString().contains(searchLinePart)) {
+				resultText.append(nextLine);
+			}
+		}
+
+		return resultText.toString();
+	}
+
+	public static boolean containsNonAsciiCharacters(final char[] text) {
+		for (final char nextChar : text) {
+			if (!ASCII_CHARACTERS_STRING.contains(Character.toString(nextChar))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Fix the encoding of a String if it was stored in UTF-8 encoding but decoded with ISO-8859-1 encoding
+	 *
+	 * Examples of byte data of wrongly encoded Umlauts and other special characters:
+	 *   Ä: [-61, -124]
+	 *   ä: [-61, -92]
+	 *   ß: [-61, -97]
+	 *   è: [-61, -88]
+	 */
+	public static String fixEncodingErrorUTF8AsISO8859(final String text) {
+		boolean wrongEncodingDetected = false;
+		for (final byte nextByte : text.getBytes(StandardCharsets.ISO_8859_1)) {
+			if (nextByte == -61) {
+				wrongEncodingDetected = true;
+				break;
+			}
+		}
+		if (wrongEncodingDetected) {
+			return new String(text.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+		} else {
+			return text;
+		}
+	}
+
+	public static String replaceLast(final String text, final String searchText, final String replacement) {
+		return text.replaceFirst("(?s)" + Pattern.quote(searchText) + "(?!.*?" + Pattern.quote(searchText) + ")", replacement);
 	}
 }

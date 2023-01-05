@@ -3,7 +3,7 @@ package de.soderer.utilities;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.soderer.utilities.TextUtilities.LineBreakType;
+import de.soderer.utilities.TextUtilities.LineBreak;
 
 /**
  * Scanner class for properties describing a text
@@ -16,7 +16,7 @@ public class TextPropertiesReader {
 	private int nonWhitespaceCharacters = -1;
 	private int lines = -1;
 	private int words = -1;
-	private LineBreakType linebreaks = LineBreakType.Unknown;
+	private LineBreak linebreaks = LineBreak.Unknown;
 
 	/**
 	 * Internal constructor for derived classes
@@ -29,7 +29,7 @@ public class TextPropertiesReader {
 	 *
 	 * @param dataString
 	 */
-	public TextPropertiesReader(String dataString) {
+	public TextPropertiesReader(final String dataString) {
 		this.dataString = dataString;
 	}
 
@@ -37,7 +37,7 @@ public class TextPropertiesReader {
 	 * Scan for the text properties of the given text
 	 */
 	public void readProperties() {
-		foundCharacters = new HashMap<Character, Integer>();
+		foundCharacters = new HashMap<>();
 		int lineCount = 0;
 		int nonWhitespaceCharactersCount = 0;
 		int wordCount = 0;
@@ -47,7 +47,7 @@ public class TextPropertiesReader {
 		boolean isWithinWord = false;
 
 		for (int i = 0; i < dataString.length(); i++) {
-			char character = dataString.charAt(i);
+			final char character = dataString.charAt(i);
 
 			if (foundCharacters.containsKey(character)) {
 				foundCharacters.put(character, foundCharacters.get(character) + 1);
@@ -103,15 +103,15 @@ public class TextPropertiesReader {
 		}
 
 		if ((foundLineBreakUnix && foundLineBreakMac) || (foundLineBreakWindows && foundLineBreakMac) || (foundLineBreakUnix && foundLineBreakWindows)) {
-			linebreaks = LineBreakType.Mixed;
+			linebreaks = LineBreak.Mixed;
 		} else if (foundLineBreakUnix) {
-			linebreaks = LineBreakType.Unix;
+			linebreaks = LineBreak.Unix;
 		} else if (foundLineBreakMac) {
-			linebreaks = LineBreakType.Mac;
+			linebreaks = LineBreak.Mac;
 		} else if (foundLineBreakWindows) {
-			linebreaks = LineBreakType.Windows;
+			linebreaks = LineBreak.Windows;
 		} else {
-			linebreaks = LineBreakType.Unknown;
+			linebreaks = LineBreak.Unknown;
 		}
 
 		lines = lineCount;
@@ -170,7 +170,7 @@ public class TextPropertiesReader {
 	 *
 	 * @return
 	 */
-	public LineBreakType getLinebreakType() {
+	public LineBreak getLinebreakType() {
 		return linebreaks;
 	}
 }

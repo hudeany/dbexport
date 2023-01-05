@@ -1,6 +1,7 @@
 package de.soderer.utilities.json.schema;
 
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
@@ -18,8 +19,8 @@ import de.soderer.utilities.json.JsonPath;
 
 public class JsonSchemaDependencyResolver {
 	private JsonObject schemaDocumentNode = null;
-	private Map<String, JsonObject> additionalSchemaDocumentNodes = new HashMap<String, JsonObject>();
-	
+	private final Map<String, JsonObject> additionalSchemaDocumentNodes = new HashMap<>();
+
 	/**
 	 * Draft V4 mode is NOT default mode<br />
 	 * <br />
@@ -28,27 +29,27 @@ public class JsonSchemaDependencyResolver {
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
 	private boolean useDraftV4Mode = false;
-	
+
 	private boolean downloadReferencedSchemas = false;
 
 	private String latestJsonPath = null;
 	private Set<String> latestDependencies;
-	
-	public JsonSchemaDependencyResolver(JsonObject schemaDocumentNode) throws JsonSchemaDefinitionError {
+
+	public JsonSchemaDependencyResolver(final JsonObject schemaDocumentNode) throws JsonSchemaDefinitionError {
 		if (schemaDocumentNode == null) {
 			throw new JsonSchemaDefinitionError("Invalid data type 'null' for JsonSchemaDependencyResolver", "$");
 		}
 		this.schemaDocumentNode = schemaDocumentNode;
 	}
 
-	public Object getDependencyByReference(String reference, String jsonSchemaPath) throws Exception {
+	public Object getDependencyByReference(final String reference, final String jsonSchemaPath) throws Exception {
 		if (reference != null) {
 			if (!reference.contains("#")) {
 				// Dereference simple reference without '#'
 				if (schemaDocumentNode.get("definitions") != null && schemaDocumentNode.get("definitions") instanceof JsonObject && ((JsonObject) schemaDocumentNode.get("definitions")).containsPropertyKey(reference)) {
 					return ((JsonObject) schemaDocumentNode.get("definitions")).get(reference);
 				} else {
-					for (JsonObject indirectJsonDefinitions : additionalSchemaDocumentNodes.values()) {
+					for (final JsonObject indirectJsonDefinitions : additionalSchemaDocumentNodes.values()) {
 						if (indirectJsonDefinitions.get("definitions") != null && indirectJsonDefinitions.get("definitions") instanceof JsonObject && ((JsonObject) indirectJsonDefinitions.get("definitions")).containsPropertyKey(reference)) {
 							return ((JsonObject) indirectJsonDefinitions.get("definitions")).get(reference);
 						}
@@ -57,13 +58,13 @@ public class JsonSchemaDependencyResolver {
 				}
 			} else if (reference.startsWith("#")) {
 				// Dereference local document reference
-				JsonPath jsonPath = new JsonPath(reference);
+				final JsonPath jsonPath = new JsonPath(reference);
 				JsonObject referencedObject = schemaDocumentNode;
-				for (Object referencePathPartObject : jsonPath.getPathParts()) {
+				for (final Object referencePathPartObject : jsonPath.getPathParts()) {
 					if (!(referencePathPartObject instanceof String)) {
 						throw new JsonSchemaDefinitionError("Invalid JSON reference path contains array index'" + reference + "'", jsonSchemaPath);
 					}
-					String referencePathPart = (String) referencePathPartObject;
+					final String referencePathPart = (String) referencePathPartObject;
 					if (!referencedObject.containsPropertyKey(referencePathPart)) {
 						throw new JsonSchemaDefinitionError("JsonSchema does not contain the reference path '" + reference + "'", jsonSchemaPath);
 					} else if (referencedObject.get(referencePathPart) == null) {
@@ -77,27 +78,31 @@ public class JsonSchemaDependencyResolver {
 				return referencedObject;
 			} else {
 				// Dereference other document reference
-				String packageName = reference.substring(0, reference.lastIndexOf("#"));
-				
+				final String packageName = reference.substring(0, reference.lastIndexOf("#"));
+
 				if (!additionalSchemaDocumentNodes.containsKey(packageName) && packageName != null && packageName.toLowerCase().startsWith("http") && downloadReferencedSchemas) {
-					URLConnection urlConnection = new URL(packageName).openConnection();
+					final URLConnection urlConnection = new URL(packageName).openConnection();
+					final int statusCode = ((HttpURLConnection) urlConnection).getResponseCode();
+					if (statusCode != HttpURLConnection.HTTP_OK) {
+						throw new Exception("Cannot get content from '" + packageName + "'. Http-Code was " + statusCode);
+					}
 					try (InputStream jsonSchemaInputStream = urlConnection.getInputStream()) {
 						addJsonSchemaDefinition(packageName, jsonSchemaInputStream);
 					}
 				}
-						
+
 				if (!additionalSchemaDocumentNodes.containsKey(packageName)) {
 					throw new Exception("Unknown JSON schema reference package name '" + packageName + "'");
 				} else if (additionalSchemaDocumentNodes.get(packageName) == null) {
 					throw new Exception("Invalid empty JSON schema reference for package name '" + packageName + "'");
 				} else {
 					JsonObject referencedObject = additionalSchemaDocumentNodes.get(packageName);
-					JsonPath jsonPath = new JsonPath(reference.substring(reference.lastIndexOf("#")));
-					for (Object referencePathPartObject : jsonPath.getPathParts()) {
+					final JsonPath jsonPath = new JsonPath(reference.substring(reference.lastIndexOf("#")));
+					for (final Object referencePathPartObject : jsonPath.getPathParts()) {
 						if (!(referencePathPartObject instanceof String)) {
 							throw new JsonSchemaDefinitionError("Invalid JSON reference path contains array index'" + reference + "'", jsonSchemaPath);
 						}
-						String referencePathPart = (String) referencePathPartObject;
+						final String referencePathPart = (String) referencePathPartObject;
 						if (!referencedObject.containsPropertyKey(referencePathPart)) {
 							throw new JsonSchemaDefinitionError("Referenced JsonSchema does not contain the reference path '" + reference + "'", jsonSchemaPath);
 						} else if (referencedObject.get(referencePathPart) == null) {
@@ -116,18 +121,18 @@ public class JsonSchemaDependencyResolver {
 		}
 	}
 
-	public void addJsonSchemaDefinition(String definitionPackageName, InputStream jsonSchemaInputStream) throws Exception {
+	public void addJsonSchemaDefinition(final String definitionPackageName, final InputStream jsonSchemaInputStream) throws Exception {
 		if (Utilities.isBlank(definitionPackageName)) {
 			throw new Exception("Invalid empty JSON schema definition package name");
 		} else if (additionalSchemaDocumentNodes.containsKey(definitionPackageName)) {
 			throw new Exception("Additional JSON schema definition package '" + definitionPackageName + "' was already added before");
 		} else {
 			try (Json5Reader reader = new Json5Reader(jsonSchemaInputStream)) {
-				JsonNode jsonNode = reader.read();
+				final JsonNode jsonNode = reader.read();
 				if (!jsonNode.isJsonObject()) {
 					throw new Exception("Additional JSON schema definition package '" + definitionPackageName + "' does not contain JSON schema data of type 'object'");
 				} else {
-					JsonObject jsonSchema = (JsonObject) jsonNode.getValue();
+					final JsonObject jsonSchema = (JsonObject) jsonNode.getValue();
 					redirectReferences(jsonSchema, "#", definitionPackageName + "#");
 					additionalSchemaDocumentNodes.put(definitionPackageName, jsonSchema);
 				}
@@ -135,8 +140,8 @@ public class JsonSchemaDependencyResolver {
 		}
 	}
 
-	private void redirectReferences(JsonObject jsonObject, String referenceDefinitionStart, String referenceDefinitionReplacement) {
-		for (Entry<String, Object> entry : jsonObject.entrySet()) {
+	private void redirectReferences(final JsonObject jsonObject, final String referenceDefinitionStart, final String referenceDefinitionReplacement) {
+		for (final Entry<String, Object> entry : jsonObject.entrySet()) {
 			if ("$ref".equals(entry.getKey()) && entry.getValue() != null && entry.getValue() instanceof String && ((String) entry.getValue()).startsWith(referenceDefinitionStart)) {
 				jsonObject.add("$ref", referenceDefinitionReplacement + ((String) entry.getValue()).substring(referenceDefinitionStart.length()));
 			} else if (entry.getValue() instanceof JsonObject) {
@@ -147,8 +152,8 @@ public class JsonSchemaDependencyResolver {
 		}
 	}
 
-	private void redirectReferences(JsonArray jsonArray, String referenceDefinitionStart, String referenceDefinitionReplacement) {
-		for (Object item : jsonArray) {
+	private void redirectReferences(final JsonArray jsonArray, final String referenceDefinitionStart, final String referenceDefinitionReplacement) {
+		for (final Object item : jsonArray) {
 			if (item instanceof JsonObject) {
 				redirectReferences((JsonObject) item, referenceDefinitionStart, referenceDefinitionReplacement);
 			} else if (item instanceof JsonArray) {
@@ -157,19 +162,19 @@ public class JsonSchemaDependencyResolver {
 		}
 	}
 
-	public void checkCyclicDependency(String jsonPath, String validatorData, String jsonSchemaPath) throws JsonSchemaDefinitionError {
+	public void checkCyclicDependency(final String jsonPath, final String validatorData, final String jsonSchemaPath) throws JsonSchemaDefinitionError {
 		if (latestJsonPath == null || !latestJsonPath.equals(jsonPath)) {
 			latestJsonPath = jsonPath;
-			latestDependencies = new HashSet<String>();
+			latestDependencies = new HashSet<>();
 		}
-		if (latestDependencies.contains((String) validatorData)) {
+		if (latestDependencies.contains(validatorData)) {
 			throw new JsonSchemaDefinitionError("Cyclic dependency detected: '" + Utilities.join(latestDependencies, "', ") + "'", jsonSchemaPath);
-		} else{
-			latestDependencies.add((String) validatorData);
+		} else {
+			latestDependencies.add(validatorData);
 		}
 	}
-	
-	public void setUseDraftV4Mode(boolean useDraftV4Mode) {
+
+	public void setUseDraftV4Mode(final boolean useDraftV4Mode) {
 		this.useDraftV4Mode = useDraftV4Mode;
 	}
 
@@ -177,7 +182,7 @@ public class JsonSchemaDependencyResolver {
 		return useDraftV4Mode;
 	}
 
-	public void setDownloadReferencedSchemas(boolean downloadReferencedSchemas) {
+	public void setDownloadReferencedSchemas(final boolean downloadReferencedSchemas) {
 		this.downloadReferencedSchemas = downloadReferencedSchemas;
 	}
 }

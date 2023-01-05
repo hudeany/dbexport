@@ -6,27 +6,29 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 public class JarInJarURLConnection extends URLConnection {
-	private ClassLoader classLoader;
+	private final ClassLoader classLoader;
 
-	public JarInJarURLConnection(URL url, ClassLoader classLoader) {
+	public JarInJarURLConnection(final URL url, final ClassLoader classLoader) {
 		super(url);
-		this.classLoader = classLoader;
+		this.classLoader= classLoader;
 	}
 
 	@Override
 	public void connect() throws IOException {
-		// do nothing
+		// nothing to do
 	}
 
 	@Override
 	public InputStream getInputStream() throws IOException {
-		String file = URLDecoder.decode(url.getFile(), "UTF-8");
-		InputStream result = classLoader.getResourceAsStream(file);
+		final String file = URLDecoder.decode(url.getFile(), StandardCharsets.UTF_8.name());
+		final InputStream result = classLoader.getResourceAsStream(file);
 		if (result == null) {
 			throw new MalformedURLException("Could not open InputStream for URL '" + url + "'");
+		} else {
+			return result;
 		}
-		return result;
 	}
 }

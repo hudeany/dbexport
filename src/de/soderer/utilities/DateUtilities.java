@@ -1,14 +1,31 @@
 package de.soderer.utilities;
 
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.DateFormatSymbols;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 public class DateUtilities {
@@ -27,56 +44,62 @@ public class DateUtilities {
 	public static final String YYYY_MM_DD_HHMMSS = "yyyy-MM-dd HH:mm:ss";
 	public static final String YYYYMMDD_HHMMSS = "yyyyMMdd-HHmmss";
 	public static final String HHMM = "HHmm";
-//	public static final String EE_DD_MM_YYYY = "EE dd.MM.yyyy", Locale.GERMAN); // EE => Weekday
-//	public static final String DD_MMM_YYYY_ENG = "dd-MMM-yy", Locale.ENGLISH);
-//	public static final String DD_MMM_YYYY_GER = "dd-MMM-yy", Locale.GERMAN);
 
-	/** Date format for SOAP Webservices (ISO 8601) */
+	private static final Pattern MONTH_RULE_PATTERN = Pattern.compile("\\d{0,2}M\\d{2}:\\d{4}");
+	private static final Pattern WEEKDAILY_RULE_PATTERN = Pattern.compile("\\d\\D\\D:\\d{4}");
+
+	/** Date format for ISO 8601 */
 	public static final String ISO_8601_DATE_FORMAT_NO_TIMEZONE = "yyyy-MM-dd";
-	/** Date format for SOAP Webservices (ISO 8601) */
+	/** Date format for ISO 8601 */
 	public static final String ISO_8601_DATE_FORMAT = "yyyy-MM-ddX";
-	/** DateTime format for SOAP Webservices (ISO 8601) */
+	/** DateTime format for ISO 8601 */
 	public static final String ISO_8601_DATETIME_FORMAT_NO_TIMEZONE = "yyyy-MM-dd'T'HH:mm:ss";
-	/** DateTime format for SOAP Webservices (ISO 8601) */
+	/** DateTime format for ISO 8601 */
+	public static final String ISO_8601_DATETIME_WITH_NANOS_FORMAT_NO_TIMEZONE = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS";
+	/** DateTime format for ISO 8601 */
 	public static final String ISO_8601_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ssX";
-	
-	/** ANSI SQL standard date format */
+	/** DateTime format for ISO 8601 */
+	public static final String ISO_8601_DATETIME_WITH_NANOS_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSX";
+
+	/** ANSI SQL standard date time format */
 	public static final String ANSI_SQL_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-	public static String getWochenTagNamensKuerzel(GregorianCalendar datum) {
-		int tagesInt = datum.get(Calendar.DAY_OF_WEEK);
-		String dayString = DateFormatSymbols.getInstance().getWeekdays()[tagesInt];
+	/** ANSI SQL standard date format */
+	public static final String ANSI_SQL_DATE_FORMAT = "yyyy-MM-dd";
+
+	public static String getWeekdayNameShort(final GregorianCalendar date) {
+		final int dayInt = date.get(Calendar.DAY_OF_WEEK);
+		final String dayString = DateFormatSymbols.getInstance().getWeekdays()[dayInt];
 		return dayString.substring(0, 2);
 	}
 
-	public static int getWeekdayIndex(String weekday) {
-		if (Utilities.isBlank(weekday)) {
-			return -1;
+	public static DayOfWeek getDayOfWeekByNamePart(String weekDayPartString) {
+		if (Utilities.isBlank(weekDayPartString)) {
+			return null;
 		} else {
-			weekday = weekday.toLowerCase().trim();
-			String[] localeWeekdays = DateFormatSymbols.getInstance().getWeekdays();
-			for (int i = 0; i < localeWeekdays.length; i++) {
-				if (localeWeekdays[i].toLowerCase().startsWith(weekday)) {
-					return i;
+			weekDayPartString = weekDayPartString.toLowerCase().trim();
+			for (final DayOfWeek dayOfWeek : DayOfWeek.values()) {
+				if (dayOfWeek.name().toLowerCase().startsWith(weekDayPartString)) {
+					return dayOfWeek;
 				}
 			}
 
-			if (weekday.startsWith("so") || weekday.startsWith("su")) {
-				return Calendar.SUNDAY;
-			} else if (weekday.startsWith("mo")) {
-				return Calendar.MONDAY;
-			} else if (weekday.startsWith("di") || weekday.startsWith("tu")) {
-				return Calendar.TUESDAY;
-			} else if (weekday.startsWith("mi") || weekday.startsWith("we")) {
-				return Calendar.WEDNESDAY;
-			} else if (weekday.startsWith("do") || weekday.startsWith("th")) {
-				return Calendar.THURSDAY;
-			} else if (weekday.startsWith("fr")) {
-				return Calendar.FRIDAY;
-			} else if (weekday.startsWith("sa")) {
-				return Calendar.SATURDAY;
+			if (weekDayPartString.startsWith("so") || weekDayPartString.startsWith("su")) {
+				return DayOfWeek.SUNDAY;
+			} else if (weekDayPartString.startsWith("mo")) {
+				return DayOfWeek.MONDAY;
+			} else if (weekDayPartString.startsWith("di") || weekDayPartString.startsWith("tu")) {
+				return DayOfWeek.TUESDAY;
+			} else if (weekDayPartString.startsWith("mi") || weekDayPartString.startsWith("we")) {
+				return DayOfWeek.WEDNESDAY;
+			} else if (weekDayPartString.startsWith("do") || weekDayPartString.startsWith("th")) {
+				return DayOfWeek.THURSDAY;
+			} else if (weekDayPartString.startsWith("fr")) {
+				return DayOfWeek.FRIDAY;
+			} else if (weekDayPartString.startsWith("sa")) {
+				return DayOfWeek.SATURDAY;
 			} else {
-				return -1;
+				return null;
 			}
 		}
 	}
@@ -88,11 +111,11 @@ public class DateUtilities {
 	 *            a Timestamp
 	 * @return a String in format 'yyyy-mm-dd HH:MM:SS.NNNNNN'
 	 */
-	public static String formatTimestamp_yyyyMMdd_HHmmssNNNNNN(Timestamp ts) {
+	public static String formatTimestamp_yyyyMMdd_HHmmssNNNNNN(final Timestamp ts) {
 		String returnString = "";
 
 		if (ts != null) {
-			String s = new SimpleDateFormat(YYYY_MM_DD_HHMMSS).format(ts);
+			final String s = DateTimeFormatter.ofPattern(YYYY_MM_DD_HHMMSS).format(DateUtilities.getLocalDateForDate(ts));
 			String nanosString = Integer.toString(ts.getNanos());
 
 			if (nanosString.length() > 6) {
@@ -115,7 +138,7 @@ public class DateUtilities {
 	 * @param ddMMyyyyString
 	 * @return
 	 */
-	public static String convert_ddMMyyyy_to_yyyyMMdd(String ddMMyyyyString) {
+	public static String convert_ddMMyyyy_to_yyyyMMdd(final String ddMMyyyyString) {
 		return ddMMyyyyString.substring(6, 10) + "-" + ddMMyyyyString.substring(3, 5) + "-" + ddMMyyyyString.substring(0, 2);
 	}
 
@@ -125,203 +148,217 @@ public class DateUtilities {
 	 * @param ddMMyyyyString
 	 * @return
 	 */
-	public static String convert_yyyyMMdd_to_ddMMyyyy(String yyyyMMddString) {
+	public static String convert_yyyyMMdd_to_ddMMyyyy(final String yyyyMMddString) {
 		return yyyyMMddString.substring(8, 10) + "." + yyyyMMddString.substring(5, 7) + "." + yyyyMMddString.substring(0, 4);
 	}
 
-	public static Date getDay(int daysToAdd) {
-		GregorianCalendar returnValue = new GregorianCalendar();
-		returnValue.set(Calendar.HOUR_OF_DAY, 0);
-		returnValue.set(Calendar.MINUTE, 0);
-		returnValue.set(Calendar.SECOND, 0);
-		returnValue.set(Calendar.MILLISECOND, 0);
-		if (daysToAdd != 0) {
-			returnValue.add(Calendar.DAY_OF_MONTH, daysToAdd);
-		}
-		return returnValue.getTime();
-	}
-
-	public static String replaceDatePatternInString(String stringWithPatter, Date date) {
-		String returnString = stringWithPatter;
-		returnString = returnString.replace("yyyy", new SimpleDateFormat("yyyy").format(date));
-		returnString = returnString.replace("YYYY", new SimpleDateFormat("yyyy").format(date));
-		returnString = returnString.replace("MM", new SimpleDateFormat("MM").format(date));
-		returnString = returnString.replace("dd", new SimpleDateFormat("dd").format(date));
-		returnString = returnString.replace("DD", new SimpleDateFormat("dd").format(date));
-		returnString = returnString.replace("HH", new SimpleDateFormat("HH").format(date));
-		returnString = returnString.replace("hh", new SimpleDateFormat("HH").format(date));
-		returnString = returnString.replace("mm", new SimpleDateFormat("mm").format(date));
-		returnString = returnString.replace("SS", new SimpleDateFormat("ss").format(date));
-		returnString = returnString.replace("ss", new SimpleDateFormat("ss").format(date));
+	public static String replaceDatePatternInString(final String stringWithPattern, final LocalDateTime localDateTime) {
+		String returnString = stringWithPattern;
+		returnString = returnString.replace("[yyyy]", String.format("%04d", localDateTime.getYear()));
+		returnString = returnString.replace("[YYYY]", String.format("%04d", localDateTime.getYear()));
+		returnString = returnString.replace("[MM]", String.format("%02d", localDateTime.getMonthValue()));
+		returnString = returnString.replace("[dd]", String.format("%02d", localDateTime.getDayOfMonth()));
+		returnString = returnString.replace("[DD]", String.format("%02d", localDateTime.getDayOfMonth()));
+		returnString = returnString.replace("[HH]", String.format("%02d", localDateTime.getHour()));
+		returnString = returnString.replace("[hh]", String.format("%02d", localDateTime.getHour()));
+		returnString = returnString.replace("[mm]", String.format("%02d", localDateTime.getMinute()));
+		returnString = returnString.replace("[SS]", String.format("%02d", localDateTime.getSecond()));
+		returnString = returnString.replace("[ss]", String.format("%02d", localDateTime.getSecond()));
+		returnString = returnString.replace("\\[", "[");
+		returnString = returnString.replace("\\]", "]");
 		return returnString;
 	}
 
-	public static Date calculateETA(Date start, long itemsToDo, long itemsDone) {
-		if (start == null || itemsToDo <= 0 || itemsDone <= 0) {
+	public static LocalDateTime calculateETA(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+		if (start == null || itemsToDo <= 0 || itemsDone <= 0 || itemsToDo < itemsDone) {
 			return null;
 		} else {
-			Date now = new Date();
-			long millisStartToNow = now.getTime() - start.getTime();
-			long millisStartToEnd = itemsToDo * millisStartToNow / itemsDone;
-			return new Date(start.getTime() + millisStartToEnd);
+			final LocalDateTime now = LocalDateTime.now();
+			if (start.isAfter(now)) {
+				return null;
+			} else {
+				final Duration durationSinceStartToNow = Duration.between(start, now);
+				final Duration durationFromStartToEnd = Duration.ofSeconds(itemsToDo * durationSinceStartToNow.toSeconds() / itemsDone);
+				return start.plus(durationFromStartToEnd);
+			}
 		}
 	}
 
-	public static String getShortHumanReadableTimespan(long valueInMillis, boolean showMillis) {
-		String returnValue = "";
-		long rest = valueInMillis;
+	public static String getShortHumanReadableTimespan(final Duration duration, final boolean showMillis, final boolean showLeadingZeros) {
+		final StringBuilder returnValue = new StringBuilder();
 
-		long millis = rest % 1000;
-		rest = rest / 1000;
-
-		long seconds = rest % 60;
-		rest = rest / 60;
-
-		long minutes = rest % 60;
-		rest = rest / 60;
-
-		long hours = rest % 24;
-		rest = rest / 24;
-
-		long days = rest % 7;
-		rest = rest / 7;
-
-		long weeks = rest % 52;
-		rest = rest / 52;
-
-		long years = rest;
+		final long millis = duration.toMillisPart();
+		final long seconds = duration.toSecondsPart();
+		final long minutes = duration.toMinutesPart();
+		final long hours = duration.toHoursPart();
+		final long days = duration.toDays() % 7;
+		final long weeks = duration.toDays() / 7 % 52;
+		final long years = duration.toDays() / 7 / 52;
 
 		if (millis != 0 && showMillis) {
-			returnValue = millis + "ms";
+			returnValue.insert(0, "ms");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%03d", millis));
+			} else {
+				returnValue.insert(0, millis);
+			}
 		}
 
 		if (seconds != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = seconds + "s" + returnValue;
+			returnValue.insert(0, "s");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%02d", seconds));
+			} else {
+				returnValue.insert(0, seconds);
+			}
 		}
 
 		if (minutes != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = minutes + "m" + returnValue;
+			returnValue.insert(0, "m");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%02d", minutes));
+			} else {
+				returnValue.insert(0, minutes);
+			}
 		}
 
 		if (hours != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = hours + "h" + returnValue;
+			returnValue.insert(0, "h");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%02d", hours));
+			} else {
+				returnValue.insert(0, hours);
+			}
 		}
 
 		if (days != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = days + "d" + returnValue;
+			returnValue.insert(0, "d");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%02d", days));
+			} else {
+				returnValue.insert(0, days);
+			}
 		}
 
 		if (weeks != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = weeks + "w" + returnValue;
+			returnValue.insert(0, "w");
+			if (showLeadingZeros) {
+				returnValue.insert(0, String.format("%02d", weeks));
+			} else {
+				returnValue.insert(0, weeks);
+			}
 		}
 
 		if (years != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = years + "y" + returnValue;
+			returnValue.insert(0, "y");
+			returnValue.insert(0, years);
 		}
 
 		if (returnValue.length() > 0) {
-			return returnValue;
+			return returnValue.toString();
 		} else if (!showMillis) {
-			return "0s";
+			if (showLeadingZeros) {
+				return "00s";
+			} else {
+				return "0s";
+			}
 		} else {
-			return "0ms";
+			if (showLeadingZeros) {
+				return "000ms";
+			} else {
+				return "0ms";
+			}
 		}
 	}
 
-	public static String getHumanReadableTimespan(long valueInMillis, boolean showMillis) {
-		String returnValue = "";
-		long rest = valueInMillis;
+	public static String getHumanReadableTimespan(final Duration duration, final boolean showMillis) {
+		final StringBuilder returnValue = new StringBuilder();
 
-		long millis = rest % 1000;
-		rest = rest / 1000;
-
-		long seconds = rest % 60;
-		rest = rest / 60;
-
-		long minutes = rest % 60;
-		rest = rest / 60;
-
-		long hours = rest % 24;
-		rest = rest / 24;
-
-		long days = rest % 7;
-		rest = rest / 7;
-
-		long weeks = rest % 52;
-		rest = rest / 52;
-
-		long years = rest;
+		final long millis = duration.toMillisPart();
+		final long seconds = duration.toSecondsPart();
+		final long minutes = duration.toMinutesPart();
+		final long hours = duration.toHoursPart();
+		final long days = duration.toDays() % 7;
+		final long weeks = duration.toDays() / 7 % 52;
+		final long years = duration.toDays() / 7 / 52;
 
 		if (millis != 0 && showMillis) {
-			returnValue = millis + " millis";
+			returnValue.insert(0, " " + LangResources.get("millis"));
+			returnValue.insert(0, millis);
 		}
 
 		if (seconds != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = seconds + " seconds" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("seconds"));
+			returnValue.insert(0, seconds);
 		}
 
 		if (minutes != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = minutes + " minutes" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("minutes"));
+			returnValue.insert(0, minutes);
 		}
 
 		if (hours != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = hours + " hours" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("hours"));
+			returnValue.insert(0, hours);
 		}
 
 		if (days != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = days + " days" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("days"));
+			returnValue.insert(0, days);
 		}
 
 		if (weeks != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = weeks + " weeks" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("weeks"));
+			returnValue.insert(0, weeks);
 		}
 
 		if (years != 0) {
 			if (returnValue.length() > 0) {
-				returnValue = " " + returnValue;
+				returnValue.insert(0, " ");
 			}
-			returnValue = years + " years" + returnValue;
+			returnValue.insert(0, " " + LangResources.get("years"));
+			returnValue.insert(0, years);
 		}
 
 		if (returnValue.length() > 0) {
-			return returnValue;
+			return returnValue.toString();
 		} else if (!showMillis) {
-			return "0s";
+			return "0 " + LangResources.get("seconds");
 		} else {
-			return "0ms";
+			return "0 " + LangResources.get("millis");
 		}
 	}
 
@@ -332,13 +369,13 @@ public class DateUtilities {
 	 * @param endTime
 	 * @return
 	 */
-	public static String getDuration(Calendar startTime, Calendar endTime) {
-		int durationInMilliSeconds = (int) (endTime.getTimeInMillis() - startTime.getTimeInMillis());
-		int milliSecondsPart = durationInMilliSeconds % 1000;
-		int secondsPart = durationInMilliSeconds / 1000 % 60;
-		int minutesPart = durationInMilliSeconds / 1000 / 60 % 60;
-		int hoursPart = durationInMilliSeconds / 1000 / 60 / 60 % 24;
-		int days = durationInMilliSeconds / 1000 / 60 / 60 % 24;
+	public static String getDuration(final Calendar startTime, final Calendar endTime) {
+		final int durationInMilliSeconds = (int) (endTime.getTimeInMillis() - startTime.getTimeInMillis());
+		final int milliSecondsPart = durationInMilliSeconds % 1000;
+		final int secondsPart = durationInMilliSeconds / 1000 % 60;
+		final int minutesPart = durationInMilliSeconds / 1000 / 60 % 60;
+		final int hoursPart = durationInMilliSeconds / 1000 / 60 / 60 % 24;
+		final int days = durationInMilliSeconds / 1000 / 60 / 60 % 24;
 
 		String returnString = milliSecondsPart + "ms";
 		if (secondsPart > 0) {
@@ -356,229 +393,294 @@ public class DateUtilities {
 		return returnString;
 	}
 
-	public static Date calculateNextJobStart(String timingString) throws Exception {
-		GregorianCalendar now = new GregorianCalendar();
-		return calculateNextJobStart(now, timingString);
+	public static ZonedDateTime calculateNextJobStart(final String timingString) throws Exception {
+		return calculateNextJobStart(null, timingString, null);
+	}
+
+	public static ZonedDateTime calculateNextJobStart(final String timingString, final ZoneId zoneId) throws Exception {
+		return calculateNextJobStart(null, timingString, zoneId);
 	}
 
 	/**
-	 * Calculation of next scheduled job start Timingparameter may contain weekdays, clocktimes, months, quarters and holidays
+	 * Calculation of next scheduled job start
+	 * Timingparameter may contain weekdays, clocktimes, months, quarters and holidays
 	 *
-	 * Allowed parameters: "ONCE" => only once (returns null) "0600;0800" => daily at 06:00 and 08:00 "MoMi:1700" => Every monday and wednesday at 17:00 "M05:1600" => every 05th day of month at 16:00
-	 * "Q:1600" => every first day of quarter at 16:00 "QW:1600" => every first working day of quarter at 16:00 "MoDiMiDoFr:1700;!23012011" => mondays to fridays at 17:00 exept for 23.01.2011
-	 * (Holidays marked by '!')
+	 * Allowed parameters:
+	 * "ONCE"                      => only once (returns null)
+	 * "0600;0800"                 => daily at 06:00 and 08:00
+	 * "MoMi:1700"                 => Every monday and wednesday at 17:00
+	 * "M05:1600"                  => every 05th day of month at 16:00
+	 * "Q:1600"                    => every first day of quarter at 16:00
+	 * "QW:1600"                   => every first working day of quarter at 16:00
+	 * "MoDiMiDoFr:1700;!23012011" => mondays to fridays at 17:00 exept for 23.01.2011 (Holidays marked by '!')
 	 *
 	 * All values may be combined separated by semicolons.
 	 *
 	 * @param timingString
 	 * @return
-	 * @throws ParseException
 	 * @throws Exception
 	 */
-	public static Date calculateNextJobStart(GregorianCalendar now, String timingString) throws Exception {
-		GregorianCalendar returnStart = new GregorianCalendar();
-		returnStart.add(Calendar.YEAR, 1);
-
-		// Holidays to exclude
-		List<GregorianCalendar> excludedDays = new ArrayList<GregorianCalendar>();
-
-		if (timingString.equalsIgnoreCase("once")) {
+	public static ZonedDateTime calculateNextJobStart(ZonedDateTime calulationStartDateTime, final String timingString, ZoneId zoneId) throws Exception {
+		if (Utilities.isBlank(timingString) || "once".equalsIgnoreCase(timingString)) {
 			return null;
 		}
 
-		String[] timingParameterList = timingString.split(";|,| ");
-		for (String timingParameter : timingParameterList) {
+		if (calulationStartDateTime == null) {
+			calulationStartDateTime = ZonedDateTime.now();
+		}
+
+		if (zoneId == null) {
+			zoneId = ZoneId.systemDefault();
+		}
+
+		ZonedDateTime returnStart = null;
+
+		// Holidays to exclude
+		final List<LocalDate> excludedDays = new ArrayList<>();
+
+		final String[] timingParameterList = timingString.split(";|,| ");
+		for (final String timingParameter : timingParameterList) {
 			if (timingParameter.startsWith("!")) {
 				try {
-					GregorianCalendar exclusionDate = new GregorianCalendar();
-					exclusionDate.setTime(new SimpleDateFormat("ddMMyyyy").parse(timingParameter.substring(1)));
+					final LocalDate exclusionDate = parseLocalDate("ddMMyyyy", timingParameter.substring(1));
 					excludedDays.add(exclusionDate);
-				} catch (ParseException e) {
+				} catch (final DateTimeParseException e) {
 					throw e;
 				}
 			}
 		}
 
-		for (String timingParameter : timingParameterList) {
-			GregorianCalendar nextStartByThisParameter = new GregorianCalendar();
-			nextStartByThisParameter.setTime(now.getTime());
-
+		for (final String timingParameter : timingParameterList) {
+			ZonedDateTime nextStartByThisParameter = calulationStartDateTime;
 			if (timingParameter.startsWith("!")) {
 				// Exclusions are done previously
 				continue;
 			} else if (!timingParameter.contains(":")) {
 				if (NumberUtilities.isDigit(timingParameter)) {
-					// daily execution on given time
-					nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, Integer.parseInt(timingParameter.substring(0, 2)));
-					nextStartByThisParameter.set(Calendar.MINUTE, Integer.parseInt(timingParameter.substring(2)));
-					nextStartByThisParameter.set(Calendar.SECOND, 0);
-					nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+					if (timingParameter.length() == 4) {
+						// daily execution on given time
+						nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(timingParameter.substring(0, 2)), Integer.parseInt(timingParameter.substring(2))));
 
-					// Move next start into future (+1 day) until rule is matched
-					// Move also when meeting holiday rule
-					while (nextStartByThisParameter.before(now) && nextStartByThisParameter.before(returnStart) || DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter)) {
-						nextStartByThisParameter.add(Calendar.DAY_OF_MONTH, 1);
+						// Move next start into future (+1 day) until rule is matched
+						// Move also when meeting holiday rule
+						while (!nextStartByThisParameter.isAfter(calulationStartDateTime) && (returnStart == null || nextStartByThisParameter.isBefore(returnStart))
+								|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())) {
+							nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
+						}
+					} else if (timingParameter.length() == 8) {
+						// execution on given day
+						try {
+							nextStartByThisParameter = parseLocalDate("ddMMyyyy", timingParameter).atStartOfDay(zoneId);
+						} catch (final DateTimeParseException e) {
+							throw new Exception("Invalid interval description", e);
+						}
+
+						if (dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())) {
+							continue;
+						}
 					}
 				} else if (timingParameter.contains("*") && timingParameter.length() == 4) {
 					// daily execution on given time with wildcards '*' like '*4*5'
-					nextStartByThisParameter.set(Calendar.SECOND, 0);
-					nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+					nextStartByThisParameter = nextStartByThisParameter.truncatedTo(ChronoUnit.MINUTES);
 
 					// Move next start into future (+1 minute) until rule is matched
 					// Move also when meeting holiday rule
-					while (nextStartByThisParameter.before(now) && nextStartByThisParameter.before(returnStart) || DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter)
-							|| !DateUtilities.checkTimeMatchesPattern(timingParameter, nextStartByThisParameter.getTime())) {
-						nextStartByThisParameter.add(Calendar.MINUTE, 1);
+					while (!nextStartByThisParameter.isAfter(calulationStartDateTime) && (returnStart == null || nextStartByThisParameter.isBefore(returnStart))
+							|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())
+							|| !checkTimeMatchesPattern(timingParameter, nextStartByThisParameter.toLocalTime())) {
+						nextStartByThisParameter = nextStartByThisParameter.plusMinutes(1);
 					}
 				} else {
 					// Fr: weekly execution on Friday at 00:00 Uhr
 					boolean onlyWithinOddWeeks = false;
 					boolean onlyWithinEvenWeeks = false;
-					List<Integer> weekdayIndexes = new ArrayList<Integer>();
-					for (String weekDay : TextUtilities.chopToChunks(timingParameter, 2)) {
-						if (weekDay.equalsIgnoreCase("ev")) {
+					final List<DayOfWeek> weekdays = new ArrayList<>();
+					for (final String weekDayPartString : TextUtilities.chopToChunks(timingParameter, 2)) {
+						if ("ev".equalsIgnoreCase(weekDayPartString)) {
 							onlyWithinEvenWeeks = true;
-						} else if (weekDay.equalsIgnoreCase("od")) {
+						} else if ("od".equalsIgnoreCase(weekDayPartString)) {
 							onlyWithinOddWeeks = true;
 						} else {
-							weekdayIndexes.add(getWeekdayIndex(weekDay));
+							final DayOfWeek weekdayIndex = getDayOfWeekByNamePart(weekDayPartString);
+							if (weekdayIndex == null) {
+								throw new Exception("Invalid weekday in timing data: " + timingString);
+							}
+							weekdays.add(weekdayIndex);
 						}
 					}
-					nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, 0);
-					nextStartByThisParameter.set(Calendar.MINUTE, 0);
-					nextStartByThisParameter.set(Calendar.SECOND, 0);
-					nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(0, 0));
 
 					// Move next start into future (+1 day) until rule is matched
 					// Move also when meeting holiday rule
-					while ((nextStartByThisParameter.before(now) || !weekdayIndexes.contains(nextStartByThisParameter.get(Calendar.DAY_OF_WEEK))) && nextStartByThisParameter.before(returnStart)
-							|| DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter) || (onlyWithinOddWeeks && (nextStartByThisParameter.get(Calendar.WEEK_OF_YEAR) % 2 == 0))
-							|| (onlyWithinEvenWeeks && (nextStartByThisParameter.get(Calendar.WEEK_OF_YEAR) % 2 != 0))) {
-						nextStartByThisParameter.add(Calendar.DAY_OF_MONTH, 1);
+					while ((!nextStartByThisParameter.isAfter(calulationStartDateTime)
+							|| !weekdays.contains(nextStartByThisParameter.getDayOfWeek())) && (returnStart == null || nextStartByThisParameter.isBefore(returnStart))
+							|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())
+							|| (onlyWithinOddWeeks && (nextStartByThisParameter.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) % 2 == 0))
+							|| (onlyWithinEvenWeeks && (nextStartByThisParameter.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) % 2 != 0))) {
+						nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
 					}
 				}
-			} else if (timingParameter.startsWith("M") && timingParameter.length() == 8 && timingParameter.indexOf(":") == 3) {
-				// month rule "M01:1700"
-				String tag = timingParameter.substring(1, timingParameter.indexOf(":"));
-				String zeit = timingParameter.substring(timingParameter.indexOf(":") + 1);
-				if (tag.equals("99")) {
-					// special day ultimo
-					nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, nextStartByThisParameter.getActualMaximum(Calendar.DAY_OF_MONTH));
-				} else {
-					nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, Integer.parseInt(tag));
+			} else if (MONTH_RULE_PATTERN.matcher(timingParameter).matches()) {
+				// month rule "M99:1700" (every month at ultimo)
+				// month rule "06M01:1700" (every half a year at months first day)
+				String xMonth = timingParameter.substring(0, timingParameter.indexOf("M"));
+				if (xMonth.length() == 0) {
+					xMonth = "1";
 				}
-				nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, Integer.parseInt(zeit.substring(0, 2)));
-				nextStartByThisParameter.set(Calendar.MINUTE, Integer.parseInt(zeit.substring(2)));
-				nextStartByThisParameter.set(Calendar.SECOND, 0);
-				nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+				final String day = timingParameter.substring(timingParameter.indexOf("M") + 1, timingParameter.indexOf(":"));
+				final String time = timingParameter.substring(timingParameter.indexOf(":") + 1);
 
-				// find next matching month
-				while (nextStartByThisParameter.before(now) && nextStartByThisParameter.before(returnStart)) {
-					if (tag.equals("99")) {
-						// special day ultimo
-						nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, 1);
-						nextStartByThisParameter.add(Calendar.MONTH, 1);
-						nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, nextStartByThisParameter.getActualMaximum(Calendar.DAY_OF_MONTH));
-					} else {
-						nextStartByThisParameter.add(Calendar.MONTH, 1);
+				nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(time.substring(0, 2)), Integer.parseInt(time.substring(2))));
+
+				if ("99".equals(day)) {
+					// special day ultimo
+					nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.lastDayOfMonth()));
+					// ensure that the first estimated "next time" is in the past, before making forward steps
+					if (nextStartByThisParameter.isAfter(calulationStartDateTime)) {
+						nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.firstDayOfMonth()));
+						nextStartByThisParameter = nextStartByThisParameter.minusMonths(1);
+						nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.lastDayOfMonth()));
 					}
+				} else {
+					nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().withDayOfMonth(Integer.parseInt(day)));
+					// ensure that the first estimated "next time" is in the past, before making forward steps
+					if (nextStartByThisParameter.isAfter(calulationStartDateTime)) {
+						nextStartByThisParameter = nextStartByThisParameter.minusMonths(1);
+					}
+				}
+
+				// Make forward step
+				if ("99".equals(day)) {
+					// special day ultimo
+					nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.firstDayOfMonth()));
+					nextStartByThisParameter = nextStartByThisParameter.plusMonths(Integer.parseInt(xMonth));
+					nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.lastDayOfMonth()));
+				} else {
+					nextStartByThisParameter = nextStartByThisParameter.plusMonths(Integer.parseInt(xMonth));
 				}
 
 				// Move also when meeting holiday rule
-				while (DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter)) {
-					nextStartByThisParameter.add(Calendar.DAY_OF_YEAR, 1);
+				while (dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())) {
+					nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
 				}
 			} else if (timingParameter.startsWith("Q:")) {
 				// quarterly execution (Q:1200) at first day of month
-				if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.APRIL) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.APRIL);
-				} else if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.JULY) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.JULY);
-				} else if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.OCTOBER) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.OCTOBER);
+				if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 1) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.APRIL, nextStartByThisParameter.getDayOfMonth()));
+				} else if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 2) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.JULY, nextStartByThisParameter.getDayOfMonth()));
+				} else if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 3) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.OCTOBER, nextStartByThisParameter.getDayOfMonth()));
 				} else {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.JANUARY);
-					nextStartByThisParameter.add(Calendar.YEAR, 1);
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.JANUARY, nextStartByThisParameter.getDayOfMonth()));
+					nextStartByThisParameter = nextStartByThisParameter.plusYears(1);
 				}
 
-				nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, 1);
-				String zeit = timingParameter.substring(timingParameter.indexOf(":") + 1);
-				nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, Integer.parseInt(zeit.substring(0, 2)));
-				nextStartByThisParameter.set(Calendar.MINUTE, Integer.parseInt(zeit.substring(2)));
-				nextStartByThisParameter.set(Calendar.SECOND, 0);
-				nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+				nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.firstDayOfMonth()));
+				final String time = timingParameter.substring(timingParameter.indexOf(":") + 1);
+				nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(time.substring(0, 2)), Integer.parseInt(time.substring(2))));
 
 				// Move also when meeting holiday rule
-				while (DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter)) {
-					nextStartByThisParameter.add(Calendar.DAY_OF_YEAR, 1);
+				while (dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())) {
+					nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
 				}
 			} else if (timingParameter.startsWith("QW:")) {
 				// quarterly execution (QW:1200) at first workingday of month
-				if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.APRIL) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.APRIL);
-				} else if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.JULY) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.JULY);
-				} else if (nextStartByThisParameter.get(Calendar.MONTH) < Calendar.OCTOBER) {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.OCTOBER);
+				if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 1) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.APRIL, nextStartByThisParameter.getDayOfMonth()));
+				} else if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 2) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.JULY, nextStartByThisParameter.getDayOfMonth()));
+				} else if (nextStartByThisParameter.get(IsoFields.QUARTER_OF_YEAR) == 3) {
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.OCTOBER, nextStartByThisParameter.getDayOfMonth()));
 				} else {
-					nextStartByThisParameter.set(Calendar.MONTH, Calendar.JANUARY);
-					nextStartByThisParameter.add(Calendar.YEAR, 1);
+					nextStartByThisParameter = nextStartByThisParameter.with(LocalDate.of(nextStartByThisParameter.getYear(), Month.JANUARY, nextStartByThisParameter.getDayOfMonth()));
+					nextStartByThisParameter = nextStartByThisParameter.plusYears(1);
 				}
 
-				nextStartByThisParameter.set(Calendar.DAY_OF_MONTH, 1);
+				nextStartByThisParameter = nextStartByThisParameter.with(nextStartByThisParameter.toLocalDate().with(TemporalAdjusters.firstDayOfMonth()));
 
 				// Move also when meeting holiday rule
-				while (nextStartByThisParameter.get(Calendar.DAY_OF_WEEK) == java.util.Calendar.SATURDAY || nextStartByThisParameter.get(Calendar.DAY_OF_WEEK) == java.util.Calendar.SUNDAY
-						|| DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter)) {
-					nextStartByThisParameter.add(Calendar.DAY_OF_MONTH, 1);
+				while (nextStartByThisParameter.getDayOfWeek() == DayOfWeek.SATURDAY
+						|| nextStartByThisParameter.getDayOfWeek() == DayOfWeek.SUNDAY
+						|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())) {
+					nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
 				}
 
-				String zeit = timingParameter.substring(timingParameter.indexOf(":") + 1);
-				nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, Integer.parseInt(zeit.substring(0, 2)));
-				nextStartByThisParameter.set(Calendar.MINUTE, Integer.parseInt(zeit.substring(2)));
-				nextStartByThisParameter.set(Calendar.SECOND, 0);
-				nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
-			} else {
-				// weekday execution (also allowes workingday execution Werktagssteuerung)
-				String wochenTage = timingParameter.substring(0, timingParameter.indexOf(":"));
-				boolean onlyWithinOddWeeks = false;
-				boolean onlyWithinEvenWeeks = false;
-				String zeit = timingParameter.substring(timingParameter.indexOf(":") + 1);
-				List<Integer> weekdayIndexes = new ArrayList<Integer>();
-				for (String weekDay : TextUtilities.chopToChunks(wochenTage, 2)) {
-					if (weekDay.equalsIgnoreCase("ev")) {
-						onlyWithinEvenWeeks = true;
-					} else if (weekDay.equalsIgnoreCase("od")) {
-						onlyWithinOddWeeks = true;
-					} else {
-						weekdayIndexes.add(getWeekdayIndex(weekDay));
-					}
+				final String time = timingParameter.substring(timingParameter.indexOf(":") + 1);
+				nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(time.substring(0, 2)), Integer.parseInt(time.substring(2))));
+			} else if (WEEKDAILY_RULE_PATTERN.matcher(timingParameter).matches()) {
+				// every xth of a weekday in a month
+				final int weekDayOrder = Integer.parseInt(timingParameter.substring(0, 1));
+				if (weekDayOrder < 1 || 5 < weekDayOrder) {
+					throw new Exception("Invalid interval description");
 				}
-				nextStartByThisParameter.set(Calendar.HOUR_OF_DAY, Integer.parseInt(zeit.substring(0, 2)));
-				nextStartByThisParameter.set(Calendar.MINUTE, Integer.parseInt(zeit.substring(2)));
-				nextStartByThisParameter.set(Calendar.SECOND, 0);
-				nextStartByThisParameter.set(Calendar.MILLISECOND, 0);
+				final String weekDayPartString = timingParameter.substring(1, 3);
+				final String time = timingParameter.substring(timingParameter.indexOf(":") + 1);
+				final DayOfWeek weekdayIndex = getDayOfWeekByNamePart(weekDayPartString);
+				if (weekdayIndex == null) {
+					throw new Exception("Invalid weekday in timing data: " + timingString);
+				}
+				nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(time.substring(0, 2)), Integer.parseInt(time.substring(2))));
 
 				// Move next start into future (+1 day) until rule is matched
 				// Move also when meeting holiday rule
-				while ((nextStartByThisParameter.before(now) || !weekdayIndexes.contains(nextStartByThisParameter.get(Calendar.DAY_OF_WEEK))) && nextStartByThisParameter.before(returnStart)
-						|| DateUtilities.dayListIncludes(excludedDays, nextStartByThisParameter) || (onlyWithinOddWeeks && (nextStartByThisParameter.get(Calendar.WEEK_OF_YEAR) % 2 == 0))
-						|| (onlyWithinEvenWeeks && (nextStartByThisParameter.get(Calendar.WEEK_OF_YEAR) % 2 != 0))) {
-					nextStartByThisParameter.add(Calendar.DAY_OF_MONTH, 1);
+				while ((!nextStartByThisParameter.isAfter(calulationStartDateTime)
+						|| weekdayIndex != nextStartByThisParameter.getDayOfWeek()) && (returnStart == null || nextStartByThisParameter.isBefore(returnStart))
+						|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())
+						|| weekDayOrder != getNumberOfWeekdayInMonth(nextStartByThisParameter.getDayOfMonth())) {
+					nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
+				}
+			} else {
+				// weekday execution (also allows workingday execution, german: "Werktagssteuerung" by "MoTuWeThFr:0000")
+				final String weekDays = timingParameter.substring(0, timingParameter.indexOf(":"));
+				boolean onlyWithinOddWeeks = false;
+				boolean onlyWithinEvenWeeks = false;
+				final String time = timingParameter.substring(timingParameter.indexOf(":") + 1);
+				final List<DayOfWeek> weekdays = new ArrayList<>();
+				for (final String weekDayPartString : TextUtilities.chopToChunks(weekDays, 2)) {
+					if ("ev".equalsIgnoreCase(weekDayPartString)) {
+						onlyWithinEvenWeeks = true;
+					} else if ("od".equalsIgnoreCase(weekDayPartString)) {
+						onlyWithinOddWeeks = true;
+					} else {
+						final DayOfWeek weekday = getDayOfWeekByNamePart(weekDayPartString);
+						if (weekday == null) {
+							throw new Exception("Invalid weekday in timing data: " + timingString);
+						}
+						weekdays.add(weekday);
+					}
+				}
+				if (weekdays.isEmpty()) {
+					throw new Exception("Invalid timing data: " + timingString);
+				}
+				nextStartByThisParameter = nextStartByThisParameter.with(LocalTime.of(Integer.parseInt(time.substring(0, 2)), Integer.parseInt(time.substring(2))));
+
+				// Move next start into future (+1 day) until rule is matched
+				// Move also when meeting holiday rule
+				while ((!nextStartByThisParameter.isAfter(calulationStartDateTime)
+						|| !weekdays.contains(nextStartByThisParameter.getDayOfWeek())) && (returnStart == null || nextStartByThisParameter.isBefore(returnStart))
+						|| dayListIncludes(excludedDays, nextStartByThisParameter.toLocalDate())
+						|| (onlyWithinOddWeeks && (nextStartByThisParameter.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) % 2 == 0))
+						|| (onlyWithinEvenWeeks && (nextStartByThisParameter.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) % 2 != 0))) {
+					nextStartByThisParameter = nextStartByThisParameter.plusDays(1);
 				}
 			}
 
-			if (nextStartByThisParameter.before(returnStart)) {
+			if (returnStart == null || nextStartByThisParameter.isBefore(returnStart)) {
 				returnStart = nextStartByThisParameter;
 			}
 		}
 
-		return returnStart.getTime();
+		if (returnStart == null) {
+			throw new Exception("Invalid interval description");
+		}
+
+		return returnStart;
 	}
 
-	public static boolean checkTimeMatchesPattern(String pattern, Date time) {
-		Pattern timePattern = Pattern.compile(pattern.replace("*", "."));
-		String timeString = new SimpleDateFormat(HHMM).format(time);
+	public static boolean checkTimeMatchesPattern(final String pattern, final LocalTime time) {
+		final Pattern timePattern = Pattern.compile(pattern.replace("*", "."));
+		final String timeString = DateTimeFormatter.ofPattern(HHMM).format(time);
 		return timePattern.matcher(timeString).matches();
 	}
 
@@ -588,7 +690,7 @@ public class DateUtilities {
 	 * @param value
 	 * @return
 	 */
-	public static GregorianCalendar getDayWithoutTime(GregorianCalendar value) {
+	public static GregorianCalendar getDayWithoutTime(final GregorianCalendar value) {
 		return new GregorianCalendar(value.get(Calendar.YEAR), value.get(Calendar.MONTH), value.get(Calendar.DAY_OF_MONTH));
 	}
 
@@ -599,34 +701,34 @@ public class DateUtilities {
 	 * @param day
 	 * @return
 	 */
-	public static boolean dayListIncludes(List<GregorianCalendar> listOfDays, GregorianCalendar day) {
-		for (GregorianCalendar listDay : listOfDays) {
-			if (listDay.get(Calendar.DAY_OF_YEAR) == day.get(Calendar.DAY_OF_YEAR)) {
+	public static boolean dayListIncludes(final List<LocalDate> listOfDays, final LocalDate day) {
+		for (final LocalDate listDay : listOfDays) {
+			if (listDay.getDayOfYear() == day.getDayOfYear()) {
 				return true;
 			}
 		}
 		return false;
 	}
-    
-    public static Date parseUnknownDateFormat(String value) throws Exception {
+
+	public static LocalDateTime parseUnknownDateFormat(final String value) throws Exception {
 		try {
-			return new SimpleDateFormat(DD_MM_YYYY_HH_MM_SS).parse(value);
-		} catch (ParseException e1) {
+			return parseLocalDateTime(DD_MM_YYYY_HH_MM_SS, value);
+		} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
 			try {
-				return new SimpleDateFormat(DD_MM_YYYY_HH_MM).parse(value);
-			} catch (ParseException e2) {
+				return parseLocalDateTime(DD_MM_YYYY_HH_MM, value);
+			} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
 				try {
-					return new SimpleDateFormat(DD_MM_YYYY).parse(value);
-				} catch (ParseException e3) {
+					return parseLocalDateTime(DD_MM_YYYY, value);
+				} catch (@SuppressWarnings("unused") final DateTimeParseException e3) {
 					try {
-						return new SimpleDateFormat(YYYY_MM_DD_HH_MM).parse(value);
-					} catch (ParseException e4) {
+						return parseLocalDateTime(YYYY_MM_DD_HH_MM, value);
+					} catch (@SuppressWarnings("unused") final DateTimeParseException e4) {
 						try {
-							return new SimpleDateFormat(YYYYMMDDHHMMSS).parse(value);
-						} catch (ParseException e5) {
+							return parseLocalDateTime(YYYYMMDDHHMMSS, value);
+						} catch (@SuppressWarnings("unused") final DateTimeParseException e5) {
 							try {
-								return new SimpleDateFormat(DDMMYYYY).parse(value);
-							} catch (ParseException e6) {
+								return parseLocalDateTime(DDMMYYYY, value);
+							} catch (@SuppressWarnings("unused") final DateTimeParseException e6) {
 								throw new Exception("Unknown date format");
 							}
 						}
@@ -634,46 +736,480 @@ public class DateUtilities {
 				}
 			}
 		}
-    }
+	}
 
-    /**
-     * Parse DateTime strings for SOAP Webservices (ISO 8601)
-     * 
-     * @param dateValue
-     * @return
-     * @throws Exception
-     */
-    public static Date parseIso8601DateTimeString(String dateValue) throws Exception {
-    	if (Utilities.isBlank(dateValue)) {
-    		return null;
-    	}
-    	
-    	dateValue = dateValue.toUpperCase();
-    	
-    	if (dateValue.endsWith("Z")) {
-    		// Standardize UTC time
-    		dateValue = dateValue.replace("Z", "+00:00");
-    	}
-    	
-    	boolean hasTimezone = false;
-    	if (dateValue.length() > 6 && dateValue.charAt(dateValue.length() - 3) == ':' && (dateValue.charAt(dateValue.length() - 6) == '+' || dateValue.charAt(dateValue.length() - 6) == '-')) {
-    		hasTimezone = true;
-    	}
-    	
-    	if (dateValue.contains("T")) {
-    		// Date with time
-    		if (hasTimezone) {
-    			return new SimpleDateFormat(ISO_8601_DATETIME_FORMAT).parse(dateValue);
-    		} else {
-    			return new SimpleDateFormat(ISO_8601_DATETIME_FORMAT_NO_TIMEZONE).parse(dateValue);
-    		}
-    	} else {
-    		// Date only
-    		if (hasTimezone) {
-    			return new SimpleDateFormat(ISO_8601_DATE_FORMAT).parse(dateValue);
-    		} else {
-    			return new SimpleDateFormat(ISO_8601_DATE_FORMAT_NO_TIMEZONE).parse(dateValue);
-    		}
-    	}
-    }
+	@SuppressWarnings("deprecation")
+	public static LocalDateTime getLocalDateTimeForDate(Date date) {
+		if (date == null) {
+			return null;
+		} else {
+			try {
+				date = new Date(date.getTime());
+				final long milliseconds = date.getTime();
+				final long epochSeconds = milliseconds / 1000;
+				final int nanoseconds = ((int) (milliseconds % 1000)) * 1000000;
+				final LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(epochSeconds, nanoseconds, ZoneOffset.ofTotalSeconds(date.getTimezoneOffset() * -60));
+				return localDateTime;
+			} catch (final Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+	}
+
+	public static LocalDateTime getLocalDateTime(final Long millis) {
+		if (millis == null) {
+			return null;
+		} else {
+			try {
+				final Date date = new Date(millis);
+				final long milliseconds = date.getTime();
+				final long epochSeconds = milliseconds / 1000;
+				final int nanoseconds = ((int) (milliseconds % 1000)) * 1000000;
+				@SuppressWarnings("deprecation")
+				final LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(epochSeconds, nanoseconds, ZoneOffset.ofTotalSeconds(date.getTimezoneOffset() * -60));
+				return localDateTime;
+			} catch (final Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+	}
+
+	public static LocalDate getLocalDateForDate(final Date date) {
+		// new Date(date.getTime()) to convert value of java.sql.Date
+		return (new Date(date.getTime())).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+	}
+
+	public static Date getDateForLocalDateTime(final LocalDateTime localDateTime) {
+		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+	}
+
+	public static java.sql.Timestamp getSqlTimestampForLocalDateTime(final LocalDateTime localDateTime) {
+		return new java.sql.Timestamp(Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant()).getTime());
+	}
+
+	public static Date getDateForLocalDate(final LocalDate localDate) {
+		return Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+	}
+
+	public static java.sql.Date getSqlDateForLocalDate(final LocalDate localDate) {
+		return new java.sql.Date(Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()).getTime());
+	}
+
+	public static Date getDateForZonedDateTime(final ZonedDateTime zonedDateTime) {
+		return Date.from(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toInstant());
+	}
+
+	/**
+	 * Parse DateTime strings for ISO 8601
+	 *
+	 * @param dateValue
+	 * @return
+	 * @throws Exception
+	 */
+	public static ZonedDateTime parseIso8601DateTimeString(final String dateValue) throws Exception {
+		return parseIso8601DateTimeString(dateValue, ZoneId.systemDefault());
+	}
+
+	/**
+	 * Parse DateTime strings for ISO 8601
+	 *
+	 * @param dateValueString
+	 * @return
+	 * @throws Exception
+	 */
+	public static ZonedDateTime parseIso8601DateTimeString(String dateValueString, final ZoneId defaultZoneId) throws Exception {
+		if (Utilities.isBlank(dateValueString)) {
+			return null;
+		}
+
+		dateValueString = dateValueString.toUpperCase();
+
+		if (dateValueString.endsWith("Z")) {
+			// Standardize UTC time
+			dateValueString = dateValueString.replace("Z", "+00:00");
+		}
+
+		boolean hasTimezone = false;
+		if (dateValueString.length() > 6 && dateValueString.charAt(dateValueString.length() - 3) == ':' && (dateValueString.charAt(dateValueString.length() - 6) == '+' || dateValueString.charAt(dateValueString.length() - 6) == '-')) {
+			hasTimezone = true;
+		} else if (dateValueString.length() > 6 && (dateValueString.charAt(dateValueString.length() - 3) == '+')) {
+			hasTimezone = true;
+		}
+
+		if (dateValueString.contains("T")) {
+			if (dateValueString.contains(".")) {
+				if (hasTimezone) {
+					if (dateValueString.substring(dateValueString.indexOf(".")).length() > 13 ) {
+						// Date with time and nanoseconds
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSSSSXXXXX");
+						dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+						return ZonedDateTime.parse(dateValueString, dateTimeFormatter);
+					} else if (dateValueString.substring(dateValueString.indexOf(".")).length() > 10 ) {
+						// Date with time and fractals
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSXXXXX");
+						dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+						return ZonedDateTime.parse(dateValueString, dateTimeFormatter);
+					} else {
+						// Date with time and milliseconds
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSXXXXX");
+						dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+						return ZonedDateTime.parse(dateValueString, dateTimeFormatter);
+					}
+				} else {
+					if (dateValueString.substring(dateValueString.indexOf(".")).length() > 7 ) {
+						// Date with time and nanoseconds
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSSSS");
+						return LocalDateTime.parse(dateValueString, dateTimeFormatter).atZone(defaultZoneId);
+					} else if (dateValueString.substring(dateValueString.indexOf(".")).length() > 4 ) {
+						// Date with time and fractals
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSS");
+						return LocalDateTime.parse(dateValueString, dateTimeFormatter).atZone(defaultZoneId);
+					} else {
+						// Date with time and milliseconds
+						final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS");
+						dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+						return LocalDateTime.parse(dateValueString, dateTimeFormatter).atZone(defaultZoneId);
+					}
+				}
+			} else {
+				// Date with time
+				if (hasTimezone) {
+					final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+					dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+					return ZonedDateTime.parse(dateValueString, dateTimeFormatter);
+				} else {
+					final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+					dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+					return LocalDateTime.parse(dateValueString, dateTimeFormatter).atZone(defaultZoneId);
+				}
+			}
+		} else {
+			// Date only
+			if (hasTimezone) {
+				if (dateValueString.contains("+")) {
+					dateValueString = TextUtilities.replaceLast(dateValueString, "+", "T00:00:00+");
+				} else {
+					dateValueString = TextUtilities.replaceLast(dateValueString, "-", "T00:00:00-");
+				}
+				final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+				dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+				return ZonedDateTime.parse(dateValueString, dateTimeFormatter);
+			} else {
+				dateValueString = dateValueString + "T00:00:00";
+				final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+				dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+				return LocalDateTime.parse(dateValueString, dateTimeFormatter).atZone(defaultZoneId);
+			}
+		}
+	}
+
+	/**
+	 * Get the ordinal of occurence of the given weekdy in its month
+	 * @param dayOfMonth
+	 * @return
+	 */
+	public static int getNumberOfWeekdayInMonth(final int dayOfMonth) {
+		final float ordinalFloat = dayOfMonth / 7.0f;
+		final int ordinalInt = (int) Math.round(Math.ceil(ordinalFloat));
+		return ordinalInt;
+	}
+
+	public static Date changeDateTimeZone(final Date date, TimeZone sourceTimeZone, TimeZone destinationTimeZone) {
+		if (date == null) {
+			return null;
+		} else {
+			if (sourceTimeZone == null) {
+				sourceTimeZone = TimeZone.getDefault();
+			}
+			if (destinationTimeZone == null) {
+				destinationTimeZone = TimeZone.getDefault();
+			}
+			if (sourceTimeZone.equals(destinationTimeZone)) {
+				return date;
+			} else {
+				long fromTZDst = 0;
+				if (sourceTimeZone.inDaylightTime(date)) {
+					fromTZDst = sourceTimeZone.getDSTSavings();
+				}
+
+				final long fromTZOffset = sourceTimeZone.getRawOffset() + fromTZDst;
+
+				long toTZDst = 0;
+				if (destinationTimeZone.inDaylightTime(date)) {
+					toTZDst = destinationTimeZone.getDSTSavings();
+				}
+				final long toTZOffset = destinationTimeZone.getRawOffset() + toTZDst;
+
+				return new Date(date.getTime() + (toTZOffset - fromTZOffset));
+			}
+		}
+	}
+
+	public static Date changeDateTimeZone(final Date date, ZoneId sourceZoneId, ZoneId destinationZoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			if (sourceZoneId == null) {
+				sourceZoneId = ZoneId.systemDefault();
+			}
+			if (destinationZoneId == null) {
+				destinationZoneId = ZoneId.systemDefault();
+			}
+			if (sourceZoneId.equals(destinationZoneId)) {
+				return date;
+			} else {
+				final LocalDateTime localDateTime = getLocalDateTimeForDate(date);
+				final ZonedDateTime sourceZonedDateTime = localDateTime.atZone(sourceZoneId);
+				final ZonedDateTime destinationZonedDateTime = sourceZonedDateTime.withZoneSameInstant(destinationZoneId);
+				final Date rezonedDate = new Date(destinationZonedDateTime.withZoneSameLocal(ZoneId.systemDefault()).toInstant().toEpochMilli());
+				return rezonedDate;
+			}
+		}
+	}
+
+	public static LocalDateTime changeDateTimeZone(final LocalDateTime localDateTime, ZoneId sourceZoneId, ZoneId destinationZoneId) {
+		if (localDateTime == null) {
+			return null;
+		} else {
+			if (sourceZoneId == null) {
+				sourceZoneId = ZoneId.systemDefault();
+			}
+			if (destinationZoneId == null) {
+				destinationZoneId = ZoneId.systemDefault();
+			}
+			if (sourceZoneId.equals(destinationZoneId)) {
+				return localDateTime;
+			} else {
+				final ZonedDateTime sourceZonedDateTime = localDateTime.atZone(sourceZoneId);
+				return sourceZonedDateTime.withZoneSameInstant(destinationZoneId).toLocalDateTime();
+			}
+		}
+	}
+
+	public static ZonedDateTime changeDateTimeZone(final ZonedDateTime zonedDateTime, ZoneId destinationZoneId) {
+		if (zonedDateTime == null) {
+			return null;
+		} else {
+			if (destinationZoneId == null) {
+				destinationZoneId = ZoneId.systemDefault();
+			}
+			if (zonedDateTime.getZone().equals(destinationZoneId)) {
+				return zonedDateTime;
+			} else {
+				return zonedDateTime.withZoneSameInstant(destinationZoneId);
+			}
+		}
+	}
+
+	public static DateTimeFormatter getDateFormatter(final Locale locale) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateFormatPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		return dateTimeFormatter;
+	}
+
+	public static DateTimeFormatter getDateFormatter(final Locale locale, final ZoneId zoneId) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateFormatPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		dateTimeFormatter.withZone(zoneId);
+		return dateTimeFormatter;
+	}
+
+	public static String getDateFormatPattern(final Locale locale) {
+		final SimpleDateFormat dateTimeFormat = (SimpleDateFormat) DateFormat.getDateInstance(DateFormat.SHORT, locale);
+		return dateTimeFormat.toPattern().replaceFirst("y+", "yyyy");
+	}
+
+	public static String getDateTimeFormatPattern(final Locale locale) {
+		return getDateFormatPattern(locale) + " HH:mm";
+	}
+
+	public static String getDateTimeFormatWithSecondsPattern(final Locale locale) {
+		return getDateFormatPattern(locale) + " HH:mm:ss";
+	}
+
+	public static DateTimeFormatter getDateTimeFormatter(final Locale locale) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateTimeFormatPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		return dateTimeFormatter;
+	}
+
+	public static DateTimeFormatter getDateTimeFormatter(final Locale locale, final ZoneId zoneId) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateTimeFormatPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		dateTimeFormatter.withZone(zoneId);
+		return dateTimeFormatter;
+	}
+
+	public static DateTimeFormatter getDateTimeFormatterWithSeconds(final Locale locale) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateTimeFormatWithSecondsPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		return dateTimeFormatter;
+	}
+
+	public static DateTimeFormatter getDateTimeFormatterWithSeconds(final Locale locale, final ZoneId zoneId) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(getDateTimeFormatPattern(locale));
+		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		dateTimeFormatter.withZone(zoneId);
+		return dateTimeFormatter;
+	}
+
+	public static String formatDate(final String format, final ZonedDateTime date) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final Date date) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).format(getLocalDateTimeForDate(date));
+		}
+	}
+
+	public static String formatDate(final String format, final LocalDateTime date) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final LocalDate date) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final Date date, final Locale locale, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).localizedBy(locale).withZone(zoneId).format(getLocalDateTimeForDate(date));
+		}
+	}
+
+	public static String formatDate(final String format, final LocalDateTime date, final Locale locale, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).localizedBy(locale).withZone(zoneId).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final LocalDate date, final Locale locale, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).localizedBy(locale).withZone(zoneId).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final Date date, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).withZone(zoneId).format(getLocalDateTimeForDate(date));
+		}
+	}
+
+	public static String formatDate(final String format, final LocalDateTime date, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).withZone(zoneId).format(date);
+		}
+	}
+
+	public static String formatDate(final String format, final ZonedDateTime date, final ZoneId zoneId) {
+		if (date == null) {
+			return null;
+		} else {
+			return DateTimeFormatter.ofPattern(format).withZone(zoneId).format(date);
+		}
+	}
+
+	public static LocalDate parseLocalDate(final String dateFormatPattern, final String dateString) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(dateFormatPattern);
+		final LocalDate localDate = LocalDate.parse(dateString, dateTimeFormatter);
+		return localDate;
+	}
+
+	public static LocalDateTime parseLocalDateTime(final String dateTimeFormatPattern, final String dateTimeString) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
+		final LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, dateTimeFormatter);
+		return localDateTime;
+	}
+
+	public static Date parseDateTime(final String format, final String dateTimeString) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(format);
+		final LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, dateTimeFormatter);
+		return getDateForLocalDateTime(localDateTime);
+	}
+
+	public static Date parseDateTime(final String format, final String dateTimeString, final TimeZone timeZone) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(format);
+		dateTimeFormatter.withZone(timeZone.toZoneId());
+		final LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, dateTimeFormatter);
+		return getDateForLocalDateTime(localDateTime);
+	}
+
+	public static Date parseDateTime(final String format, final String dateTimeString, final ZoneId zoneId) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(format);
+		dateTimeFormatter.withZone(zoneId);
+		final LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, dateTimeFormatter);
+		return getDateForLocalDateTime(localDateTime);
+	}
+
+	public static ZonedDateTime parseZonedDateTime(final String format, final String dateTimeString, final ZoneId zoneId) {
+		final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(format);
+		dateTimeFormatter.withZone(zoneId);
+		final ZonedDateTime zonedDateTime = ZonedDateTime.parse(dateTimeString, dateTimeFormatter);
+		return zonedDateTime;
+	}
+
+	/**
+	 * OpenJDK 15+ doesn't recognize german three letter months by "MMM" in SimpleDateFormat anymore.
+	 * So here is a helper to cope with that problem.
+	 */
+	public static int parseThreeLetterMonth(final String threeLetterMonth) throws Exception {
+		switch(threeLetterMonth.toUpperCase()) {
+			case "JAN":
+				return 1;
+			case "FEB":
+				return 2;
+			case "MAR":
+			case "MÄR":
+				return 3;
+			case "APR":
+				return 4;
+			case "MAY":
+			case "MAI":
+				return 5;
+			case "JUN":
+				return 6;
+			case "JUL":
+				return 7;
+			case "AUG":
+				return 8;
+			case "SEP":
+				return 9;
+			case "OCT":
+			case "OKT":
+				return 10;
+			case "NOV":
+				return 11;
+			case "DEC":
+			case "DEZ":
+				return 12;
+			default:
+				throw new Exception("Unknown three letter month: " + threeLetterMonth);
+		}
+	}
 }
