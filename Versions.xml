@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<ApplicationVersions creationDate='2023-01-05 01:11:23'>
+	<DbCsvExport version='22.5.11' md5CheckSum='d5fa2ffc0249a5325abe02b9c36451e0'>https://github.com/hudeany/dbcsvexport/releases/download/22.5.11/DbCsvExport-22.5.11.jar</DbCsvExport>
+</ApplicationVersions>
