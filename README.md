@@ -1,5 +1,4 @@
 # Java tool to import data in db from csv, json or xml files 
-
 Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]
 
 ## Mandatory parameters for db import
