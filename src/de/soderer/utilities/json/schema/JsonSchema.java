@@ -1,6 +1,8 @@
 package de.soderer.utilities.json.schema;
 
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -38,13 +40,13 @@ import de.soderer.utilities.json.schema.validator.UniqueItemsValidator;
 
 /**
  * JSON Schema Validator vor Draft Version v4<br />
- * http://json-schema.org/draft-04/schema#<br />
+ * https://json-schema.org/draft-04/schema#<br />
  * <br />
  * For Validation of JSON schemas you may use the included file resource "JsonSchemaDescriptionDraftV4.json":<br />
  * JsonSchema.class.getClassLoader().getResourceAsStream("json/JsonSchemaDescriptionDraftV4.json")<br />
  * <br />
  * For the JSON schema standard definition see:<br />
- * http://json-schema.org<br />
+ * https://json-schema.org<br />
  * <br />
  * For examples and help an JSON schema creation see:<br />
  * https://spacetelescope.github.io<br />
@@ -52,7 +54,7 @@ import de.soderer.utilities.json.schema.validator.UniqueItemsValidator;
 public class JsonSchema {
 	/**
 	 * Url describing the JSON schema standard and version a JSON schema was written for in compliance<br />
-	 * Example: "http://json-schema.org/schema#"
+	 * Example: "https://json-schema.org/schema#"
 	 */
 	private String schemaVersionUrl;
 
@@ -69,30 +71,8 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(InputStream jsonSchemaInputStream) throws JsonSchemaDefinitionError  {
-		this(jsonSchemaInputStream, "UTF-8", false);
-	}
-	
-	/**
-	 * Draft V4 mode is NOT default mode<br />
-	 * <br />
-	 * The default mode uses a slightly more strict JSON schema definition.<br />
-	 * This is useful in detection of schema definition errors.<br />
-	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
-	 */
-	public JsonSchema(InputStream jsonSchemaInputStream, String encoding) throws JsonSchemaDefinitionError  {
-		this(jsonSchemaInputStream, encoding, false);
-	}
-	
-	/**
-	 * Draft V4 mode is NOT default mode<br />
-	 * <br />
-	 * The default mode uses a slightly more strict JSON schema definition.<br />
-	 * This is useful in detection of schema definition errors.<br />
-	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
-	 */
-	public JsonSchema(InputStream jsonSchemaInputStream, boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
-		this(jsonSchemaInputStream, "UTF-8", useDraftV4Mode);
+	public JsonSchema(final InputStream jsonSchemaInputStream) throws JsonSchemaDefinitionError  {
+		this(jsonSchemaInputStream, StandardCharsets.UTF_8, false);
 	}
 
 	/**
@@ -102,18 +82,40 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(InputStream jsonSchemaInputStream, String encoding, boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding) throws JsonSchemaDefinitionError  {
+		this(jsonSchemaInputStream, encoding, false);
+	}
+
+	/**
+	 * Draft V4 mode is NOT default mode<br />
+	 * <br />
+	 * The default mode uses a slightly more strict JSON schema definition.<br />
+	 * This is useful in detection of schema definition errors.<br />
+	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
+	 */
+	public JsonSchema(final InputStream jsonSchemaInputStream, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+		this(jsonSchemaInputStream, StandardCharsets.UTF_8, useDraftV4Mode);
+	}
+
+	/**
+	 * Draft V4 mode is NOT default mode<br />
+	 * <br />
+	 * The default mode uses a slightly more strict JSON schema definition.<br />
+	 * This is useful in detection of schema definition errors.<br />
+	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
+	 */
+	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
 		JsonNode jsonNode;
 		try (JsonReader jsonReader = new Json5Reader(jsonSchemaInputStream, encoding)) {
 			jsonNode = jsonReader.read();
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			throw new JsonSchemaDefinitionError("Cannot read JSON-Schema: " + e.getMessage(), null);
 		}
-		
+
 		if (jsonNode == null) {
 			throw new JsonSchemaDefinitionError("Contains null data", null);
 		} else if (jsonNode.isJsonObject()) {
-			readSchemaData((JsonObject)jsonNode.getValue());
+			readSchemaData((JsonObject) jsonNode.getValue());
 			jsonSchemaDependencyResolver.setUseDraftV4Mode(useDraftV4Mode);
 		} else {
 			throw new JsonSchemaDefinitionError("Does not contain JsonObject", "$");
@@ -127,7 +129,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(JsonObject jsonSchemaDefinition) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final JsonObject jsonSchemaDefinition) throws JsonSchemaDefinitionError  {
 		this(jsonSchemaDefinition, false);
 	}
 
@@ -138,84 +140,84 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(JsonObject jsonSchemaDefinition, boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final JsonObject jsonSchemaDefinition, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
 		readSchemaData(jsonSchemaDefinition);
 		jsonSchemaDependencyResolver.setUseDraftV4Mode(useDraftV4Mode);
 	}
-	
-	private void readSchemaData(JsonObject jsonSchemaDefinition) throws JsonSchemaDefinitionError {
-		if (jsonSchemaDefinition == null) {
+
+	private void readSchemaData(final JsonObject jsonSchemaDefinitionObject) throws JsonSchemaDefinitionError {
+		if (jsonSchemaDefinitionObject == null) {
 			throw new JsonSchemaDefinitionError("Contains null data", null);
 		} else {
-			this.jsonSchemaDefinition = jsonSchemaDefinition;
+			jsonSchemaDefinition = jsonSchemaDefinitionObject;
 		}
 
-		if (jsonSchemaDefinition.containsPropertyKey("id")) {
-			if (jsonSchemaDefinition.get("id") == null) {
+		if (jsonSchemaDefinitionObject.containsPropertyKey("id")) {
+			if (jsonSchemaDefinitionObject.get("id") == null) {
 				throw new JsonSchemaDefinitionError("Invalid data type 'null' for key 'id'", "$");
-			} else if (!(jsonSchemaDefinition.get("id") instanceof String)) {
-				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinition.get("id").getClass().getSimpleName() + "' for key 'id'", "$");
+			} else if (!(jsonSchemaDefinitionObject.get("id") instanceof String)) {
+				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinitionObject.get("id").getClass().getSimpleName() + "' for key 'id'", "$");
 			} else {
-				id = (String) jsonSchemaDefinition.get("id");
+				id = (String) jsonSchemaDefinitionObject.get("id");
 			}
 		}
-		
-		if (jsonSchemaDefinition.containsPropertyKey("$schema")) {
-			if (jsonSchemaDefinition.get("$schema") == null) {
+
+		if (jsonSchemaDefinitionObject.containsPropertyKey("$schema")) {
+			if (jsonSchemaDefinitionObject.get("$schema") == null) {
 				throw new JsonSchemaDefinitionError("Invalid data type 'null' for key '$schema'", "$");
-			} else if (!(jsonSchemaDefinition.get("$schema") instanceof String)) {
-				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinition.get("$schema").getClass().getSimpleName() + "' for key '$schema'", "$");
+			} else if (!(jsonSchemaDefinitionObject.get("$schema") instanceof String)) {
+				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinitionObject.get("$schema").getClass().getSimpleName() + "' for key '$schema'", "$");
 			} else {
-				schemaVersionUrl = (String) jsonSchemaDefinition.get("$schema");
+				schemaVersionUrl = (String) jsonSchemaDefinitionObject.get("$schema");
 			}
 		}
-		
-		if (jsonSchemaDefinition.containsPropertyKey("title")) {
-			if (jsonSchemaDefinition.get("title") == null) {
+
+		if (jsonSchemaDefinitionObject.containsPropertyKey("title")) {
+			if (jsonSchemaDefinitionObject.get("title") == null) {
 				throw new JsonSchemaDefinitionError("Invalid data type 'null' for key 'title'", "$");
-			} else if (!(jsonSchemaDefinition.get("title") instanceof String)) {
-				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinition.get("title").getClass().getSimpleName() + "' for key 'title'", "$");
+			} else if (!(jsonSchemaDefinitionObject.get("title") instanceof String)) {
+				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinitionObject.get("title").getClass().getSimpleName() + "' for key 'title'", "$");
 			} else {
-				title = (String) jsonSchemaDefinition.get("title");
+				title = (String) jsonSchemaDefinitionObject.get("title");
 			}
 		}
-		
-		if (jsonSchemaDefinition.containsPropertyKey("description")) {
-			if (jsonSchemaDefinition.get("description") == null) {
+
+		if (jsonSchemaDefinitionObject.containsPropertyKey("description")) {
+			if (jsonSchemaDefinitionObject.get("description") == null) {
 				throw new JsonSchemaDefinitionError("Invalid data type 'null' for key 'description'", "$");
-			} else if (!(jsonSchemaDefinition.get("description") instanceof String)) {
-				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinition.get("title").getClass().getSimpleName() + "' for key 'description'", "$");
+			} else if (!(jsonSchemaDefinitionObject.get("description") instanceof String)) {
+				throw new JsonSchemaDefinitionError("Invalid data type '" + jsonSchemaDefinitionObject.get("title").getClass().getSimpleName() + "' for key 'description'", "$");
 			} else {
-				description = (String) jsonSchemaDefinition.get("description");
+				description = (String) jsonSchemaDefinitionObject.get("description");
 			}
 		}
-		
-		jsonSchemaDependencyResolver = new JsonSchemaDependencyResolver(jsonSchemaDefinition);
+
+		jsonSchemaDependencyResolver = new JsonSchemaDependencyResolver(jsonSchemaDefinitionObject);
 	}
-	
+
 	/**
 	 * Download of any additional data is prevented by default.<br />
 	 * Especially because there is no check for internet connection in forehand.<br />
 	 */
-	public void setDownloadReferencedSchemas(boolean downloadReferencedSchemas) {
+	public void setDownloadReferencedSchemas(final boolean downloadReferencedSchemas) {
 		jsonSchemaDependencyResolver.setDownloadReferencedSchemas(downloadReferencedSchemas);
 	}
-	
+
 	/**
 	 * Add some other JSON schema for usage of its reference definitions
-	 * 
+	 *
 	 * @param definitionPackageName
 	 * @param jsonSchemaInputStream
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	public void addJsonSchemaDefinition(String definitionPackageName, InputStream jsonSchemaInputStream) throws Exception {
+	public void addJsonSchemaDefinition(final String definitionPackageName, final InputStream jsonSchemaInputStream) throws Exception {
 		jsonSchemaDependencyResolver.addJsonSchemaDefinition(definitionPackageName, jsonSchemaInputStream);
 	}
-	
+
 	public String getId() {
 		return id;
 	}
-	
+
 	public String getSchemaVersionUrl() {
 		return schemaVersionUrl;
 	}
@@ -228,48 +230,48 @@ public class JsonSchema {
 		return description;
 	}
 
-	public JsonNode validate(InputStream jsonDataInputStream, String encoding) throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
+	public JsonNode validate(final InputStream jsonDataInputStream, final Charset encoding) throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		JsonNode jsonDataNode;
 		try (JsonReader jsonReader = new Json5Reader(jsonDataInputStream, encoding)) {
 			jsonDataNode = jsonReader.read();
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			throw new JsonSchemaDataValidationError("Cannot read JSON data: " + e.getMessage(), "");
 		}
-		
-		List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
-		for (BaseJsonSchemaValidator validator : validators) {
+
+		final List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
+		for (final BaseJsonSchemaValidator validator : validators) {
 			validator.validate();
 		}
 		return jsonDataNode;
 	}
 
-	public JsonNode validate(InputStream jsonDataInputStream) throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
+	public JsonNode validate(final InputStream jsonDataInputStream) throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		JsonNode jsonDataNode;
 		try (JsonReader jsonReader = new Json5Reader(jsonDataInputStream)) {
 			jsonDataNode = jsonReader.read();
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			throw new JsonSchemaDataValidationError("Cannot read JSON data: " + e.getMessage(), "");
 		}
-		
-		List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
-		for (BaseJsonSchemaValidator validator : validators) {
+
+		final List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
+		for (final BaseJsonSchemaValidator validator : validators) {
 			validator.validate();
 		}
 		return jsonDataNode;
 	}
 
-	public void validate(Object jsonData) throws Exception {
-		JsonNode jsonDataNode = new JsonNode(jsonData);
-		
-		List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
-		for (BaseJsonSchemaValidator validator : validators) {
+	public void validate(final Object jsonData) throws Exception {
+		final JsonNode jsonDataNode = new JsonNode(jsonData);
+
+		final List<BaseJsonSchemaValidator> validators = createValidators(jsonSchemaDefinition, jsonSchemaDependencyResolver, "$", jsonDataNode, "$");
+		for (final BaseJsonSchemaValidator validator : validators) {
 			validator.validate();
 		}
 	}
-	
-	public static List<BaseJsonSchemaValidator> createValidators(JsonObject jsonSchemaDefinitionObject, JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String currentJsonSchemaPath, JsonNode jsonNode, String currentJsonPath) throws JsonSchemaDefinitionError {
-		List<BaseJsonSchemaValidator> validators = new ArrayList<BaseJsonSchemaValidator>();
-		for (Entry<String, Object> entry : jsonSchemaDefinitionObject.entrySet()) {
+
+	public static List<BaseJsonSchemaValidator> createValidators(final JsonObject jsonSchemaDefinitionObject, final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String currentJsonSchemaPath, final JsonNode jsonNode, final String currentJsonPath) throws JsonSchemaDefinitionError {
+		final List<BaseJsonSchemaValidator> validators = new ArrayList<>();
+		for (final Entry<String, Object> entry : jsonSchemaDefinitionObject.entrySet()) {
 			switch (entry.getKey()) {
 				case "type":
 					validators.add(new TypeValidator(jsonSchemaDependencyResolver, currentJsonSchemaPath + "." + entry.getKey(), entry.getValue(), jsonNode, currentJsonPath));
@@ -343,7 +345,7 @@ public class JsonSchema {
 				case "dependencies":
 					validators.add(new DependenciesValidator(jsonSchemaDependencyResolver, currentJsonSchemaPath + "." + entry.getKey(), entry.getValue(), jsonNode, currentJsonPath));
 					break;
-					
+
 				case "exclusiveMinimum":
 					// Do nothing, because this is validated by MinimumValidator, too
 					if (!jsonSchemaDefinitionObject.containsPropertyKey("minimum")) {
@@ -362,7 +364,7 @@ public class JsonSchema {
 						throw new JsonSchemaDefinitionError("Missing 'items' rule for 'additionalItems'", currentJsonSchemaPath);
 					}
 					break;
-					
+
 				case "$ref":
 					validators.add(new ReferenceValidator(jsonSchemaDependencyResolver, currentJsonSchemaPath + "." + entry.getKey(), entry.getValue(), jsonNode, currentJsonPath));
 					break;
@@ -385,7 +387,7 @@ public class JsonSchema {
 						throw new JsonSchemaDefinitionError("JSON schema 'definitions' must be defined on top level of JSON schema", currentJsonSchemaPath);
 					}
 					break;
-					
+
 				case "title":
 					// Descriptive title
 					if (!(entry.getValue() instanceof String)) {

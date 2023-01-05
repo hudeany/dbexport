@@ -4,24 +4,20 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 
 public class SqlScriptReader extends BasicReader {
-	public SqlScriptReader(InputStream inputStream) throws Exception {
-		super(inputStream, (String) null);
+	public SqlScriptReader(final InputStream inputStream) throws Exception {
+		super(inputStream, null);
 	}
-	
-	public SqlScriptReader(InputStream inputStream, String encoding) throws Exception {
-		super(inputStream, encoding);
-	}
-	
-	public SqlScriptReader(InputStream inputStream, Charset encodingCharset) throws Exception {
+
+	public SqlScriptReader(final InputStream inputStream, final Charset encodingCharset) throws Exception {
 		super(inputStream, encodingCharset);
 	}
-	
+
 	public String readNextStatement() throws Exception {
-		StringBuilder nextStatement = new StringBuilder();
+		final StringBuilder nextStatement = new StringBuilder();
 		boolean withinString = false;
 		boolean withinSingleLineComment = false;
 		boolean withinMultiLineComment = false;
-		
+
 		Character nextCharacter;
 		while ((nextCharacter = readNextCharacter()) != null) {
 			if (withinString) {
@@ -67,7 +63,7 @@ public class SqlScriptReader extends BasicReader {
 				nextStatement.append(nextCharacter);
 			}
 		}
-		
+
 		if (withinString) {
 			throw new Exception("Unclosed sql string");
 		} else if (withinMultiLineComment) {

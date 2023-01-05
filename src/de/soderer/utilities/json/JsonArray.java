@@ -1,24 +1,24 @@
 package de.soderer.utilities.json;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import de.soderer.utilities.Utilities;
-
 public class JsonArray implements Iterable<Object> {
-	private List<Object> items = new ArrayList<Object>();
+	private final List<Object> items = new ArrayList<>();
 
-	public void add(Object value) {
+	public JsonArray add(final Object value) {
 		items.add(value);
+		return this;
 	}
 
-	public Object remove(Object value) {
+	public Object remove(final Object value) {
 		return items.remove(value);
 	}
 
-	public Object get(int index) {
+	public Object get(final int index) {
 		return items.get(index);
 	}
 
@@ -33,37 +33,30 @@ public class JsonArray implements Iterable<Object> {
 
 	@Override
 	public String toString() {
-		JsonWriter writer = null;
-		ByteArrayOutputStream output = null;
-		try {
-			output = new ByteArrayOutputStream();
-			writer = new JsonWriter(output, "UTF-8");
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+				JsonWriter writer = new JsonWriter(output, StandardCharsets.UTF_8);) {
 			writer.add(this);
-			writer.close();
-			return new String(output.toByteArray(), "UTF-8");
-		} catch (Exception e) {
-			e.printStackTrace();
-			return null;
-		} finally {
-			Utilities.closeQuietly(output);
-			Utilities.closeQuietly(writer);
+			writer.flush();
+			return new String(output.toByteArray(), StandardCharsets.UTF_8);
+		} catch (final Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	public boolean equals(Object otherObject) {
+	public boolean equals(final Object otherObject) {
 		if (this == otherObject) {
 			return true;
 		} else if (otherObject != null && otherObject instanceof JsonArray) {
-			JsonArray otherArray = (JsonArray) otherObject;
-			if (this.size() != otherArray.size()) {
+			final JsonArray otherArray = (JsonArray) otherObject;
+			if (size() != otherArray.size()) {
 				return false;
 			} else {
-				for (int i = 0; i < this.size(); i++) {
-					Object thisValue = this.get(i);
-					Object otherValue = otherArray.get(i);
+				for (int i = 0; i < size(); i++) {
+					final Object thisValue = get(i);
+					final Object otherValue = otherArray.get(i);
 					if ((thisValue != otherValue)
-						&& (thisValue != null && !thisValue.equals(otherValue))) {
+							&& (thisValue != null && !thisValue.equals(otherValue))) {
 						return false;
 					}
 				}
@@ -72,5 +65,13 @@ public class JsonArray implements Iterable<Object> {
 		} else {
 			return false;
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((items == null) ? 0 : items.hashCode());
+		return result;
 	}
 }

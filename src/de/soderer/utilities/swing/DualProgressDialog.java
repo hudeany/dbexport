@@ -3,87 +3,46 @@ package de.soderer.utilities.swing;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Date;
+import java.time.LocalDateTime;
 
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
-import de.soderer.utilities.WorkerDual;
-import de.soderer.utilities.WorkerParentDual;
+import de.soderer.utilities.worker.WorkerDual;
+import de.soderer.utilities.worker.WorkerParentDual;
 
-public class DualProgressDialog<T extends WorkerDual<?>> extends SimpleProgressDialog<T> implements WorkerParentDual {
+public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<T> implements WorkerParentDual {
 	private static final long serialVersionUID = 1891862599169713021L;
-	
-	private JLabel label;
+
+	private JLabel subItemLabel;
+	private String subCommentStringFormat;
 	private JProgressBar subItemProgressBar;
 
-	public DualProgressDialog(WorkerParentDual parent, String title) {
-		this((Window) parent, title, null);
+	public DualProgressDialog(final WorkerParentDual parent, final String title, final String commentStringFormat) {
+		this((Window) parent, title, commentStringFormat, null);
 	}
 
-	public DualProgressDialog(Window parent, String title, T worker) {
-		super(parent);
-		
-		setTitle(title);
-		
-		this.worker = worker;
-		if (worker != null) {
-			worker.setParent(this);
-		}
+	public DualProgressDialog(final Window parent, final String title, final String commentStringFormat, final T worker) {
+		super(parent, title, commentStringFormat, worker);
+	}
 
-		setResizable(false);
+	@Override
+	protected void createAdditionalComponents(final JPanel panel) {
+		final JPanel subCommentLabelPanel = new JPanel();
+		subCommentLabelPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+		subCommentStringFormat = "Item";
+		subItemLabel = new JLabel("Item");
+		subCommentLabelPanel.add(subItemLabel);
+		panel.add(subCommentLabelPanel);
 
-		JPanel panel = new JPanel();
-		panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
-
-		JPanel itemPanel = new JPanel();
-		itemPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-		progressBar = new JProgressBar(0, 100);
-		progressBar.setPreferredSize(new Dimension(380, 19));
-		itemPanel.add(progressBar);
-		panel.add(itemPanel);
-
-		JPanel labelPanel = new JPanel();
-		labelPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-		label = new JLabel("Item");
-		labelPanel.add(label);
-		panel.add(labelPanel);
-
-		JPanel subItemPanel = new JPanel();
+		final JPanel subItemPanel = new JPanel();
 		subItemPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
 		subItemProgressBar = new JProgressBar(0, 100);
 		subItemProgressBar.setPreferredSize(new Dimension(380, 19));
 		subItemPanel.add(subItemProgressBar);
 		panel.add(subItemPanel);
-
-		// Cancel Button
-		JPanel buttonPanel = new JPanel();
-		buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-		JButton cancelButton = new JButton("Cancel");
-		cancelButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				cancel();
-			}
-		});
-		buttonPanel.add(cancelButton);
-		panel.add(buttonPanel);
-
-		add(panel);
-
-		pack();
-
-        setLocationRelativeTo((Window) parent);
-		
-		if (cancelButton != null) {
-			getRootPane().setDefaultButton(cancelButton);
-		}
 	}
 
 	@Override
@@ -93,6 +52,7 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends SimpleProgressD
 			subItemProgressBar.setStringPainted(false);
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
+				@Override
 				public void run() {
 					showUnlimitedSubProgress();
 				}
@@ -103,15 +63,15 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends SimpleProgressD
 	@Override
 	public void showItemStart(final String itemName) {
 		if (SwingUtilities.isEventDispatchThread()) {
-			label.setText(itemName);
-			
-			int value = 0;
-			subItemProgressBar.setIndeterminate(false);
-			subItemProgressBar.setValue(value);
-			subItemProgressBar.setString(value + "%");
-			subItemProgressBar.setStringPainted(true);
+			subCommentStringFormat = itemName;
+			subItemLabel.setText(itemName);
+
+			updateProgressBar(subItemProgressBar, LocalDateTime.now(), 100, 0);
+			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(0)).replace("{1}", Long.toString(100)).replace("{2}", Long.toString(0));
+			subItemLabel.setText(labelText);
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
+				@Override
 				public void run() {
 					showItemStart(itemName);
 				}
@@ -120,28 +80,30 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends SimpleProgressD
 	}
 
 	@Override
-	public void showItemProgress(final Date itemStart, final long subItemToDo, final long subItemDone) {
+	public void showItemProgress(final LocalDateTime itemStart, final long subItemsToDo, final long subItemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
-			updateProgressBar(subItemProgressBar, itemStart, subItemToDo, subItemDone);
+			updateProgressBar(subItemProgressBar, itemStart, subItemsToDo, subItemsDone);
+			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsToDo)).replace("{2}", Long.toString(subItemsDone * 100 / subItemsToDo));
+			subItemLabel.setText(labelText);
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
+				@Override
 				public void run() {
-					showItemProgress(itemStart, subItemToDo, subItemDone);
+					showItemProgress(itemStart, subItemsToDo, subItemsDone);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showItemDone(final Date itemStart, final Date itemEnd, final long subItemsDone) {
+	public void showItemDone(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
-			int value = 100;
-			subItemProgressBar.setIndeterminate(false);
-			subItemProgressBar.setValue(value);
-			subItemProgressBar.setString(value + "%");
-			subItemProgressBar.setStringPainted(true);
+			updateProgressBar(subItemProgressBar, itemStart, subItemsDone, subItemsDone);
+			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsDone)).replace("{2}", Long.toString(100));
+			subItemLabel.setText(labelText);
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
+				@Override
 				public void run() {
 					showItemDone(itemStart, itemEnd, subItemsDone);
 				}

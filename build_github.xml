@@ -6,7 +6,7 @@
 
 	<target name="create_versionfile">
 		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}https://raw.githubusercontent.com/hudeany/dbcsvexport/master/Versions.xml</echo>
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}https://raw.githubusercontent.com/hudeany/dbcsvexport/master/Versions.xml</echo>
 	</target>
 
 	<target name="create_versioninfo">

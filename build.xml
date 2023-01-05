@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbCsvExport">
-	<property name="version" value="17.1.12" />
+	<property name="version" value="22.5.11" />
 	<echo message="version: ${version}" />
+	
+	<tstamp>
+		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en"/>
+	</tstamp>
+	<echo message="buildTime: ${buildTime}" />
 
 	<property name="projectsPath" value="${user.home}/git" />
 	<echo message="projectsPath: ${projectsPath}" />
@@ -20,11 +25,19 @@
 	</target>
 
 	<target name="compile">
+		<path id="build.classpath">
+			<fileset dir="lib">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
 		<!-- Compile JarInJarLoader -->
 		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="${projectsPath}/JavaUtilities/src/main/java/de/soderer/utilities/jarinjarloader" includeantruntime="false" encoding="UTF-8" />
 
 		<!-- Compile DbCsvExport -->
-		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*" />
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8">
+			<classpath refid="build.classpath" />
+		</javac>
 
 		<copy todir="${buildPath}/bin">
 			<fileset dir="src">
@@ -35,27 +48,28 @@
 
 	<target name="create_versionfile">
 		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}Unknown version URL</echo>
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}Unknown version URL</echo>
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
 		<jar destfile="${buildPath}${buildSubDir}/DbCsvExport-${version}.jar">
 			<manifest>
-				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
 
-			<zipfileset dir="src" includes="DbCsvExport_Icon.png" />
+			<zipfileset dir="src" includes="DbExport_Icon.png" />
+			<zipfileset dir="src" includes="DbExport.ico" />
 		</jar>
 
-		<jar destfile="${buildPath}${buildSubDir}/DbCsvExport-${version}_sources.jar">
+		<jar destfile="${buildPath}${buildSubDir}/DbExport-${version}_sources.jar">
 			<manifest>
-				<attribute name="Main-Class" value="de.soderer.utilities.jarinjarloader.JarInJarLoader" />
+				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbcsvexport.DbCsvExport" />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
 			</manifest>
 
 		    <fileset dir="src" includes="**/*.java" />

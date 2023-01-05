@@ -4,8 +4,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import de.soderer.utilities.BasicReader;
 import de.soderer.utilities.csv.CsvFormat.QuoteMode;
@@ -16,7 +19,7 @@ import de.soderer.utilities.csv.CsvFormat.QuoteMode;
 public class CsvReader extends BasicReader {
 	/** CSV data format definition */
 	private CsvFormat csvFormat = new CsvFormat();
-	
+
 	/** If a single read was done, it is impossible to make a full read at once with readAll(). */
 	private boolean singleReadStarted = false;
 
@@ -24,7 +27,7 @@ public class CsvReader extends BasicReader {
 	private int numberOfColumns = -1;
 
 	/** Number of lines read until now. */
-	private int readLines = 0;
+	private int readCsvLines = 0;
 
 	/**
 	 * CSV Reader derived constructor.
@@ -32,8 +35,8 @@ public class CsvReader extends BasicReader {
 	 * @param inputStream
 	 *            the input stream
 	 */
-	public CsvReader(InputStream inputStream) throws Exception {
-		this(inputStream, Charset.forName(DEFAULT_ENCODING));
+	public CsvReader(final InputStream inputStream) throws Exception {
+		this(inputStream, DEFAULT_ENCODING);
 	}
 
 	/**
@@ -44,19 +47,7 @@ public class CsvReader extends BasicReader {
 	 * @param encoding
 	 *            the encoding
 	 */
-	public CsvReader(InputStream inputStream, String encoding) throws Exception {
-		this(inputStream, Charset.forName(encoding));
-	}
-
-	/**
-	 * CSV Reader derived constructor.
-	 *
-	 * @param inputStream
-	 *            the input stream
-	 * @param encoding
-	 *            the encoding
-	 */
-	public CsvReader(InputStream inputStream, Charset encoding) throws Exception {
+	public CsvReader(final InputStream inputStream, final Charset encoding) throws Exception {
 		super(inputStream, encoding);
 	}
 
@@ -68,8 +59,8 @@ public class CsvReader extends BasicReader {
 	 * @param separator
 	 *            the separator
 	 */
-	public CsvReader(InputStream inputStream, CsvFormat csvFormat) throws Exception {
-		this(inputStream, Charset.forName(DEFAULT_ENCODING), csvFormat);
+	public CsvReader(final InputStream inputStream, final CsvFormat csvFormat) throws Exception {
+		this(inputStream, DEFAULT_ENCODING, csvFormat);
 	}
 
 	/**
@@ -82,29 +73,19 @@ public class CsvReader extends BasicReader {
 	 * @param separator
 	 *            the separator
 	 */
-	public CsvReader(InputStream inputStream, String encoding, CsvFormat csvFormat) throws Exception {
-		this(inputStream, Charset.forName(encoding), csvFormat);
-	}
-
-	/**
-	 * CSV Reader derived constructor.
-	 *
-	 * @param inputStream
-	 *            the input stream
-	 * @param encoding
-	 *            the encoding
-	 * @param separator
-	 *            the separator
-	 */
-	public CsvReader(InputStream inputStream, Charset encoding, CsvFormat csvFormat) throws Exception {
+	public CsvReader(final InputStream inputStream, final Charset encoding, final CsvFormat csvFormat) throws Exception {
 		this(inputStream, encoding);
-		
-		this.csvFormat = csvFormat;
+
+		if (csvFormat == null) {
+			throw new Exception("Invalid empty csvFormat parameter");
+		} else {
+			this.csvFormat = csvFormat;
+		}
 	}
 
 	/**
 	 * Get configured csv format
-	 * 
+	 *
 	 * @return
 	 */
 	public CsvFormat getCsvFormat() {
@@ -113,12 +94,17 @@ public class CsvReader extends BasicReader {
 
 	/**
 	 * Configured csv format
-	 * 
+	 *
 	 * @param csvFormat
+	 * @throws Exception
 	 */
-	public CsvReader setCsvFormat(CsvFormat csvFormat) {
-		this.csvFormat = csvFormat;
-		return this;
+	public CsvReader setCsvFormat(final CsvFormat csvFormat) throws Exception {
+		if (csvFormat == null) {
+			throw new Exception("Invalid empty csvFormat parameter");
+		} else {
+			this.csvFormat = csvFormat;
+			return this;
+		}
 	}
 
 	/**
@@ -126,8 +112,8 @@ public class CsvReader extends BasicReader {
 	 *
 	 * @return the read lines
 	 */
-	public int getReadLines() {
-		return readLines;
+	public int getReadCsvLines() {
+		return readCsvLines;
 	}
 
 	/**
@@ -140,17 +126,17 @@ public class CsvReader extends BasicReader {
 	 *             the csv data exception
 	 */
 	public List<String> readNextCsvLine() throws IOException, CsvDataException {
-		readLines++;
+		readCsvLines++;
 		singleReadStarted = true;
-		List<String> returnList = new ArrayList<String>();
+		List<String> returnList = new ArrayList<>();
 		StringBuilder nextValue = new StringBuilder();
 		boolean insideString = false;
 		boolean isQuotedString = false;
 		Character nextCharacter;
 		char previousCharacter = (char) -1;
-		
+
 		while ((nextCharacter = readNextCharacter()) != null) {
-			char nextChar = (char) nextCharacter;
+			final char nextChar = nextCharacter;
 			if (csvFormat.getQuoteMode() != QuoteMode.NO_QUOTE && nextChar == csvFormat.getStringQuote()) {
 				if (csvFormat.getStringQuoteEscapeCharacter() != csvFormat.getStringQuote()) {
 					if (previousCharacter != csvFormat.getStringQuoteEscapeCharacter()) {
@@ -165,20 +151,35 @@ public class CsvReader extends BasicReader {
 				if (nextChar == '\r' || nextChar == '\n') {
 					if (nextValue.length() > 0 || previousCharacter == csvFormat.getSeparator()) {
 						returnList.add(parseValue(nextValue.toString()));
+						nextValue = new StringBuilder();
+						isQuotedString = false;
 					}
 
-					if (returnList.size() > 0) {
-						if (numberOfColumns != -1 && numberOfColumns != returnList.size()) {
-							if (numberOfColumns > returnList.size() && csvFormat.isFillMissingTrailingColumnsWithNull()) {
-								while (returnList.size() < numberOfColumns) {
-									returnList.add(null);
-								}
-							} else {
-								throw new CsvDataException("Inconsistent number of values in line " + readLines + " (expected: " + numberOfColumns + " actually: " + returnList.size() + ")", readLines);
+					if (csvFormat.isIgnoreEmptyLines() && isBlank(returnList)) {
+						returnList = new ArrayList<>();
+					} else if (returnList.size() > 0) {
+						if (numberOfColumns == -1) {
+							numberOfColumns = returnList.size();
+							return returnList;
+						} else if (numberOfColumns == returnList.size()) {
+							return returnList;
+						} else if (numberOfColumns > returnList.size() && csvFormat.isFillMissingTrailingColumnsWithNull()) {
+							while (returnList.size() < numberOfColumns) {
+								returnList.add(null);
 							}
+							return returnList;
+						} else if (numberOfColumns < returnList.size() && csvFormat.isRemoveSurplusEmptyTrailingColumns()) {
+							// Too many values found, so check if the trailing values are only empty items
+							while (returnList.size() > numberOfColumns) {
+								final String lastItem = returnList.remove(returnList.size() - 1);
+								if (!"".equals(lastItem)) {
+									throw new CsvDataException("Inconsistent number of values in line " + readCsvLines + " (expected: " + numberOfColumns + " actually: " + (returnList.size() + 1) + ")", readCsvLines);
+								}
+							}
+							return returnList;
+						} else {
+							throw new CsvDataException("Inconsistent number of values in line " + readCsvLines + " (expected: " + numberOfColumns + " actually: " + returnList.size() + ")", readCsvLines);
 						}
-						numberOfColumns = returnList.size();
-						return returnList;
 					}
 				} else if (nextChar == csvFormat.getSeparator()) {
 					returnList.add(parseValue(nextValue.toString()));
@@ -186,14 +187,14 @@ public class CsvReader extends BasicReader {
 					isQuotedString = false;
 				} else if (isQuotedString) {
 					if (!Character.isWhitespace(nextChar)) {
-						throw new CsvDataException("Not allowed textdata '" + nextChar + "' after quoted text in data in line " + readLines, readLines);
+						throw new CsvDataException("Not allowed textdata '" + nextChar + "' after quoted text in data in line " + readCsvLines, readCsvLines);
 					}
 				} else {
 					nextValue.append(nextChar);
 				}
 			} else { // insideString
 				if ((nextChar == '\r' || nextChar == '\n') && !csvFormat.isLineBreakInDataAllowed()) {
-					throw new CsvDataException("Not allowed linebreak in data in line " + readLines, readLines);
+					throw new CsvDataException("Not allowed linebreak in data in line " + readCsvLines, readCsvLines);
 				} else {
 					nextValue.append(nextChar);
 				}
@@ -204,24 +205,37 @@ public class CsvReader extends BasicReader {
 
 		if (insideString) {
 			close();
-			throw new IOException("Unexpected end of data after quoted csv-value was started in line " + readLines);
+			throw new IOException("Unexpected end of data after quoted csv-value was started in line " + readCsvLines);
 		} else {
 			if (nextValue.length() > 0 || previousCharacter == csvFormat.getSeparator()) {
 				returnList.add(parseValue(nextValue.toString()));
 			}
 
-			if (returnList.size() > 0) {
-				if (numberOfColumns != -1 && numberOfColumns != returnList.size()) {
-					if (numberOfColumns > returnList.size() && csvFormat.isFillMissingTrailingColumnsWithNull()) {
-						while (returnList.size() < numberOfColumns) {
-							returnList.add(null);
-						}
-					} else {
-						throw new CsvDataException("Inconsistent number of values in line " + readLines + " (expected: " + numberOfColumns + " actually: " + returnList.size() + ")", readLines);
+			if (csvFormat.isIgnoreEmptyLines() && isBlank(returnList)) {
+				return null;
+			} else if (returnList.size() > 0) {
+				if (numberOfColumns == -1) {
+					numberOfColumns = returnList.size();
+					return returnList;
+				} else if (numberOfColumns == returnList.size()) {
+					return returnList;
+				} else if (numberOfColumns > returnList.size() && csvFormat.isFillMissingTrailingColumnsWithNull()) {
+					while (returnList.size() < numberOfColumns) {
+						returnList.add(null);
 					}
+					return returnList;
+				} else if (numberOfColumns < returnList.size() && csvFormat.isRemoveSurplusEmptyTrailingColumns()) {
+					// Too many values found, so check if the trailing values are only empty items
+					while (returnList.size() > numberOfColumns) {
+						final String lastItem = returnList.remove(returnList.size() - 1);
+						if (!"".equals(lastItem)) {
+							throw new CsvDataException("Inconsistent number of values in line " + readCsvLines + " (expected: " + numberOfColumns + " actually: " + (returnList.size() + 1) + ")", readCsvLines);
+						}
+					}
+					return returnList;
+				} else {
+					throw new CsvDataException("Inconsistent number of values in line " + readCsvLines + " (expected: " + numberOfColumns + " actually: " + returnList.size() + ")", readCsvLines);
 				}
-				numberOfColumns = returnList.size();
-				return returnList;
 			} else {
 				close();
 				return null;
@@ -244,7 +258,7 @@ public class CsvReader extends BasicReader {
 		}
 
 		try {
-			List<List<String>> csvValues = new ArrayList<List<String>>();
+			final List<List<String>> csvValues = new ArrayList<>();
 			List<String> lineValues;
 			while ((lineValues = readNextCsvLine()) != null) {
 				csvValues.add(lineValues);
@@ -264,12 +278,12 @@ public class CsvReader extends BasicReader {
 	 * @throws CsvDataException
 	 *             the csv data exception
 	 */
-	private String parseValue(String rawValue) throws CsvDataException {
+	private String parseValue(final String rawValue) throws CsvDataException {
 		String returnValue = rawValue;
 
 		if (isNotEmpty(returnValue)) {
 			if (csvFormat.getQuoteMode() != QuoteMode.NO_QUOTE) {
-				String stringQuoteString = Character.toString(csvFormat.getStringQuote());
+				final String stringQuoteString = Character.toString(csvFormat.getStringQuote());
 				if (returnValue.contains(stringQuoteString)) {
 					returnValue = returnValue.trim();
 				}
@@ -281,15 +295,26 @@ public class CsvReader extends BasicReader {
 			returnValue = returnValue.replace("\r\n", "\n").replace('\r', '\n');
 
 			if (!csvFormat.isEscapedStringQuoteInDataAllowed() && returnValue.indexOf(csvFormat.getStringQuote()) >= 0) {
-				throw new CsvDataException("Not allowed stringquote in data in line " + readLines, readLines);
+				throw new CsvDataException("Not allowed stringquote in data in line " + readCsvLines, readCsvLines);
 			}
-			
+
 			if (csvFormat.isAlwaysTrim()) {
 				returnValue = returnValue.trim();
 			}
 		}
 
 		return returnValue;
+	}
+
+	private static boolean isBlank(final List<String> list) {
+		if (list != null) {
+			for (final String item : list) {
+				if (item != null && item.length() > 0 && item.trim().length() > 0) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -320,39 +345,64 @@ public class CsvReader extends BasicReader {
 
 	/**
 	 * Parse a single csv data line for data entries.
-	 * 
+	 *
 	 * @param csvLine
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<String> parseCsvLine(String csvLine) throws Exception {
+	public static List<String> parseCsvLine(final String csvLine) throws Exception {
 		return parseCsvLine(new CsvFormat(), csvLine);
 	}
 
 	/**
 	 * Parse a single csv data line for data entries.
-	 * 
+	 *
 	 * @param csvFormat
 	 * @param csvLine
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<String> parseCsvLine(CsvFormat csvFormat, String csvLine) throws Exception {
+	public static List<String> parseCsvLine(final CsvFormat csvFormat, final String csvLine) throws Exception {
 		CsvReader reader = null;
 		try {
-			reader = new CsvReader(new ByteArrayInputStream(csvLine.getBytes("UTF-8")), "UTF-8", csvFormat);
-			List<List<String>> fullData = reader.readAll();
+			reader = new CsvReader(new ByteArrayInputStream(csvLine.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8, csvFormat);
+			final List<List<String>> fullData = reader.readAll();
 			if (fullData.size() != 1) {
 				throw new Exception("Too many csv lines in data");
 			} else {
 				return fullData.get(0);
 			}
-		} catch (CsvDataException e) {
+		} catch (final CsvDataException e) {
 			throw e;
 		} finally {
 			if (reader != null) {
 				reader.close();
 			}
 		}
+	}
+
+	/**
+	 * Returns the first duplicate csv file header or null if there is no duplicate.
+	 * Leading and trailing whitespaces in csv file headers are omitted.
+	 * Csv file headers are case-sensitive.
+	 *
+	 * @param csvFileHeaders
+	 * @return
+	 */
+	public static String checkForDuplicateCsvHeader(final List<String> csvFileHeaders) {
+		final Set<String> foundHeaders = new HashSet<>();
+		for (String nextHeader : csvFileHeaders) {
+			if (nextHeader != null) {
+				nextHeader = nextHeader.trim();
+				if (nextHeader.length() > 0) {
+					if (foundHeaders.contains(nextHeader)) {
+						return nextHeader;
+					} else {
+						foundHeaders.add(nextHeader);
+					}
+				}
+			}
+		}
+		return null;
 	}
 }

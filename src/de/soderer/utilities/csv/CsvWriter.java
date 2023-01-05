@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,22 +20,22 @@ public class CsvWriter implements Closeable {
 	private CsvFormat csvFormat;
 
 	/** Default output encoding. */
-	public static final String DEFAULT_ENCODING = "UTF-8";
+	public static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 
 	/** Current output separator as string for internal use. */
-	private String separatorString;
+	private final String separatorString;
 
 	/** Current output string quote as string for internal use. */
-	private String stringQuoteString;
+	private final String stringQuoteString;
 
 	/** Current output string quote two times for internal use. */
-	private String escapedStringQuoteString;
+	private final String escapedStringQuoteString;
 
 	/** Output stream. */
 	private OutputStream outputStream;
 
 	/** Output encoding. */
-	private Charset encoding;
+	private final Charset encoding;
 
 	/** Lines written until now. */
 	private int writtenLines = 0;
@@ -57,8 +58,8 @@ public class CsvWriter implements Closeable {
 	 * @param outputStream
 	 *            the output stream
 	 */
-	public CsvWriter(OutputStream outputStream) {
-		this(outputStream, Charset.forName(DEFAULT_ENCODING));
+	public CsvWriter(final OutputStream outputStream) {
+		this(outputStream, DEFAULT_ENCODING);
 	}
 
 	/**
@@ -69,19 +70,7 @@ public class CsvWriter implements Closeable {
 	 * @param encoding
 	 *            the encoding
 	 */
-	public CsvWriter(OutputStream outputStream, String encoding) {
-		this(outputStream, Charset.forName(encoding));
-	}
-
-	/**
-	 * CSV Writer derived constructor.
-	 *
-	 * @param outputStream
-	 *            the output stream
-	 * @param encoding
-	 *            the encoding
-	 */
-	public CsvWriter(OutputStream outputStream, Charset encoding) {
+	public CsvWriter(final OutputStream outputStream, final Charset encoding) {
 		this(outputStream, encoding, new CsvFormat());
 	}
 
@@ -93,22 +82,8 @@ public class CsvWriter implements Closeable {
 	 * @param separator
 	 *            the separator
 	 */
-	public CsvWriter(OutputStream outputStream, CsvFormat csvFormat) {
-		this(outputStream, Charset.forName(DEFAULT_ENCODING), csvFormat);
-	}
-
-	/**
-	 * CSV Writer derived constructor.
-	 *
-	 * @param outputStream
-	 *            the output stream
-	 * @param encoding
-	 *            the encoding
-	 * @param separator
-	 *            the separator
-	 */
-	public CsvWriter(OutputStream outputStream, String encoding, CsvFormat csvFormat) {
-		this(outputStream, Charset.forName(encoding), csvFormat);
+	public CsvWriter(final OutputStream outputStream, final CsvFormat csvFormat) {
+		this(outputStream, DEFAULT_ENCODING, csvFormat);
 	}
 
 	/**
@@ -125,7 +100,7 @@ public class CsvWriter implements Closeable {
 	 * @param lineBreak
 	 *            the line break
 	 */
-	public CsvWriter(OutputStream outputStream, Charset encoding, CsvFormat csvFormat) {
+	public CsvWriter(final OutputStream outputStream, final Charset encoding, final CsvFormat csvFormat) {
 		this.csvFormat = csvFormat;
 		this.outputStream = outputStream;
 		this.encoding = encoding;
@@ -142,7 +117,7 @@ public class CsvWriter implements Closeable {
 
 	/**
 	 * Get configured csv format
-	 * 
+	 *
 	 * @return
 	 */
 	public CsvFormat getCsvFormat() {
@@ -151,10 +126,10 @@ public class CsvWriter implements Closeable {
 
 	/**
 	 * Configured csv format
-	 * 
+	 *
 	 * @param csvFormat
 	 */
-	public CsvWriter setCsvFormat(CsvFormat csvFormat) {
+	public CsvWriter setCsvFormat(final CsvFormat csvFormat) {
 		this.csvFormat = csvFormat;
 		return this;
 	}
@@ -167,7 +142,7 @@ public class CsvWriter implements Closeable {
 	 * @throws Exception
 	 *             the exception
 	 */
-	public void writeValues(Object... values) throws Exception {
+	public void writeValues(final Object... values) throws Exception {
 		writeValues(Arrays.asList(values));
 	}
 
@@ -181,7 +156,7 @@ public class CsvWriter implements Closeable {
 	 * @throws IOException
 	 *             Signals that an I/O exception has occurred.
 	 */
-	public void writeValues(List<? extends Object> values) throws CsvDataException, IOException {
+	public void writeValues(final List<? extends Object> values) throws CsvDataException, IOException {
 		if (numberOfColumns != -1 && (values == null || numberOfColumns != values.size())) {
 			throw new CsvDataException(
 					"Inconsistent number of values after " + writtenLines + " written lines (expected: " + numberOfColumns + " was: " + (values == null ? "null" : values.size()) + ")", writtenLines);
@@ -225,8 +200,8 @@ public class CsvWriter implements Closeable {
 	 * @throws Exception
 	 *             the exception
 	 */
-	public void writeAll(List<List<? extends Object>> valueLines) throws Exception {
-		for (List<? extends Object> valuesOfLine : valueLines) {
+	public void writeAll(final List<List<? extends Object>> valueLines) throws Exception {
+		for (final List<? extends Object> valuesOfLine : valueLines) {
 			writeValues(valuesOfLine);
 		}
 	}
@@ -240,22 +215,22 @@ public class CsvWriter implements Closeable {
 	 * @throws CsvDataException
 	 *             the csv data exception
 	 */
-	private String escapeValue(Object value) throws CsvDataException {
+	private String escapeValue(final Object value) throws CsvDataException {
 		String valueString = "";
 		if (value != null) {
 			valueString = value.toString();
 		}
-		
-		boolean valueNeedsQuotation =
-			valueString.contains(stringQuoteString)
-			|| valueString.contains(separatorString)
-			|| valueString.contains("\r")
-			|| valueString.contains("\n");
+
+		final boolean valueNeedsQuotation =
+				valueString.contains(stringQuoteString)
+				|| valueString.contains(separatorString)
+				|| valueString.contains("\r")
+				|| valueString.contains("\n");
 
 		if (csvFormat.getQuoteMode() == QuoteMode.QUOTE_ALL_DATA
-			|| (csvFormat.getQuoteMode() == QuoteMode.QUOTE_STRINGS && value instanceof String)
-			|| (csvFormat.getQuoteMode() == QuoteMode.QUOTE_IF_NEEDED && valueNeedsQuotation)) {
-			StringBuilder escapedValue = new StringBuilder();
+				|| (csvFormat.getQuoteMode() == QuoteMode.QUOTE_STRINGS && value instanceof String)
+				|| (csvFormat.getQuoteMode() == QuoteMode.QUOTE_IF_NEEDED && valueNeedsQuotation)) {
+			final StringBuilder escapedValue = new StringBuilder();
 			escapedValue.append(stringQuoteString);
 			escapedValue.append(valueString.replace(stringQuoteString, escapedStringQuoteString));
 			escapedValue.append(stringQuoteString);
@@ -275,8 +250,8 @@ public class CsvWriter implements Closeable {
 	 * @throws CsvDataException
 	 *             the csv data exception
 	 */
-	public int[] calculateOutputSizesOfValues(List<? extends Object> values) throws CsvDataException {
-		int[] returnArray = new int[values.size()];
+	public int[] calculateOutputSizesOfValues(final List<? extends Object> values) throws CsvDataException {
+		final int[] returnArray = new int[values.size()];
 		for (int i = 0; i < values.size(); i++) {
 			returnArray[i] = escapeValue(values.get(i)).length();
 		}
@@ -291,7 +266,7 @@ public class CsvWriter implements Closeable {
 	 * @throws CsvDataException
 	 *             the csv data exception
 	 */
-	public int calculateOutputSizesOfValue(Object value) throws CsvDataException {
+	public int calculateOutputSizesOfValue(final Object value) throws CsvDataException {
 		return escapeValue(value).length();
 	}
 
@@ -338,7 +313,7 @@ public class CsvWriter implements Closeable {
 	 *            the values
 	 * @return the csv line
 	 */
-	public static String getCsvLine(char separator, Character stringQuote, List<? extends Object> values) {
+	public static String getCsvLine(final char separator, final Character stringQuote, final List<? extends Object> values) {
 		return getCsvLine(separator, stringQuote, values.toArray());
 	}
 
@@ -353,18 +328,18 @@ public class CsvWriter implements Closeable {
 	 *            the values
 	 * @return the csv line
 	 */
-	public static String getCsvLine(char separator, Character stringQuote, Object... values) {
-		StringBuilder returnValue = new StringBuilder();
-		String separatorString = Character.toString(separator);
-		String stringQuoteString = stringQuote == null ? "" : Character.toString(stringQuote);
-		String doubleStringQuoteString = stringQuoteString + stringQuoteString;
+	public static String getCsvLine(final char separator, final Character stringQuote, final Object... values) {
+		final StringBuilder returnValue = new StringBuilder();
+		final String separatorString = Character.toString(separator);
+		final String stringQuoteString = stringQuote == null ? "" : Character.toString(stringQuote);
+		final String doubleStringQuoteString = stringQuoteString + stringQuoteString;
 		if (values != null) {
-			for (Object value : values) {
+			for (final Object value : values) {
 				if (returnValue.length() > 0) {
 					returnValue.append(separator);
 				}
 				if (value != null) {
-					String valueString = value.toString();
+					final String valueString = value.toString();
 					if (valueString.contains(separatorString) || valueString.contains("\r") || valueString.contains("\n") || valueString.contains(stringQuoteString)) {
 						returnValue.append(stringQuoteString);
 						returnValue.append(valueString.replace(stringQuoteString, doubleStringQuoteString));
@@ -384,11 +359,11 @@ public class CsvWriter implements Closeable {
 	 * @param closeableItem
 	 *            the closeable item
 	 */
-	private static void closeQuietly(Closeable closeableItem) {
+	private static void closeQuietly(final Closeable closeableItem) {
 		if (closeableItem != null) {
 			try {
 				closeableItem.close();
-			} catch (IOException e) {
+			} catch (@SuppressWarnings("unused") final IOException e) {
 				// Do nothing
 			}
 		}
@@ -399,7 +374,7 @@ public class CsvWriter implements Closeable {
 	 *
 	 * @param minimumColumnSizes
 	 */
-	public void setMinimumColumnSizes(int[] minimumColumnSizes) {
+	public void setMinimumColumnSizes(final int[] minimumColumnSizes) {
 		this.minimumColumnSizes = minimumColumnSizes;
 	}
 
@@ -408,7 +383,7 @@ public class CsvWriter implements Closeable {
 	 *
 	 * @param columnPaddings
 	 */
-	public void setColumnPaddings(boolean[] columnPaddings) {
+	public void setColumnPaddings(final boolean[] columnPaddings) {
 		this.columnPaddings = columnPaddings;
 	}
 
@@ -419,10 +394,10 @@ public class CsvWriter implements Closeable {
 	 * @param i
 	 * @return
 	 */
-	private String leftPad(String value, int minimumLength) {
+	private static String leftPad(final String value, final int minimumLength) {
 		try {
 			return String.format("%1$" + minimumLength + "s", value);
-		} catch (Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			return value;
 		}
 	}
@@ -434,10 +409,10 @@ public class CsvWriter implements Closeable {
 	 * @param i
 	 * @return
 	 */
-	private String rightPad(String value, int minimumLength) {
+	private static String rightPad(final String value, final int minimumLength) {
 		try {
 			return String.format("%1$-" + minimumLength + "s", value);
-		} catch (Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			return value;
 		}
 	}
