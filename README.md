@@ -1,5 +1,6 @@
-# Java tool to import data in db from csv, json or xml files 
-Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]
+# Java tool to import data in db from csv, json or xml files
+## Commandline usage
+	Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]
 
 ## Mandatory parameters for db import
     dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
