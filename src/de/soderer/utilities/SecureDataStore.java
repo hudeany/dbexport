@@ -23,6 +23,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import de.soderer.utilities.json.JsonNode;
 import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonReader;
 import de.soderer.utilities.json.JsonReader.JsonToken;
@@ -109,17 +110,18 @@ public class SecureDataStore {
 							if (jsonToken != JsonToken.JsonArray_Open) {
 								throw new Exception("SecureDataStore is corrupt");
 							} else {
-								while (jsonReader.readNextJsonNode()) {
-									if (jsonToken == JsonToken.JsonArray_Close) {
-										break;
-									} else {
-										final JsonObject entryObject = (JsonObject) jsonReader.getCurrentObject();
+								JsonNode nextJsonNode;
+								while ((nextJsonNode = jsonReader.readNextJsonNode()) != null) {
+									if (nextJsonNode.isJsonObject()) {
+										final JsonObject entryObject = (JsonObject) nextJsonNode.getValue();
 										final String className = (String) entryObject.get("class");
 										if (!dataEntries.containsKey(className)) {
 											dataEntries.put(className, new HashMap<String, Object>());
 										}
 										final String entryName = (String) entryObject.get("name");
 										dataEntries.get(className).put(entryName, JsonSerializer.deserialize((JsonObject) entryObject.get("value")));
+									} else {
+										throw new Exception("Unexpected JSON data in secureDataStore: " + nextJsonNode.getJsonDataType().getName());
 									}
 								}
 							}
