@@ -267,7 +267,7 @@ public class ExportMenu extends ConsoleMenu {
 					autoCompletionStrings.add("i");
 				}
 				if (dbExportDefinition.getDbVendor() != DbVendor.SQLite) {
-					System.out.println("  " + Utilities.rightPad("f)", bulletSize) + " " + Utilities.rightPad("Number and datetime format locale:", nameSize) + dbExportDefinition.getDateAndDecimalLocale());
+					System.out.println("  " + Utilities.rightPad("f)", bulletSize) + " " + Utilities.rightPad("Number and datetime format locale:", nameSize) + dbExportDefinition.getDateFormatLocale());
 					autoCompletionStrings.add("f");
 				}
 				System.out.println("  " + Utilities.rightPad("blobfiles)", bulletSize) + " " + Utilities.rightPad("Create blob files:", nameSize) + dbExportDefinition.isCreateBlobFiles());
@@ -431,7 +431,7 @@ public class ExportMenu extends ConsoleMenu {
 							return 0;
 						} else {
 							try {
-								dbExportDefinition.setDateAndDecimalLocale(Locale.forLanguageTag(localeString));
+								dbExportDefinition.setDateFormatLocale(Locale.forLanguageTag(localeString));
 								break;
 							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported output format locale: " + localeString, TextColor.Light_red));

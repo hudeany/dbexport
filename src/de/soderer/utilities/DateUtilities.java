@@ -362,6 +362,79 @@ public class DateUtilities {
 		}
 	}
 
+	public static String getHumanReadableTimespanEnglish(final Duration duration, final boolean showMillis) {
+		final StringBuilder returnValue = new StringBuilder();
+
+		final long millis = duration.toMillisPart();
+		final long seconds = duration.toSecondsPart();
+		final long minutes = duration.toMinutesPart();
+		final long hours = duration.toHoursPart();
+		final long days = duration.toDays() % 7;
+		final long weeks = duration.toDays() / 7 % 52;
+		final long years = duration.toDays() / 7 / 52;
+
+		if (millis != 0 && showMillis) {
+			returnValue.insert(0, " " + "millis");
+			returnValue.insert(0, millis);
+		}
+
+		if (seconds != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "seconds");
+			returnValue.insert(0, seconds);
+		}
+
+		if (minutes != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "minutes");
+			returnValue.insert(0, minutes);
+		}
+
+		if (hours != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "hours");
+			returnValue.insert(0, hours);
+		}
+
+		if (days != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "days");
+			returnValue.insert(0, days);
+		}
+
+		if (weeks != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "weeks");
+			returnValue.insert(0, weeks);
+		}
+
+		if (years != 0) {
+			if (returnValue.length() > 0) {
+				returnValue.insert(0, " ");
+			}
+			returnValue.insert(0, " " + "years");
+			returnValue.insert(0, years);
+		}
+
+		if (returnValue.length() > 0) {
+			return returnValue.toString();
+		} else if (!showMillis) {
+			return "0 " + "seconds";
+		} else {
+			return "0 " + "millis";
+		}
+	}
+
 	/**
 	 * Get the duration between two timestamps as a string
 	 *

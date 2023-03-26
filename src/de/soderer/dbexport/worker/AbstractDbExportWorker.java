@@ -47,6 +47,7 @@ import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.worker.WorkerDual;
 import de.soderer.utilities.worker.WorkerParentDual;
+import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
@@ -72,9 +73,9 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	protected Charset encoding = StandardCharsets.UTF_8;
 	protected boolean createBlobFiles = false;
 	protected boolean createClobFiles = false;
-	protected Locale dateAndDecimalLocale = Locale.getDefault();
-	protected DateTimeFormatter dateFormatter = DateUtilities.getDateFormatter(dateAndDecimalLocale);
-	protected DateTimeFormatter dateTimeFormatter = DateUtilities.getDateTimeFormatterWithSeconds(dateAndDecimalLocale);
+	protected Locale dateFormatLocale = Locale.getDefault();
+	protected String dateFormatPattern;
+	protected String dateTimeFormatPattern;
 	protected NumberFormat decimalFormat ;
 	protected Character decimalSeparator;
 	protected boolean beautify = false;
@@ -91,7 +92,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	{
 		// Create the default number format
-		decimalFormat = NumberFormat.getNumberInstance(dateAndDecimalLocale);
+		decimalFormat = NumberFormat.getNumberInstance(dateFormatLocale);
 		decimalFormat.setGroupingUsed(false);
 	}
 
@@ -152,12 +153,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.createClobFiles = createClobFiles;
 	}
 
-	public void setDateAndDecimalLocale(final Locale dateAndDecimalLocale) {
-		this.dateAndDecimalLocale = dateAndDecimalLocale;
-
-		dateTimeFormatter = DateUtilities.getDateTimeFormatterWithSeconds(dateAndDecimalLocale);
-		decimalFormat = NumberFormat.getNumberInstance(dateAndDecimalLocale);
-		decimalFormat.setGroupingUsed(false);
+	public void setDateFormatLocale(final Locale dateFormatLocale) {
+		this.dateFormatLocale = dateFormatLocale;
+		dateFormatterCache = null;
+		dateTimeFormatterCache = null;
 	}
 
 	public void setBeautify(final boolean beautify) {
@@ -170,15 +169,15 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	public void setDateFormat(final String dateFormat) {
 		if (dateFormat != null) {
-			dateTimeFormatter = DateTimeFormatter.ofPattern(dateFormat);
-			dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+			dateFormatPattern = dateFormat;
+			dateFormatterCache = null;
 		}
 	}
 
 	public void setDateTimeFormat(final String dateTimeFormat) {
 		if (dateTimeFormat != null) {
-			dateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFormat);
-			dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+			dateTimeFormatPattern = dateTimeFormat;
+			dateTimeFormatterCache = null;
 		}
 	}
 
@@ -186,6 +185,38 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		if (decimalSeparator != null) {
 			this.decimalSeparator = decimalSeparator;
 		}
+	}
+
+	private DateTimeFormatter dateFormatterCache = null;
+	protected DateTimeFormatter getDateFormatter() {
+		if (dateFormatterCache == null) {
+			if (Utilities.isNotBlank(dateFormatPattern)) {
+				dateFormatterCache = DateTimeFormatter.ofPattern(dateFormatPattern);
+			} else {
+				dateFormatterCache = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+			}
+			if (dateFormatLocale != null) {
+				dateFormatterCache.localizedBy(dateFormatLocale);
+			}
+			dateFormatterCache.withResolverStyle(ResolverStyle.STRICT);
+		}
+		return dateFormatterCache;
+	}
+
+	private DateTimeFormatter dateTimeFormatterCache = null;
+	protected DateTimeFormatter getDateTimeFormatter() {
+		if (dateTimeFormatterCache == null) {
+			if (Utilities.isNotBlank(dateTimeFormatPattern)) {
+				dateTimeFormatterCache = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
+			} else {
+				dateTimeFormatterCache = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+			}
+			if (dateFormatLocale != null) {
+				dateTimeFormatterCache.localizedBy(dateFormatLocale);
+			}
+			dateTimeFormatterCache.withResolverStyle(ResolverStyle.STRICT);
+		}
+		return dateTimeFormatterCache;
 	}
 
 	@Override
@@ -257,9 +288,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				return !cancel;
 			} else {
-				showItemStart("Scanning tables ...");
-				showUnlimitedProgress();
+				signalItemStart("Scanning tables ...", null);
+				signalUnlimitedProgress();
 				final List<String> tablesToExport = DbUtilities.getAvailableTables(connection, sqlStatementOrTablelist);
+				if ("*".equals(sqlStatementOrTablelist)) {
+					Collections.sort(tablesToExport);
+				}
 				if (tablesToExport.size() == 0) {
 					throw new DbExportException("No table found for export");
 				}
@@ -272,11 +306,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					exportDbStructure(connection, tablesToExport, outputpath);
 				} else {
 					for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
-						showProgress(true);
+						signalProgress(true);
 						final String tableName = tablesToExport.get(i).toLowerCase();
 						subItemsToDo = 0;
 						subItemsDone = 0;
-						showItemStart(tableName);
+						signalItemStart(tableName, null);
 
 						String nextOutputFilePath = outputpath;
 						if ("console".equalsIgnoreCase(outputpath)) {
@@ -321,7 +355,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 							throw new Exception("Error occurred while exporting\n" + sqlStatement + "\n" + e.getMessage(), e);
 						}
 
-						showItemDone();
+						signalItemDone();
 
 						itemsDone++;
 					}
@@ -379,7 +413,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 
-			showProgress();
+			signalProgress();
 
 			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
 				if (i > 0) {
@@ -420,33 +454,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 
 				itemsDone++;
-				showProgress();
+				signalProgress();
 			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
 
-			// TODO: need net.lingala.zip library
-			//			if (zip && zipPassword != null) {
-			//				final ZipParameters zipParameters = new ZipParameters();
-			//				zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
-			//				zipParameters.setEncryptFiles(true);
-			//				if (!useZipCrypto) {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.AES);
-			//					zipParameters.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
-			//				} else {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
-			//				}
-			//				zipParameters.setFileNameInZip(new File(outputFilePath.substring(0, outputFilePath.length() - 4)).getName());
-			//				try (ZipFile zipFile = new ZipFile(new File(outputFilePath + ".tmp"), zipPassword)) {
-			//					try (ZipFile unencryptedZipFile = new ZipFile(new File(outputFilePath))) {
-			//						try (InputStream inputStream = new InputStreamWithOtherItemsToClose(unencryptedZipFile.getInputStream(unencryptedZipFile.getFileHeaders().get(0)), unencryptedZipFile)) {
-			//							zipFile.addStream(inputStream, zipParameters);
-			//						}
-			//					}
-			//				}
-			//				new File(outputFilePath).delete();
-			//				new File(outputFilePath + ".tmp").renameTo(new File(outputFilePath));
-			//			}
+			if (zip && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			}
 		}
 	}
 
@@ -491,40 +506,23 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 
-			try (Statement statement = connection.createStatement();
-					ResultSet resultSet = statement.executeQuery(sqlStatement)) {
-				final ResultSetMetaData metaData = resultSet.getMetaData();
+			try (Statement statement = connection.createStatement()) {
+				statement.setFetchSize(100);
+				try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+					final ResultSetMetaData metaData = resultSet.getMetaData();
 
-				outputStream.write((sqlStatement + "\n\n").getBytes(StandardCharsets.UTF_8));
-				for (int i = 1; i <= metaData.getColumnCount(); i ++) {
-					outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes(StandardCharsets.UTF_8));
+					outputStream.write((sqlStatement + "\n\n").getBytes(StandardCharsets.UTF_8));
+					for (int i = 1; i <= metaData.getColumnCount(); i ++) {
+						outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes(StandardCharsets.UTF_8));
+					}
 				}
 			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
 
-			// TODO: need net.lingala.zip library
-			//			if (zip && zipPassword != null) {
-			//				final ZipParameters zipParameters = new ZipParameters();
-			//				zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
-			//				zipParameters.setEncryptFiles(true);
-			//				if (!useZipCrypto) {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.AES);
-			//					zipParameters.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
-			//				} else {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
-			//				}
-			//				zipParameters.setFileNameInZip(new File(outputFilePath.substring(0, outputFilePath.length() - 4)).getName());
-			//				try (ZipFile zipFile = new ZipFile(new File(outputFilePath + ".tmp"), zipPassword)) {
-			//					try (ZipFile unencryptedZipFile = new ZipFile(new File(outputFilePath))) {
-			//						try (InputStream inputStream = new InputStreamWithOtherItemsToClose(unencryptedZipFile.getInputStream(unencryptedZipFile.getFileHeaders().get(0)), unencryptedZipFile)) {
-			//							zipFile.addStream(inputStream, zipParameters);
-			//						}
-			//					}
-			//				}
-			//				new File(outputFilePath).delete();
-			//				new File(outputFilePath + ".tmp").renameTo(new File(outputFilePath));
-			//			}
+			if (zip && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			}
 		}
 	}
 
@@ -560,7 +558,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				if (log) {
 					logOutputStream = new FileOutputStream(new File(outputFilePath + "." + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".log"));
 
-					logToFile(logOutputStream, getConfigurationLogString(new File(outputFilePath).getName(), sqlStatement));
+					logToFile(logOutputStream, getConfigurationLogString(new File(outputFilePath).getName(), sqlStatement)
+							+ (Utilities.isNotBlank(dateFormatPattern) ? "DateFormatPattern: " + dateFormatPattern + "\n" : "")
+							+ (Utilities.isNotBlank(dateTimeFormatPattern) ? "DateTimeFormatPattern: " + dateTimeFormatPattern + "\n" : "")
+							+ (databaseTimeZone != null && !databaseTimeZone.equals(exportDataTimeZone) ? "DatabaseZoneId: " + databaseTimeZone + "\nExportDataZoneId: " + exportDataTimeZone + "\n" : ""));
 				}
 
 				if (currentItemName == null) {
@@ -586,12 +587,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 
 			if (currentItemName == null) {
-				showUnlimitedProgress();
+				signalUnlimitedProgress();
 			} else {
-				showUnlimitedSubProgress();
+				signalUnlimitedSubProgress();
 			}
 
-			try (Statement statement = connection.createStatement()) {
+			try (Statement statement = DbUtilities.getStatementForLargeQuery(connection)) {
 				String countSqlStatementString = "SELECT COUNT(*) FROM (" + sqlStatement + ") data";
 				if (dbVendor == DbVendor.Cassandra) {
 					if (sqlStatement.toLowerCase().contains(" order by ")) {
@@ -607,10 +608,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 					if (currentItemName == null) {
 						itemsToDo = linesToExport;
-						showProgress();
+						signalProgress();
 					} else {
 						subItemsToDo = linesToExport;
-						showItemProgress();
+						signalItemProgress();
 					}
 				}
 
@@ -629,16 +630,16 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 					if (currentItemName == null) {
 						itemsDone = 0;
-						showProgress();
+						signalProgress();
 					} else {
 						subItemsDone = 0;
-						showItemProgress();
+						signalItemProgress();
 					}
 
 					if (currentItemName == null) {
-						showProgress();
+						signalProgress();
 					} else {
-						showItemProgress();
+						signalItemProgress();
 					}
 
 					startOutput(connection, sqlStatement, columnNames);
@@ -670,9 +671,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 								value = DateUtilities.changeDateTimeZone((ZonedDateTime) value, ZoneId.of(exportDataTimeZone));
 								writeDateTimeColumn(columnName, (ZonedDateTime) value);
 							} else if (value != null && value instanceof File) {
-								overallExportedDataAmountRaw += ((File) value).length();
 								if (zip) {
-									overallExportedDataAmountCompressed += ZipUtilities.getDataSizeUncompressed((File) value);
+									overallExportedDataAmountRaw += ZipUtilities.getDataSizeUncompressed((File) value);
+									overallExportedDataAmountCompressed += ((File) value).length();
+								} else {
+									overallExportedDataAmountRaw += ((File) value).length();
 								}
 								value = ((File) value).getName();
 								writeColumn(columnName, value);
@@ -684,10 +687,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 						if (currentItemName == null) {
 							itemsDone++;
-							showProgress();
+							signalProgress();
 						} else {
 							subItemsDone++;
-							showItemProgress();
+							signalItemProgress();
 						}
 					}
 					endOutput();
@@ -731,17 +734,17 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				if (currentItemName == null) {
 					logToFile(logOutputStream, "End: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), getEndTime()));
-					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(Duration.between(getStartTime(), getEndTime()), true));
+					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(getStartTime(), getEndTime()), true));
 				} else {
 					logToFile(logOutputStream, "End: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), endTimeSub));
-					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(Duration.between(startTimeSub, endTimeSub), true));
+					logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(startTimeSub, endTimeSub), true));
 				}
 
 				overallExportedLines += exportedLines;
 			}
 		} catch (final SQLException sqle) {
 			errorOccurred = true;
-			throw new DbExportException("SQL error: " + sqle.getMessage());
+			throw new DbExportException("SQL error: " + sqle.getMessage(), sqle);
 		} catch (final Exception e) {
 			errorOccurred = true;
 			try {
@@ -762,48 +765,17 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 
 		if (new File(outputFilePath).exists()) {
-			// TODO: need net.lingala.zip library
-			//			if (zip && zipPassword != null) {
-			//				final ZipParameters zipParameters = new ZipParameters();
-			//				zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
-			//				zipParameters.setEncryptFiles(true);
-			//				if (!useZipCrypto) {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.AES);
-			//					zipParameters.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
-			//				} else {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
-			//				}
-			//				zipParameters.setFileNameInZip(new File(outputFilePath.substring(0, outputFilePath.length() - 4)).getName());
-			//				try (ZipFile zipFile = new ZipFile(new File(outputFilePath + ".tmp"), zipPassword)) {
-			//					try (ZipFile unencryptedZipFile = new ZipFile(new File(outputFilePath))) {
-			//						try (InputStream inputStream = new InputStreamWithOtherItemsToClose(unencryptedZipFile.getInputStream(unencryptedZipFile.getFileHeaders().get(0)), unencryptedZipFile)) {
-			//							zipFile.addStream(inputStream, zipParameters);
-			//						}
-			//					}
-			//				}
-			//				new File(outputFilePath).delete();
-			//				new File(outputFilePath + ".tmp").renameTo(new File(outputFilePath));
-			//			}
+			if (zip && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			}
 
 			final File exportedFile = new File(outputFilePath);
-			overallExportedDataAmountRaw += (exportedFile).length();
-			// TODO: need net.lingala.zip library
-			//			if (zip) {
-			//				final ZipFile zipFile = new ZipFile(exportedFile, zipPassword);
-			//				final List<FileHeader> fileHeaders = zipFile.getFileHeaders();
-			//				long uncompressedSize = 0;
-			//				for (final FileHeader fileHeader : fileHeaders) {
-			//					final long originalSize = fileHeader.getUncompressedSize();
-			//					if (originalSize >= 0) {
-			//						uncompressedSize += originalSize;
-			//					} else {
-			//						// -1 indicates, that size is unknown
-			//						uncompressedSize = originalSize;
-			//						break;
-			//					}
-			//				}
-			//				overallExportedDataAmountCompressed = uncompressedSize;
-			//			}
+			if (zip) {
+				overallExportedDataAmountRaw += Zip4jUtilities.getUncompressedSize(exportedFile, zipPassword);
+				overallExportedDataAmountCompressed += (exportedFile).length();
+			} else {
+				overallExportedDataAmountRaw += (exportedFile).length();
+			}
 		}
 	}
 

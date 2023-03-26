@@ -3224,4 +3224,17 @@ public class DbUtilities {
 			throw new Exception("ForeignKeyConstraintStatus change not available for dbvendor '" + dbVendor.name() + "'");
 		}
 	}
+
+	public static Statement getStatementForLargeQuery(final Connection connection) throws Exception {
+		final DbVendor dbVendor = getDbVendor(connection);
+		if (DbVendor.MySQL == dbVendor) {
+			final Statement statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			statement.setFetchSize(Integer.MIN_VALUE);
+			return statement;
+		} else {
+			final Statement statement = connection.createStatement();
+			statement.setFetchSize(100);
+			return statement;
+		}
+	}
 }

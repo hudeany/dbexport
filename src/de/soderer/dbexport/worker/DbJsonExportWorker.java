@@ -5,8 +5,6 @@ import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.ResolverStyle;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
@@ -22,11 +20,8 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	public DbJsonExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) throws Exception {
 		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, isStatementFile, sqlStatementOrTablelist, outputpath);
 
-		dateFormatter = DateTimeFormatter.ofPattern(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);
-		dateFormatter.withResolverStyle(ResolverStyle.STRICT);
-
-		dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.ISO_8601_DATETIME_FORMAT_NO_TIMEZONE);
-		dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
+		setDateFormat(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);
+		setDateTimeFormat(DateUtilities.ISO_8601_DATETIME_FORMAT_NO_TIMEZONE);
 	}
 
 	public void setIndentation(final String indentation) {
@@ -41,7 +36,7 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 				+ "Zip: " + zip + "\n"
 				+ "Encoding: " + encoding + "\n"
 				+ "SqlStatement: " + sqlStatement + "\n"
-				+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+				+ "OutputFormatLocale: " + dateFormatLocale.getLanguage() + "\n"
 				+ "CreateBlobFiles: " + createBlobFiles + "\n"
 				+ "CreateClobFiles: " + createClobFiles + "\n"
 				+ "Beautify: " + beautify + "\n"
@@ -79,20 +74,19 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void writeDateColumn(final String columnName, final LocalDate localDateValue) throws Exception {
 		jsonWriter.openJsonObjectProperty(columnName);
-		dateFormatter.format(LocalDateTime.now());
-		jsonWriter.addSimpleJsonObjectPropertyValue(dateFormatter.format(localDateValue));
+		jsonWriter.addSimpleJsonObjectPropertyValue(localDateValue);
 	}
 
 	@Override
 	protected void writeDateTimeColumn(final String columnName, final LocalDateTime localDateTimeValue) throws Exception {
 		jsonWriter.openJsonObjectProperty(columnName);
-		jsonWriter.addSimpleJsonObjectPropertyValue(dateTimeFormatter.format(localDateTimeValue));
+		jsonWriter.addSimpleJsonObjectPropertyValue(localDateTimeValue);
 	}
 
 	@Override
 	protected void writeDateTimeColumn(final String columnName, final ZonedDateTime zonedDateTimeValue) throws Exception {
 		jsonWriter.openJsonObjectProperty(columnName);
-		jsonWriter.addSimpleJsonObjectPropertyValue(dateTimeFormatter.format(zonedDateTimeValue));
+		jsonWriter.addSimpleJsonObjectPropertyValue(zonedDateTimeValue);
 	}
 
 	@Override

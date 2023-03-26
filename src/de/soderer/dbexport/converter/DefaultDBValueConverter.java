@@ -20,6 +20,7 @@ import java.util.zip.ZipOutputStream;
 
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DefaultDBValueConverter {
@@ -134,39 +135,20 @@ public class DefaultDBValueConverter {
 	protected void checkAndCloseZipEntry(final OutputStream outputStream, final File lobOutputFile) throws Exception {
 		if (outputStream instanceof ZipOutputStream) {
 			try {
+				outputStream.close();
+			} catch (final Exception e) {
+				e.printStackTrace();
+			}
+
+			try {
 				((ZipOutputStream) outputStream).closeEntry();
 			} catch (final Exception e) {
 				e.printStackTrace();
 			}
 
-			// TODO: need net.lingala.zip library
-			//			if (zip && zipPassword != null) {
-			//				try {
-			//					outputStream.close();
-			//				} catch (final Exception e) {
-			//					e.printStackTrace();
-			//				}
-			//
-			//				final ZipParameters zipParameters = new ZipParameters();
-			//				zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
-			//				zipParameters.setEncryptFiles(true);
-			//				if (!useZipCrypto) {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.AES);
-			//					zipParameters.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
-			//				} else {
-			//					zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
-			//				}
-			//				zipParameters.setFileNameInZip(new File(outputFilePath.substring(0, outputFilePath.length() - 4)).getName());
-			//				try (ZipFile zipFile = new ZipFile(new File(outputFilePath + ".tmp"), zipPassword)) {
-			//					try (ZipFile unencryptedZipFile = new ZipFile(new File(outputFilePath))) {
-			//						try (InputStream inputStream = new InputStreamWithOtherItemsToClose(unencryptedZipFile.getInputStream(unencryptedZipFile.getFileHeaders().get(0)), unencryptedZipFile)) {
-			//							zipFile.addStream(inputStream, zipParameters);
-			//						}
-			//					}
-			//				}
-			//				lobOutputFile.delete();
-			//				new File(lobOutputFile.getAbsolutePath() + ".tmp").renameTo(lobOutputFile);
-			//			}
+			if (zip && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(lobOutputFile.getAbsolutePath(), zipPassword, useZipCrypto);
+			}
 		}
 	}
 }

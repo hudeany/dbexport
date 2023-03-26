@@ -3,6 +3,7 @@ package de.soderer.utilities.console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.Thread.State;
 import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -17,7 +18,7 @@ import de.soderer.utilities.Utilities;
 public class ConsoleUtilities {
 	private static Queue<Character> consoleInputBuffer = null;
 
-	private static Boolean consoleSupportsAnsiCodes = null;
+	private static ConsoleType consoleType = null;
 	private static boolean linuxConsoleActivatedRawMode = false;
 
 	public static final int KeyCode_CtrlC = 3;
@@ -141,11 +142,21 @@ public class ConsoleUtilities {
 		}
 	}
 
-	public static boolean consoleSupportsAnsiCodes() {
-		if (consoleSupportsAnsiCodes == null) {
-			consoleSupportsAnsiCodes = SystemUtilities.isWindowsSystem() || (System.console() != null && System.getenv().get("TERM") != null);
+	public static ConsoleType getConsoleType() {
+		if (consoleType == null) {
+			if (SystemUtilities.isWindowsSystem() || (System.console() != null && System.getenv().get("TERM") != null)) {
+				consoleType = ConsoleType.ANSI;
+				try {
+					getTerminalSize();
+				} catch (final Exception e) {
+					e.printStackTrace();
+					consoleType = ConsoleType.TEST;
+				}
+			} else {
+				consoleType = ConsoleType.TEST;
+			}
 		}
-		return consoleSupportsAnsiCodes;
+		return consoleType;
 	}
 
 	public static boolean activateLinuxConsoleRawMode() throws Exception {
@@ -364,12 +375,14 @@ public class ConsoleUtilities {
 				moveCursorToPosition(3000, 3000);
 
 				if (SystemUtilities.isWindowsSystem()) {
-					// Request current cursor position
-					System.out.print("\033[6n");
-
-					int keyBuffer;
-					while ((keyBuffer = WindowsKeyStrokeReader.readKey(false)) > 0) {
-						response.append((char) keyBuffer);
+					final WindowsConsoleWidthDetection consoleWidthDetection = new WindowsConsoleWidthDetection(response);
+					final Thread consoleWithDetectionThread = new Thread(consoleWidthDetection, "ConsoleWidthDetection");
+					consoleWithDetectionThread.start();
+					Thread.sleep(1000);
+					if (consoleWithDetectionThread.getState() != State.TERMINATED) {
+						consoleWithDetectionThread.interrupt();
+						consoleType = ConsoleType.TEST;
+						return new Size(24, 80);
 					}
 				} else {
 					final boolean linuxConsoleMustBeReset = activateLinuxConsoleRawMode();

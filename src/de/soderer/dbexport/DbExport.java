@@ -37,6 +37,7 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
 import de.soderer.utilities.console.ConsoleMenu;
+import de.soderer.utilities.console.ConsoleType;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.http.HttpUtilities;
@@ -151,6 +152,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					if ("help".equalsIgnoreCase(arguments[i]) || "-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
 							|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
 						System.out.println(getUsageMessage());
+						return 1;
+					} else if ("ConsoleType".equalsIgnoreCase(arguments[i])) {
+						System.out.println("ConsoleType: " + ConsoleUtilities.getConsoleType());
 						return 1;
 					} else if ("version".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
 						System.out.println(VERSION);
@@ -350,7 +354,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter format locale");
 						} else {
-							dbExportDefinition.setDateAndDecimalLocale(new Locale(arguments[i]));
+							dbExportDefinition.setDateFormatLocale(new Locale(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-dateFormat".equalsIgnoreCase(arguments[i])) {
@@ -480,6 +484,25 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 							throw new ParameterException(arguments[i - 1], "Missing parameter value for check");
 						} else {
 							connectionTestDefinition.setCheckStatement(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-secure".equalsIgnoreCase(arguments[i])) {
+						connectionTestDefinition.setSecureConnection(true);
+						wasAllowedParam = true;
+					} else if ("-truststore".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
+						} else {
+							connectionTestDefinition.setTrustStoreFilePath(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststorepassword");
+						} else {
+							connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
 						}
 						wasAllowedParam = true;
 					} else {
@@ -657,11 +680,14 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			worker = dbExportDefinition.getConfiguredWorker(this);
 
 			if (dbExportDefinition.isVerbose()) {
-				System.out.println(worker.getConfigurationLogString(new File(dbExportDefinition.getOutputpath()).getName(), dbExportDefinition.getSqlStatementOrTablelist()));
+				System.out.println(worker.getConfigurationLogString(new File(dbExportDefinition.getOutputpath()).getName(), dbExportDefinition.getSqlStatementOrTablelist())
+						+ (Utilities.isNotBlank(dbExportDefinition.getDateFormat()) ? "DateFormatPattern: " + dbExportDefinition.getDateFormat() + "\n" : "")
+						+ (Utilities.isNotBlank(dbExportDefinition.getDateTimeFormat()) ? "DateTimeFormatPattern: " + dbExportDefinition.getDateTimeFormat() + "\n" : "")
+						+ (dbExportDefinition.getDatabaseTimeZone() != null && !dbExportDefinition.getDatabaseTimeZone().equals(dbExportDefinition.getExportDataTimeZone()) ? "DatabaseZoneId: " + dbExportDefinition.getDatabaseTimeZone() + "\nExportDataZoneId: " + dbExportDefinition.getExportDataTimeZone() + "\n" : ""));
 				System.out.println();
 			}
 
-			worker.setShowProgressAfterMilliseconds(2000);
+			worker.setProgressDisplayDelayMilliseconds(2000);
 			worker.run();
 
 			if (dbExportDefinition.isVerbose()) {
@@ -670,6 +696,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				if (dbExportDefinition.isZip()) {
 					System.out.println(LangResources.get("exporteddataamountcompressed") + ": " + worker.getOverallExportedDataAmountCompressed());
 				}
+				System.out.println(LangResources.get("exportSpeed") + ": " + Utilities.getHumanReadableSpeed(worker.getStartTime(), worker.getEndTime(), worker.getOverallExportedDataAmountRaw() * 8, "Bit", true, Locale.getDefault()));
 				System.out.println();
 			}
 
@@ -775,7 +802,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showUnlimitedProgress()
 	 */
 	@Override
-	public void showUnlimitedProgress() {
+	public void receiveUnlimitedProgressSignal() {
 		// Do nothing
 	}
 
@@ -783,7 +810,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentDual#showUnlimitedSubProgress()
 	 */
 	@Override
-	public void showUnlimitedSubProgress() {
+	public void receiveUnlimitedSubProgressSignal() {
 		// Do nothing
 	}
 
@@ -791,13 +818,13 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void showProgress(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\r")) {
-				if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
+				if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 					int currentTerminalWidth;
 					try {
 						currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
@@ -820,6 +847,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				} else {
 					System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, start, itemsToDo, itemsDone) + "\r");
 				}
+			} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
+				System.out.println();
+				System.out.println("Exporting table " + (itemsDone + 1) + " of " + itemsToDo);
 			} else {
 				System.out.println();
 				System.out.println("Exporting table " + (itemsDone + 1) + " of " + itemsToDo);
@@ -831,7 +861,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentDual#showItemStart(java.lang.String)
 	 */
 	@Override
-	public void showItemStart(final String itemName) {
+	public void receiveItemStartSignal(final String itemName, final String description) {
 		if ("Scanning tables ...".equals(itemName)) {
 			System.out.println(itemName);
 		} else {
@@ -843,9 +873,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentDual#showItemProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void showItemProgress(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone) {
+	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
-			if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
+			if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 				int currentTerminalWidth;
 				try {
 					currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
@@ -865,6 +895,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, itemStart, subItemToDo, subItemDone));
 
 				ConsoleUtilities.moveCursorToSavedPosition();
+			} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
+				System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\n");
 			} else {
 				System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\r");
 			}
@@ -872,7 +904,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	}
 
 	@Override
-	public void showItemDone(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
+	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			int currentTerminalWidth;
 			try {
@@ -886,7 +918,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	}
 
 	@Override
-	public void showDone(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")

@@ -80,7 +80,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 				+ "StringQuoteEscapeCharacter: " + stringQuoteEscapeCharacter + "\n"
 				+ "AlwaysQuote: " + alwaysQuote + "\n"
 				+ "SqlStatement: " + sqlStatement + "\n"
-				+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+				+ "OutputFormatLocale: " + dateFormatLocale.getLanguage() + "\n"
 				+ "CreateBlobFiles: " + createBlobFiles + "\n"
 				+ "CreateClobFiles: " + createClobFiles + "\n"
 				+ "Beautify: " + beautify;
@@ -132,7 +132,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		} else if (value instanceof String) {
 			values.add((String) value);
 		} else if (value instanceof Date) {
-			values.add(dateFormatter.format(DateUtilities.getLocalDateTimeForDate((Date) value)));
+			values.add(getDateFormatter().format(DateUtilities.getLocalDateTimeForDate((Date) value)));
 		} else if (value instanceof Number) {
 			columnPaddings[values.size()] = false;
 			if (decimalSeparator != null) {
@@ -152,7 +152,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		if (localDateValue == null) {
 			values.add(nullValueText);
 		} else {
-			values.add(dateFormatter.format(localDateValue));
+			values.add(getDateFormatter().format(localDateValue));
 		}
 
 		minimumColumnSizes[values.size() - 1] = Math.max(minimumColumnSizes[values.size() - 1], csvWriter.calculateOutputSizesOfValue(values.get(values.size() - 1)));
@@ -163,7 +163,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		if (localDateTimeValue == null) {
 			values.add(nullValueText);
 		} else {
-			values.add(dateTimeFormatter.format(localDateTimeValue));
+			values.add(getDateTimeFormatter().format(localDateTimeValue));
 		}
 
 		minimumColumnSizes[values.size() - 1] = Math.max(minimumColumnSizes[values.size() - 1], csvWriter.calculateOutputSizesOfValue(values.get(values.size() - 1)));
@@ -174,7 +174,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		if (zonedDateTimeValue == null) {
 			values.add(nullValueText);
 		} else {
-			values.add(dateTimeFormatter.format(zonedDateTimeValue));
+			values.add(getDateTimeFormatter().format(zonedDateTimeValue));
 		}
 
 		minimumColumnSizes[values.size() - 1] = Math.max(minimumColumnSizes[values.size() - 1], csvWriter.calculateOutputSizesOfValue(values.get(values.size() - 1)));

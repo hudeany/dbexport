@@ -8,14 +8,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public abstract class WorkerSimple<T> implements RunnableFuture<T> {
-	private static final long DEFAULT_SHOW_PROGRESS_AFTER_MILLISECONDS = 500;
+	private static final long DEFAULT_PROGRESS_DELAY_MILLISECONDS = 500;
 
 	private LocalDateTime startTime;
 	private LocalDateTime endTime;
 	protected long itemsToDo = -1;
 	protected long itemsDone = -1;
 	protected LocalDateTime lastProgressShow = LocalDateTime.now();
-	protected long showProgressAfterMilliseconds = DEFAULT_SHOW_PROGRESS_AFTER_MILLISECONDS;
+	protected long progressDisplayDelayMilliseconds = DEFAULT_PROGRESS_DELAY_MILLISECONDS;
 	private T result = null;
 
 	protected WorkerParentSimple parent;
@@ -37,31 +37,27 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 	 *
 	 * @param value
 	 */
-	public void setShowProgressAfterMilliseconds(final long value) {
-		showProgressAfterMilliseconds = value;
+	public void setProgressDisplayDelayMilliseconds(final long value) {
+		progressDisplayDelayMilliseconds = value;
 	}
 
-	public void showProgress() {
-		showProgress(false);
+	public void signalProgress() {
+		signalProgress(false);
 	}
 
-	public void showProgress(final boolean overrideRefreshTime) {
+	public void signalProgress(final boolean overrideRefreshTime) {
 		if (parent != null && !cancel) {
-			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > showProgressAfterMilliseconds) {
-				// Normal progress update
-				parent.showProgress(startTime, itemsToDo, itemsDone);
-				lastProgressShow = LocalDateTime.now();
-			} else if (overrideRefreshTime) {
-				// Important progress update, which may not be left out
-				parent.showProgress(startTime, itemsToDo, itemsDone);
+			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > progressDisplayDelayMilliseconds
+					|| overrideRefreshTime) {
+				parent.receiveProgressSignal(startTime, itemsToDo, itemsDone);
 				lastProgressShow = LocalDateTime.now();
 			}
 		}
 	}
 
-	public void showUnlimitedProgress() {
+	public void signalUnlimitedProgress() {
 		if (parent != null) {
-			parent.showUnlimitedProgress();
+			parent.receiveUnlimitedProgressSignal();
 		}
 	}
 
@@ -175,7 +171,7 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 			}
 			isDone = true;
 			if (parent != null) {
-				parent.showDone(startTime, endTime, itemsDone);
+				parent.receiveDoneSignal(startTime, endTime, itemsDone);
 			}
 		}
 	}

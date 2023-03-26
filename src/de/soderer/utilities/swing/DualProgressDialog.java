@@ -46,7 +46,7 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 	}
 
 	@Override
-	public void showUnlimitedSubProgress() {
+	public void receiveUnlimitedSubProgressSignal() {
 		if (SwingUtilities.isEventDispatchThread()) {
 			subItemProgressBar.setIndeterminate(true);
 			subItemProgressBar.setStringPainted(false);
@@ -54,14 +54,14 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showUnlimitedSubProgress();
+					receiveUnlimitedSubProgressSignal();
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showItemStart(final String itemName) {
+	public void receiveItemStartSignal(final String itemName, final String description) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			subCommentStringFormat = itemName;
 			subItemLabel.setText(itemName);
@@ -73,14 +73,14 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showItemStart(itemName);
+					receiveItemStartSignal(itemName, description);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showItemProgress(final LocalDateTime itemStart, final long subItemsToDo, final long subItemsDone) {
+	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemsToDo, final long subItemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			updateProgressBar(subItemProgressBar, itemStart, subItemsToDo, subItemsDone);
 			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsToDo)).replace("{2}", Long.toString(subItemsDone * 100 / subItemsToDo));
@@ -89,14 +89,14 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showItemProgress(itemStart, subItemsToDo, subItemsDone);
+					receiveItemProgressSignal(itemStart, subItemsToDo, subItemsDone);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showItemDone(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
+	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			updateProgressBar(subItemProgressBar, itemStart, subItemsDone, subItemsDone);
 			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsDone)).replace("{2}", Long.toString(100));
@@ -105,7 +105,7 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showItemDone(itemStart, itemEnd, subItemsDone);
+					receiveItemDoneSignal(itemStart, itemEnd, subItemsDone);
 				}
 			});
 		}

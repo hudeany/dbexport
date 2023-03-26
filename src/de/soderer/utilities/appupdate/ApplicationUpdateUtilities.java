@@ -18,11 +18,9 @@ import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -472,19 +470,19 @@ public class ApplicationUpdateUtilities {
 		try {
 			final WorkerParentSimple workerParentAdapter = new WorkerParentSimple() {
 				@Override
-				public void showUnlimitedProgress() {
+				public void receiveUnlimitedProgressSignal() {
 					// Do nothing
 				}
 
 				@Override
-				public void showProgress(final LocalDateTime startTime, final long itemsToDo, final long itemsDone) {
+				public void receiveProgressSignal(final LocalDateTime startTime, final long itemsToDo, final long itemsDone) {
 					if (updateParent != null) {
 						updateParent.showUpdateProgress(startTime, itemsToDo, itemsDone);
 					}
 				}
 
 				@Override
-				public void showDone(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+				public void receiveDoneSignal(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
 					if (updateParent != null) {
 						updateParent.showUpdateDownloadEnd(startTime, endTime, itemsDone);
 					}
@@ -541,7 +539,7 @@ public class ApplicationUpdateUtilities {
 		}
 	}
 
-	private static boolean verifyJarSignature(final File jarFile, final Collection<? extends Certificate> trustedCertificates) throws Exception {
+	public static boolean verifyJarSignature(final File jarFile, final Collection<? extends Certificate> trustedCertificates) throws Exception {
 		if (trustedCertificates == null || trustedCertificates.size() == 0) {
 			return false;
 		}
@@ -554,41 +552,36 @@ public class ApplicationUpdateUtilities {
 
 			final byte[] buffer = new byte[4096];
 			final Enumeration<JarEntry> jarEntriesEnumerator = jar.entries();
-			final List<JarEntry> jarEntries = new ArrayList<>();
 
 			while (jarEntriesEnumerator.hasMoreElements()) {
 				final JarEntry jarEntry = jarEntriesEnumerator.nextElement();
-				jarEntries.add(jarEntry);
 
-				try (InputStream jarEntryInputStream = jar.getInputStream(jarEntry))  {
+				try (InputStream jarEntryInputStream = jar.getInputStream(jarEntry)) {
 					// Reading the jarEntry throws a SecurityException if signature/digest check fails.
 					while (jarEntryInputStream.read(buffer, 0, buffer.length) != -1) {
-						// Do nothing
+						// just read it
 					}
 				}
-			}
 
-			for (final JarEntry jarEntry : jarEntries) {
-				if (!jarEntry.isDirectory()) {
-					// Every file must be signed, except for files in META-INF
+				// Every file must be signed, except for files in META-INF
+				if (!jarEntry.isDirectory() && !jarEntry.getName().startsWith("META-INF")) {
+					boolean isSignedByTrustedCert = false;
+
 					final Certificate[] certificates = jarEntry.getCertificates();
 					if ((certificates == null) || (certificates.length == 0)) {
-						if (!jarEntry.getName().startsWith("META-INF")) {
-							throw new SecurityException("The jar file contains unsigned files.");
-						}
+						throw new SecurityException("The jar file contains unsigned files.");
 					} else {
-						boolean isSignedByTrustedCert = false;
-
 						for (final Certificate chainRootCertificate : certificates) {
 							if (chainRootCertificate instanceof X509Certificate && verifyChainOfTrust((X509Certificate) chainRootCertificate, trustedCertificates)) {
+								// TODO: check certificate validity period: ((X509Certificate) chainRootCertificate).checkValidity();
 								isSignedByTrustedCert = true;
 								break;
 							}
 						}
+					}
 
-						if (!isSignedByTrustedCert) {
-							throw new SecurityException("The jar file contains untrusted signed files");
-						}
+					if (!isSignedByTrustedCert) {
+						throw new SecurityException("The jar file contains untrusted signed files");
 					}
 				}
 			}

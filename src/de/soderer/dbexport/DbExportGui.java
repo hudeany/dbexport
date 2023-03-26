@@ -172,6 +172,12 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The field for datafiles timezone */
 	private final JComboBox<String> exportDataTimezoneCombo;
 
+	/** The field for DateFormat */
+	private final JTextField exportDateFormatField;
+
+	/** The field for DateTimeFormat */
+	private final JTextField exportDateTimeFormatField;
+
 	/**
 	 * Instantiates a new db csv export gui.
 	 *
@@ -368,6 +374,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 					final File trustStoreFile = selectFile(trustStoreFilePathField.getText(), LangResources.get("trustStoreFile"));
 					if (trustStoreFile != null) {
 						trustStoreFilePathField.setText(trustStoreFile.getAbsolutePath());
+						checkButtonStatus();
 					}
 				} catch (final Exception e) {
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -397,6 +404,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						} else {
 							HttpUtilities.createTrustStoreFile(hostField.getText(), DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()).getDefaultPort(), new File(trustStoreFilePathField.getText()), trustStorePasswordField.getPassword());
 							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
+							checkButtonStatus();
 						}
 					}
 				} catch (final Exception e) {
@@ -577,8 +585,43 @@ public class DbExportGui extends UpdateableGuiApplication {
 		localeCombo.addItem("DE");
 		localeCombo.addItem("EN");
 		localeCombo.setEditable(true);
+		localeCombo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				try {
+					final Locale locale = new Locale((String) localeCombo.getSelectedItem());
+					exportDateFormatField.setText(DateUtilities.getDateFormatPattern(locale));
+					exportDateTimeFormatField.setText(DateUtilities.getDateTimeFormatWithSecondsPattern(locale));
+				} catch (@SuppressWarnings("unused") final Exception e1) {
+					exportDateFormatField.setText("");
+					exportDateTimeFormatField.setText("");
+				}
+			}
+		});
 		localePanel.add(localeCombo);
 		mandatoryParameterPanel.add(localePanel);
+
+		// Export date format
+		final JPanel exportDateFormatPanel = new JPanel();
+		exportDateFormatPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel exportDateFormatLabel = new JLabel(LangResources.get("exportDateFormat"));
+		exportDateFormatPanel.add(exportDateFormatLabel);
+		exportDateFormatField = new JTextField();
+		exportDateFormatField.setToolTipText(LangResources.get("exportDateFormat_help"));
+		exportDateFormatField.setPreferredSize(new Dimension(200, exportDateFormatField.getPreferredSize().height));
+		exportDateFormatPanel.add(exportDateFormatField);
+		mandatoryParameterPanel.add(exportDateFormatPanel);
+
+		// Export datetime format
+		final JPanel exportDateTimeFormatPanel = new JPanel();
+		exportDateTimeFormatPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel exportDateTimeFormatLabel = new JLabel(LangResources.get("exportDateTimeFormat"));
+		exportDateTimeFormatPanel.add(exportDateTimeFormatLabel);
+		exportDateTimeFormatField = new JTextField();
+		exportDateTimeFormatField.setToolTipText(LangResources.get("exportDateTimeFormat_help"));
+		exportDateTimeFormatField.setPreferredSize(new Dimension(200, exportDateTimeFormatField.getPreferredSize().height));
+		exportDateTimeFormatPanel.add(exportDateTimeFormatField);
+		mandatoryParameterPanel.add(exportDateTimeFormatPanel);
 
 		// Statement Panel
 		final JPanel statementPanel = new JPanel();
@@ -614,7 +657,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		databaseTimezonePanel.add(databaseTimezoneCombo);
 		mandatoryParameterPanel.add(databaseTimezonePanel);
 
-		// Import data timezone Panel
+		// Export data timezone Panel
 		final JPanel exportDataTimezonePanel = new JPanel();
 		exportDataTimezonePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		final JLabel exportDataTimezoneLabel = new JLabel(LangResources.get("exportDataTimezone"));
@@ -833,7 +876,16 @@ public class DbExportGui extends UpdateableGuiApplication {
 			indentationString = (String) indentationCombo.getSelectedItem();
 		}
 		dbExportDefinition.setIndentation(indentationString);
-		dbExportDefinition.setDateAndDecimalLocale(localeCombo.isEnabled() ? new Locale((String) localeCombo.getSelectedItem()) : null);
+		final Locale locale = new Locale((String) localeCombo.getSelectedItem());
+		dbExportDefinition.setDateFormatLocale(localeCombo.isEnabled() ? locale : null);
+
+		if (Utilities.isNotBlank(exportDateFormatField.getText()) && exportDateFormatField.isEnabled()) {
+			dbExportDefinition.setDateFormat(exportDateFormatField.getText());
+		}
+
+		if (Utilities.isNotBlank(exportDateTimeFormatField.getText()) && exportDateTimeFormatField.isEnabled()) {
+			dbExportDefinition.setDateTimeFormat(exportDateTimeFormatField.getText());
+		}
 
 		dbExportDefinition.setNullValueString((String) nullValueStringCombo.getSelectedItem());
 
@@ -953,15 +1005,18 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 		boolean foundLocale = false;
 		for (int i = 0; i < localeCombo.getItemCount(); i++) {
-			if (localeCombo.getItemAt(i).equalsIgnoreCase(dbExportDefinition.getDateAndDecimalLocale().getLanguage())) {
+			if (localeCombo.getItemAt(i).equalsIgnoreCase(dbExportDefinition.getDateFormatLocale().getLanguage())) {
 				localeCombo.setSelectedIndex(i);
 				foundLocale = true;
 				break;
 			}
 		}
 		if (!foundLocale) {
-			localeCombo.setSelectedItem(dbExportDefinition.getDateAndDecimalLocale().getLanguage());
+			localeCombo.setSelectedItem(dbExportDefinition.getDateFormatLocale().getLanguage());
 		}
+
+		exportDateFormatField.setText(dbExportDefinition.getDateFormat());
+		exportDateTimeFormatField.setText(dbExportDefinition.getDateTimeFormat());
 
 		if ("".equals(dbExportDefinition.getNullValueString())) {
 			nullValueStringCombo.setSelectedIndex(0);
@@ -1119,6 +1174,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 					if (dbExportDefinition.isZip()) {
 						resultText += "\n" + LangResources.get("exporteddataamountcompressed") + ": " + Utilities.getHumanReadableNumber(worker.getOverallExportedDataAmountCompressed(), "Byte", false, 5, false, Locale.getDefault());
 					}
+					resultText += "\n" + LangResources.get("exportSpeed") + ": " + Utilities.getHumanReadableSpeed(worker.getStartTime(), worker.getEndTime(), worker.getOverallExportedDataAmountRaw() * 8, "Bit", true, Locale.getDefault());
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME, LangResources.get("result") + ":\n" + resultText).open();
 				}
 			}

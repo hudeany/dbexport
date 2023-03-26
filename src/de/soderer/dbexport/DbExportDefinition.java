@@ -109,8 +109,8 @@ public class DbExportDefinition extends DbDefinition {
 	/** The create clob files. */
 	private boolean createClobFiles = false;
 
-	/** The date and decimal locale. */
-	private String dateAndDecimalLocale = Locale.getDefault().getLanguage();
+	/** The date format locale. */
+	private String dateFormatLocale = Locale.getDefault().getLanguage();
 
 	/** The date format */
 	private String dateFormat = null;
@@ -319,16 +319,16 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Sets the date and decimal locale.
+	 * Sets the date format locale.
 	 *
-	 * @param dateAndDecimalLocale
-	 *            the new date and decimal locale
+	 * @param dateFormatLocale
+	 *            the new date format locale
 	 */
-	public void setDateAndDecimalLocale(final Locale dateAndDecimalLocale) {
-		if (dateAndDecimalLocale == null) {
-			this.dateAndDecimalLocale = Locale.getDefault().getLanguage();
+	public void setDateFormatLocale(final Locale dateFormatLocale) {
+		if (dateFormatLocale == null) {
+			this.dateFormatLocale = Locale.getDefault().getLanguage();
 		} else {
-			this.dateAndDecimalLocale = dateAndDecimalLocale.toString();
+			this.dateFormatLocale = dateFormatLocale.toString();
 		}
 	}
 
@@ -504,15 +504,15 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Gets the date and decimal locale.
+	 * Gets the date format locale.
 	 *
-	 * @return the date and decimal locale
+	 * @return the date format locale
 	 */
-	public Locale getDateAndDecimalLocale() {
-		if (dateAndDecimalLocale == null) {
+	public Locale getDateFormatLocale() {
+		if (dateFormatLocale == null) {
 			return Locale.getDefault();
 		} else {
-			return Locale.forLanguageTag(dateAndDecimalLocale);
+			return Locale.forLanguageTag(dateFormatLocale);
 		}
 	}
 
@@ -728,7 +728,7 @@ public class DbExportDefinition extends DbDefinition {
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
-			((DbXmlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbXmlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
 			((DbXmlExportWorker) worker).setDateFormat(getDateFormat());
 			((DbXmlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
 			((DbXmlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
@@ -748,7 +748,7 @@ public class DbExportDefinition extends DbDefinition {
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
-			((DbSqlExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbSqlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
 			((DbSqlExportWorker) worker).setDateFormat(getDateFormat());
 			((DbSqlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
 			((DbSqlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
@@ -766,7 +766,7 @@ public class DbExportDefinition extends DbDefinition {
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
-			((DbCsvExportWorker) worker).setDateAndDecimalLocale(getDateAndDecimalLocale());
+			((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
 			((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
 			((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
 			((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
@@ -861,8 +861,14 @@ public class DbExportDefinition extends DbDefinition {
 		if (isCreateClobFiles()) {
 			params += " " + "-clobfiles";
 		}
-		if (Locale.getDefault() != getDateAndDecimalLocale()) {
-			params += " " + "-f" + " " + getDateAndDecimalLocale().getLanguage();
+		if (Locale.getDefault() != getDateFormatLocale()) {
+			params += " " + "-f" + " " + getDateFormatLocale().getLanguage();
+		}
+		if (Utilities.isNotBlank(getDateFormat())) {
+			params += " " + "-dateFormat" + " " + getDateFormat();
+		}
+		if (Utilities.isNotBlank(getDateTimeFormat())) {
+			params += " " + "-dateTimeFormat" + " " + getDateTimeFormat();
 		}
 		if (isBeautify()) {
 			params += " " + "-b";

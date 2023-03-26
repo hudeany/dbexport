@@ -26,6 +26,8 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -699,6 +701,47 @@ public class Utilities {
 		}
 
 		return numberFormat.format(interimValue) + unitExtension;
+	}
+
+	public static String getHumanReadableSpeed(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String unitTypeSign, final boolean siUnits, final Locale locale) {
+		final long seconds = Duration.between(startTime, endTime).toSeconds();
+		if (seconds > 0) {
+			final double itemsPerSecond = itemsDone / seconds;
+
+			final int unit = siUnits ? 1000 : 1024;
+			double interimValue = itemsPerSecond;
+			String unitExtension = "";
+			if (interimValue > unit) {
+				final int exp = (int) (Math.log(interimValue) / Math.log(unit));
+				unitExtension = " " + (siUnits ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (siUnits ? "" : "i");
+				interimValue = interimValue / Math.pow(unit, exp);
+			}
+
+			if (isNotBlank(unitTypeSign)) {
+				unitExtension = unitExtension + unitTypeSign + "/s";
+			} else {
+				unitExtension = unitExtension + "/s";
+			}
+
+			final DecimalFormatSymbols decimalFormatSymbols = new DecimalFormatSymbols(locale);
+			final DecimalFormat numberFormat;
+			final int amountOfSignifiantDigits = 5;
+			if (interimValue >= 1000) {
+				numberFormat = new DecimalFormat("#0.0" + repeat("#", amountOfSignifiantDigits - 5), decimalFormatSymbols);
+			} else if (interimValue >= 100) {
+				numberFormat = new DecimalFormat("#0.0" + repeat("#", amountOfSignifiantDigits - 4), decimalFormatSymbols);
+			} else if (interimValue >= 10) {
+				numberFormat = new DecimalFormat("#0.0" + repeat("#", amountOfSignifiantDigits - 3), decimalFormatSymbols);
+			} else if (interimValue >= 1) {
+				numberFormat = new DecimalFormat("#0.0" + repeat("#", amountOfSignifiantDigits - 2), decimalFormatSymbols);
+			} else {
+				numberFormat = new DecimalFormat("#0.0" + repeat("#", amountOfSignifiantDigits - 1), decimalFormatSymbols);
+			}
+
+			return numberFormat.format(interimValue) + unitExtension;
+		} else {
+			return "Done in <0 s";
+		}
 	}
 
 	/**

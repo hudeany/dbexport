@@ -47,7 +47,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 				+ "Zip: " + zip + "\n"
 				+ "Encoding: " + encoding + "\n"
 				+ "SqlStatement: " + sqlStatement + "\n"
-				+ "OutputFormatLocale: " + dateAndDecimalLocale.getLanguage() + "\n"
+				+ "OutputFormatLocale: " + dateFormatLocale.getLanguage() + "\n"
 				+ "CreateBlobFiles: " + createBlobFiles + "\n"
 				+ "CreateClobFiles: " + createClobFiles + "\n"
 				+ "Beautify: " + beautify + "\n"
@@ -87,7 +87,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 		if (value == null) {
 			xmlWriter.writeCharacters(nullValueText);
 		} else if (value instanceof Date) {
-			xmlWriter.writeCharacters(dateFormatter.format(DateUtilities.getLocalDateTimeForDate((Date) value)));
+			xmlWriter.writeCharacters(getDateFormatter().format(DateUtilities.getLocalDateTimeForDate((Date) value)));
 		} else if (value instanceof Number) {
 			if (decimalSeparator != null) {
 				xmlWriter.writeCharacters(NumberUtilities.formatNumber((Number) value, decimalSeparator, null));
@@ -108,7 +108,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 		if (localDateValue == null) {
 			xmlWriter.writeCharacters(nullValueText);
 		} else {
-			xmlWriter.writeCharacters(dateFormatter.format(localDateValue));
+			xmlWriter.writeCharacters(getDateFormatter().format(localDateValue));
 		}
 		xmlWriter.writeEndElement();
 	}
@@ -119,7 +119,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 		if (localDateTimeValue == null) {
 			xmlWriter.writeCharacters(nullValueText);
 		} else {
-			xmlWriter.writeCharacters(dateTimeFormatter.format(localDateTimeValue));
+			xmlWriter.writeCharacters(getDateTimeFormatter().format(localDateTimeValue));
 		}
 		xmlWriter.writeEndElement();
 	}
@@ -130,7 +130,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 		if (zonedDateTimeValue == null) {
 			xmlWriter.writeCharacters(nullValueText);
 		} else {
-			xmlWriter.writeCharacters(dateTimeFormatter.format(zonedDateTimeValue));
+			xmlWriter.writeCharacters(getDateTimeFormatter().format(zonedDateTimeValue));
 		}
 		xmlWriter.writeEndElement();
 	}
