@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
-	<property name="version" value="22.5.11" />
+	<property name="version" value="23.1.14" />
 	<echo message="version: ${version}" />
 	
 	<tstamp>
