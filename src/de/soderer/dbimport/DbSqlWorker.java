@@ -28,6 +28,7 @@ import de.soderer.utilities.SqlScriptReader;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvDataException;
 import de.soderer.utilities.worker.WorkerParentSimple;
+import de.soderer.utilities.zip.Zip4jUtilities;
 
 public class DbSqlWorker extends DbImportWorker {
 	private SqlScriptReader sqlScriptReader = null;
@@ -40,7 +41,7 @@ public class DbSqlWorker extends DbImportWorker {
 	private final Charset encoding = StandardCharsets.UTF_8;
 
 	public DbSqlWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final String tableName, final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName);
+		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName, null, null);
 
 		this.isInlineData = isInlineData;
 		this.importFilePathOrData = importFilePathOrData;
@@ -115,11 +116,11 @@ public class DbSqlWorker extends DbImportWorker {
 
 				logToFile(logOutputStream, "Start: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), getStartTime()));
 
-				showUnlimitedProgress();
+				signalUnlimitedProgress();
 
 				itemsToDo = getItemsAmountToImport();
 				logToFile(logOutputStream, "Statements to execute: " + itemsToDo);
-				showProgress(true);
+				signalProgress(true);
 
 				try (Statement statement = connection.createStatement()) {
 					openReader();
@@ -164,7 +165,7 @@ public class DbSqlWorker extends DbImportWorker {
 					logToFile(logOutputStream, "Import speed: immediately");
 				}
 				logToFile(logOutputStream, "End: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), getEndTime()));
-				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(Duration.between(getStartTime(), getEndTime()), true));
+				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(getStartTime(), getEndTime()), true));
 			} catch (final SQLException sqle) {
 				throw new DbImportException("SQL error: " + sqle.getMessage());
 			} catch (final Exception e) {
@@ -205,42 +206,7 @@ public class DbSqlWorker extends DbImportWorker {
 			try {
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
-						// TODO: needs lingala Zip4j library
-						//						@SuppressWarnings("resource")
-						//						final ZipFile zipFile = new ZipFile(importFilePathOrData, zipPassword);
-						//						final List<FileHeader> fileHeaders = zipFile.getFileHeaders();
-						//						if (fileHeaders == null || fileHeaders.size() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeaders.size() > 1) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						//						}
-						//						final FileHeader fileHeader = fileHeaders.get(0);
-						//						if (fileHeader == null) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeader.getUncompressedSize() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + fileHeader.getFileName());
-						//						}
-						//						inputStream = new InputStreamWithOtherItemsToClose(zipFile.getInputStream(fileHeader), zipFile);
+						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
 						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {

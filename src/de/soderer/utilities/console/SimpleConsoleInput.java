@@ -104,7 +104,7 @@ public class SimpleConsoleInput {
 	}
 
 	public String readInput() throws Exception {
-		if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
+		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 			boolean insertMode = true;
 			String content = presetContent == null ? "" : presetContent;
 			int cursorIndex = content.length();
@@ -343,6 +343,12 @@ public class SimpleConsoleInput {
 				}
 			} finally {
 				ConsoleUtilities.showCursor();
+			}
+		} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
+			if (hideCharacter != null) {
+				return new String(System.console().readPassword(prompt));
+			} else {
+				return System.console().readLine(prompt);
 			}
 		} else {
 			if (hideCharacter != null) {

@@ -4,8 +4,10 @@ import java.io.File;
 import java.sql.Connection;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbNotExistsException;
@@ -36,8 +38,9 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 	@Override
 	public Boolean work() throws Exception {
 		boolean constraintWereDeactivated = false;
-		try {
-			showUnlimitedProgress();
+
+		try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
+			signalUnlimitedProgress();
 			itemsToDo = filesToImport.size();
 
 			multiImportResult = new StringBuilder();
@@ -47,16 +50,35 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 			multiImportResult.append(LangResources.get("start") + ": " + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, startDate) + "\n");
 			itemsDone = 0;
-			showProgress();
+			signalProgress();
+
+			if ("*".equals(tableName) && !dbImportDefinition.isCreateTable()) {
+				final List<String> notFoundTables = new ArrayList<>();
+				final List<String> availableTables = DbUtilities.getAvailableTables(connection, "*").stream().map(x -> x.toLowerCase()).collect(Collectors.toList());
+				for (int fileIndex = 0; fileIndex < filesToImport.size(); fileIndex++) {
+					String tableNameToImport = filesToImport.get(fileIndex).getName().toLowerCase();
+					if (tableNameToImport.endsWith(".zip")) {
+						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.length() - 4);
+					}
+					if (tableNameToImport.contains(".")) {
+						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.indexOf("."));
+					}
+					if (!availableTables.contains(tableNameToImport)) {
+						notFoundTables.add(tableNameToImport);
+					}
+				}
+
+				if (notFoundTables.size() > 0) {
+					throw new Exception("Import tables not available in database: " + Utilities.join(notFoundTables, ", "));
+				}
+			}
 
 			if (dbImportDefinition.isDeactivateForeignKeyConstraints()) {
-				showItemStart("Deactivating foreign key constrains");
+				signalItemStart("Deactivating foreign key constraints", null);
 				constraintWereDeactivated = true;
-				try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
-					DbUtilities.setForeignKeyConstraintStatus(dbImportDefinition.getDbVendor(), connection, false);
-					if (!connection.getAutoCommit()) {
-						connection.commit();
-					}
+				DbUtilities.setForeignKeyConstraintStatus(dbImportDefinition.getDbVendor(), connection, false);
+				if (!connection.getAutoCommit()) {
+					connection.commit();
 				}
 			}
 
@@ -88,15 +110,14 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 					}
 				}
 
-				showItemStart(tableToImport + " (" + fileToImport.getName() + ")");
-				showItemProgress(true);
-
-				showUnlimitedSubProgress();
+				signalUnlimitedSubProgress();
 
 				subWorker = dbImportDefinition.getConfiguredWorker(this, false, tableToImport, fileToImport.getAbsolutePath());
 
 				// prevent multiple constraint deactivation
 				subWorker.setDeactivateForeignKeyConstraints(false);
+
+				signalItemStart(tableToImport + " (" + fileToImport.getName() + ") " + (itemsDone + 1) + "/" + itemsToDo, subWorker.getConfigurationLogString());
 
 				subWorker.run();
 
@@ -113,21 +134,17 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 				subWorker = null;
 
 				itemsDone = fileIndex + 1;
-				showProgress(true);
-
-				showItemDone();
+				signalProgress(true);
 			}
 
 			itemsDone = itemsToDo;
-			showProgress(true);
+			signalProgress(true);
 
 			final LocalDateTime endDate = LocalDateTime.now();
 
-			multiImportResult.append(LangResources.get("end") + ": " + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, endDate) + "\n");
-			multiImportResult.append(LangResources.get("timeelapsed") + ": " + DateUtilities.getHumanReadableTimespan(Duration.between(startDate, endDate), true) + "\n");
-			multiImportResult.append(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(importedDataSize, "Byte", false, 5, false, Locale.getDefault()) + "\n");
-
-			showDone(startDate, endDate, itemsDone);
+			multiImportResult.append("End: " + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, endDate) + "\n");
+			multiImportResult.append("Time elapsed: " + DateUtilities.getHumanReadableTimespan(Duration.between(startDate, endDate), true) + "\n");
+			multiImportResult.append("Imported dataamount: " + Utilities.getHumanReadableNumber(importedDataSize, "Byte", false, 5, false, Locale.getDefault()) + "\n");
 
 			if (multiImportHadError) {
 				return false;
@@ -141,7 +158,7 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 			return false;
 		} finally {
 			if (dbImportDefinition.isDeactivateForeignKeyConstraints() && constraintWereDeactivated) {
-				showItemStart("Reactivating foreign key constrains");
+				signalItemStart("Reactivating foreign key constraints", null);
 				try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
 					DbUtilities.setForeignKeyConstraintStatus(dbImportDefinition.getDbVendor(), connection, true);
 					if (!connection.getAutoCommit()) {
@@ -152,15 +169,15 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 		}
 	}
 
-	private static Connection getDatabaseConnection(final DbImportDefinition dbImportDefinition) throws Exception {
-		final DbVendor dbVendor = dbImportDefinition.getDbVendor();
-		final String hostname = dbImportDefinition.getHostname();
-		final String dbName = dbImportDefinition.getDbName();
-		final String username = dbImportDefinition.getUsername();
-		final char[] password = dbImportDefinition.getPassword();
-		final boolean secureConnection = dbImportDefinition.getSecureConnection();
-		final String trustStoreFilePath = dbImportDefinition.getTrustStoreFilePath();
-		final char[] trustStorePassword = dbImportDefinition.getTrustStorePassword();
+	private static Connection getDatabaseConnection(final DbImportDefinition dbImportDefinitionParam) throws Exception {
+		final DbVendor dbVendor = dbImportDefinitionParam.getDbVendor();
+		final String hostname = dbImportDefinitionParam.getHostname();
+		final String dbName = dbImportDefinitionParam.getDbName();
+		final String username = dbImportDefinitionParam.getUsername();
+		final char[] password = dbImportDefinitionParam.getPassword();
+		final boolean secureConnection = dbImportDefinitionParam.getSecureConnection();
+		final String trustStoreFilePath = dbImportDefinitionParam.getTrustStoreFilePath();
+		final char[] trustStorePassword = dbImportDefinitionParam.getTrustStorePassword();
 		if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
 			try {
 				return DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), false, null, null, true);
@@ -189,25 +206,24 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 	}
 
 	@Override
-	public void showUnlimitedProgress() {
-		// Progress of subWorker must be display of subItem progress
-		showUnlimitedSubProgress();
+	public void receiveUnlimitedProgressSignal() {
+		signalUnlimitedSubProgress();
 	}
 
 	@Override
-	public void showProgress(final LocalDateTime start, final long itemsToDoParameter, final long itemsDoneParameter) {
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDoParameter, final long itemsDoneParameter) {
 		// Progress of subWorker must be display of subItem progress
 		subItemsToDo = itemsToDoParameter;
 		subItemsDone = itemsDoneParameter;
-		showItemProgress();
+		signalItemProgress();
 	}
 
 	@Override
-	public void showDone(final LocalDateTime start, final LocalDateTime end, final long itemsDoneParameter) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDoneParameter) {
 		// Progress of subWorker must be display of subItem progress
 		subItemsDone = itemsDoneParameter;
-		showItemProgress();
-		showItemDone();
+		signalItemProgress();
+		signalItemDone();
 	}
 
 	@Override

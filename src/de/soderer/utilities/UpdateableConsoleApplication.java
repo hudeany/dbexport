@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 import de.soderer.utilities.appupdate.ApplicationUpdateParent;
+import de.soderer.utilities.console.ConsoleType;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
@@ -73,12 +74,14 @@ public class UpdateableConsoleApplication implements ApplicationUpdateParent {
 
 	@Override
 	public void showUpdateProgress(final LocalDateTime itemStart, final long itemsToDo, final long itemsDone) {
-		if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
+		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 			ConsoleUtilities.saveCurrentCursorPosition();
 
 			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone));
 
 			ConsoleUtilities.moveCursorToSavedPosition();
+		} else if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
+			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone) + "\n");
 		} else {
 			System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone) + "\r");
 		}

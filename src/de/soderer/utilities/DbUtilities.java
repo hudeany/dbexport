@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 
 import javax.sql.DataSource;
 
-import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.csv.CsvFormat;
@@ -2094,7 +2093,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "NUMBER";
-				case Double: return "NUMBER";
+				case Float: return "NUMBER";
 				case String: return "VARCHAR2";
 				default: return "VARCHAR2";
 			}
@@ -2105,7 +2104,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP NULL";
 				case Date: return "DATE";
 				case Integer: return "INT";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2116,7 +2115,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP NULL";
 				case Date: return "DATE";
 				case Integer: return "INT";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2127,7 +2126,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INTEGER";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2138,7 +2137,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INTEGER";
-				case Double: return "REAL";
+				case Float: return "REAL";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2149,7 +2148,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INTEGER";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2160,7 +2159,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INTEGER";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2171,7 +2170,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INTEGER";
-				case Double: return "DOUBLE PRECISION";
+				case Float: return "DOUBLE PRECISION";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2182,7 +2181,7 @@ public class DbUtilities {
 				case DateTime: return "TIMESTAMP";
 				case Date: return "DATE";
 				case Integer: return "INT";
-				case Double: return "DOUBLE";
+				case Float: return "DOUBLE";
 				case String: return "VARCHAR";
 				default: return "VARCHAR";
 			}
@@ -2678,7 +2677,7 @@ public class DbUtilities {
 							typeString += "(" + (Long.toString(columnDataType.getValue().getCharacterByteSize())) + ")";
 						} else if (columnDataType.getValue().getSimpleDataType() == SimpleDataType.Integer) {
 							typeString += "(" + (Integer.toString(columnDataType.getValue().getNumericPrecision())) + ")";
-						} else if (columnDataType.getValue().getSimpleDataType() == SimpleDataType.Double) {
+						} else if (columnDataType.getValue().getSimpleDataType() == SimpleDataType.Float) {
 							typeString += "(" + (Integer.toString(columnDataType.getValue().getNumericPrecision())) + ")";
 						}
 						statement.execute("ALTER TABLE " + destinationTableName + " MODIFY " + columnDataType.getKey() + " " + typeString + " NULL");

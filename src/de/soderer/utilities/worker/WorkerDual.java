@@ -14,45 +14,39 @@ public abstract class WorkerDual<T> extends WorkerSimple<T> {
 		super(parent);
 	}
 
-	protected void showItemStart(final String itemName) {
+	protected void signalItemStart(final String itemName, final String description) {
 		currentItemName = itemName;
 		startTimeSub = LocalDateTime.now();
 		if (parent != null && !cancel) {
-			((WorkerParentDual) parent).showItemStart(currentItemName);
+			((WorkerParentDual) parent).receiveItemStartSignal(currentItemName, description);
 		}
 	}
 
-	protected void showItemProgress() {
-		showItemProgress(false);
+	protected void signalItemProgress() {
+		signalItemProgress(false);
 	}
 
-	protected void showItemProgress(final boolean overrideRefreshTime) {
+	protected void signalItemProgress(final boolean overrideRefreshTime) {
 		if (parent != null && !cancel) {
-			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > showProgressAfterMilliseconds) {
-				// Normal progress update
-				((WorkerParentDual) parent).showProgress(startTimeSub, itemsToDo, itemsDone);
-				((WorkerParentDual) parent).showItemProgress(startTimeSub, subItemsToDo, subItemsDone);
-				lastProgressShow = LocalDateTime.now();
-			} else if (overrideRefreshTime) {
-				// Important progress update, which may not be left out
-				((WorkerParentDual) parent).showProgress(startTimeSub, itemsToDo, itemsDone);
-				((WorkerParentDual) parent).showItemProgress(startTimeSub, subItemsToDo, subItemsDone);
+			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > progressDisplayDelayMilliseconds
+					|| overrideRefreshTime) {
+				((WorkerParentDual) parent).receiveItemProgressSignal(startTimeSub, subItemsToDo, subItemsDone);
 				lastProgressShow = LocalDateTime.now();
 			}
 		}
 	}
 
-	protected void showItemDone() {
+	protected void signalItemDone() {
 		endTimeSub = LocalDateTime.now();
 		if (parent != null) {
-			((WorkerParentDual) parent).showItemDone(startTimeSub, endTimeSub, subItemsDone);
+			((WorkerParentDual) parent).receiveItemDoneSignal(startTimeSub, endTimeSub, subItemsDone);
 			currentItemName = null;
 		}
 	}
 
-	protected void showUnlimitedSubProgress() {
+	protected void signalUnlimitedSubProgress() {
 		if (parent != null) {
-			((WorkerParentDual) parent).showUnlimitedSubProgress();
+			((WorkerParentDual) parent).receiveUnlimitedSubProgressSignal();
 		}
 	}
 }

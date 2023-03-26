@@ -42,10 +42,11 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
 import de.soderer.utilities.console.ConsoleMenu;
+import de.soderer.utilities.console.ConsoleType;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.http.HttpUtilities;
-import de.soderer.utilities.worker.WorkerParentSimple;
+import de.soderer.utilities.worker.WorkerParentDual;
 
 /**
  * The Main-Class of DbImport.
@@ -57,7 +58,7 @@ import de.soderer.utilities.worker.WorkerParentSimple;
 // TODO: Console menu: Manage preferences
 // TODO: Errorhandling on createConnection (dbconnection error detection and help messages in errors)
 
-public class DbImport extends UpdateableConsoleApplication implements WorkerParentSimple {
+public class DbImport extends UpdateableConsoleApplication implements WorkerParentDual {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbImport";
 	public static final String APPLICATION_STARTUPCLASS_NAME = "de.soderer.DbImport";
@@ -482,6 +483,26 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 							dbImportDefinition.setImportDataTimeZone(arguments[i]);
 						}
 						wasAllowedParam = true;
+					} else if ("-dateFormat".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter dateFormat");
+						} else if (Utilities.isBlank(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter dateFormat");
+						} else {
+							dbImportDefinition.setDateFormat(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-dateTimeFormat".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter dateTimeFormat");
+						} else if (Utilities.isBlank(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter dateTimeFormat");
+						} else {
+							dbImportDefinition.setDateTimeFormat(arguments[i]);
+						}
+						wasAllowedParam = true;
 					} else if ("-table".equalsIgnoreCase(arguments[i])) {
 						i++;
 						if (i >= arguments.length) {
@@ -558,6 +579,25 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 							blobImportDefinition.setImportFilePath(arguments[i]);
 						}
 						wasAllowedParam = true;
+					} else if ("-secure".equalsIgnoreCase(arguments[i])) {
+						blobImportDefinition.setSecureConnection(true);
+						wasAllowedParam = true;
+					} else if ("-truststore".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
+						} else {
+							blobImportDefinition.setTrustStoreFilePath(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststorepassword");
+						} else {
+							blobImportDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
+						}
+						wasAllowedParam = true;
 					} else {
 						if (blobImportDefinition.getDbVendor() == null) {
 							blobImportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
@@ -605,6 +645,25 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 							throw new ParameterException(arguments[i - 1], "Missing parameter value for check");
 						} else {
 							connectionTestDefinition.setCheckStatement(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-secure".equalsIgnoreCase(arguments[i])) {
+						connectionTestDefinition.setSecureConnection(true);
+						wasAllowedParam = true;
+					} else if ("-truststore".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
+						} else {
+							connectionTestDefinition.setTrustStoreFilePath(arguments[i]);
+						}
+						wasAllowedParam = true;
+					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststorepassword");
+						} else {
+							connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
 						}
 						wasAllowedParam = true;
 					} else {
@@ -811,7 +870,10 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 				}
 			}
 
-			for (final File fileToImport : filesToImport) {
+			if (filesToImport.size() == 0) {
+				throw new Exception("No files for import were found");
+			} else if (filesToImport.size() == 1) {
+				final File fileToImport = filesToImport.get(0);
 				String tableName = dbImportDefinitionToExecute.getTableName();
 				if ("*".equals(tableName)) {
 					tableName = fileToImport.getName();
@@ -824,6 +886,8 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 				}
 				System.out.println("Importing file '" + fileToImport.getAbsolutePath() + "' into table '"+ tableName + "'");
 				importFileOrData(dbImportDefinitionToExecute, tableName, fileToImport.getAbsolutePath());
+			} else {
+				multiImportFiles(dbImportDefinitionToExecute, filesToImport, dbImportDefinitionToExecute.getTableName());
 			}
 		} else {
 			importFileOrData(dbImportDefinitionToExecute, dbImportDefinitionToExecute.getTableName(), dbImportDefinitionToExecute.getImportFilePathOrData());
@@ -840,7 +904,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 				System.out.println();
 			}
 
-			worker.setShowProgressAfterMilliseconds(2000);
+			worker.setProgressDisplayDelayMilliseconds(2000);
 			worker.run();
 
 			// Get result to trigger possible Exception
@@ -871,6 +935,39 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			if (dbImportDefinitionToExecute.isVerbose()) {
 				System.out.println(LangResources.get("importeddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getImportedDataAmount(), "Byte", false, 5, false, Locale.getDefault()));
 			}
+
+			System.out.println();
+		} catch (final ExecutionException e) {
+			if (e.getCause() instanceof Exception) {
+				throw (Exception) e.getCause();
+			} else {
+				throw e;
+			}
+		} catch (final Exception e) {
+			throw e;
+		}
+	}
+
+	private void multiImportFiles(final DbImportDefinition dbImportDefinition, final List<File> filesToImport, final String tableName) throws Exception {
+		try {
+			final DbImportMultiWorker worker = new DbImportMultiWorker(dbImportDefinition, filesToImport, tableName);
+
+			worker.setParent(this);
+
+			worker.setProgressDisplayDelayMilliseconds(2000);
+			worker.run();
+
+			// Get result to trigger possible Exception
+			worker.get();
+
+			System.out.println();
+			System.out.println("End of multiple file import.\nImported files: " + worker.getItemsDone());
+
+			if (dbImportDefinitionToExecute.isVerbose()) {
+				System.out.println(worker.getResult());
+			}
+
+			System.out.println();
 		} catch (final ExecutionException e) {
 			if (e.getCause() instanceof Exception) {
 				throw (Exception) e.getCause();
@@ -971,7 +1068,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showUnlimitedProgress()
 	 */
 	@Override
-	public void showUnlimitedProgress() {
+	public void receiveUnlimitedProgressSignal() {
 		// Do nothing
 	}
 
@@ -979,31 +1076,9 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void showProgress(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
-		if (dbImportDefinitionToExecute.isVerbose()) {
-			if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
-				int currentTerminalWidth;
-				try {
-					currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
-				} catch (@SuppressWarnings("unused") final Exception e) {
-					currentTerminalWidth = 80;
-				}
-
-				ConsoleUtilities.saveCurrentCursorPosition();
-
-				if (currentTerminalWidth < previousTerminalWidth) {
-					System.out.print("\r" + Utilities.repeat(" ", currentTerminalWidth));
-				}
-				previousTerminalWidth = currentTerminalWidth;
-
-				ConsoleUtilities.moveCursorToSavedPosition();
-
-				System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, start, itemsToDo, itemsDone));
-
-				ConsoleUtilities.moveCursorToSavedPosition();
-			} else {
-				System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, start, itemsToDo, itemsDone) + "\r");
-			}
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+		if (dbImportDefinitionToExecute.isVerbose() && !"*".equals(dbImportDefinitionToExecute.getTableName())) {
+			printProgressBar(start, itemsToDo, itemsDone);
 		}
 	}
 
@@ -1011,7 +1086,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showDone(java.util.Date, java.util.Date, long)
 	 */
 	@Override
-	public void showDone(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
 		if (dbImportDefinitionToExecute.isVerbose()) {
 			int currentTerminalWidth;
 			try {
@@ -1019,7 +1094,11 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			} catch (@SuppressWarnings("unused") final Exception e) {
 				currentTerminalWidth = 80;
 			}
-			System.out.println(Utilities.rightPad("Imported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(Duration.between(start, end), false, false), currentTerminalWidth));
+			if ("*".equals(dbImportDefinitionToExecute.getTableName())) {
+				System.out.println(Utilities.rightPad("Imported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone) + " files in " + DateUtilities.getShortHumanReadableTimespan(Duration.between(start, end), false, false), currentTerminalWidth));
+			} else {
+				System.out.println(Utilities.rightPad("Imported " + NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsDone - 1) + " lines in " + DateUtilities.getShortHumanReadableTimespan(Duration.between(start, end), false, false), currentTerminalWidth));
+			}
 			System.out.println();
 			System.out.println();
 		}
@@ -1085,6 +1164,63 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			e.printStackTrace();
 			System.exit(1);
 			return 1;
+		}
+	}
+
+	@Override
+	public void receiveUnlimitedSubProgressSignal() {
+		// Do nothing
+	}
+
+	@Override
+	public void receiveItemStartSignal(final String itemName, final String description) {
+		System.out.println("Importing " + itemName);
+		if (dbImportDefinitionToExecute.isVerbose()) {
+			System.out.println(description);
+		}
+	}
+
+	@Override
+	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone) {
+		if (dbImportDefinitionToExecute.isVerbose() && subItemToDo > 0) {
+			printProgressBar(itemStart, subItemToDo, subItemDone);
+		}
+	}
+
+	private void printProgressBar(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone) {
+		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
+			int currentTerminalWidth;
+			try {
+				currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
+			} catch (@SuppressWarnings("unused") final Exception e) {
+				currentTerminalWidth = 80;
+			}
+
+			ConsoleUtilities.saveCurrentCursorPosition();
+
+			if (currentTerminalWidth < previousTerminalWidth) {
+				System.out.print("\r" + Utilities.repeat(" ", currentTerminalWidth));
+			}
+			previousTerminalWidth = currentTerminalWidth;
+
+			ConsoleUtilities.moveCursorToSavedPosition();
+
+			System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, itemStart, subItemToDo, subItemDone));
+
+			ConsoleUtilities.moveCursorToSavedPosition();
+		} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
+			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\n");
+		} else {
+			System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\r");
+		}
+	}
+
+	@Override
+	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
+		if (dbImportDefinitionToExecute.isVerbose()) {
+			printProgressBar(itemStart, subItemsDone, subItemsDone);
+			System.out.println("End (" + subItemsDone + " data items done in " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(itemStart, itemEnd), true) + ")");
+			System.out.println();
 		}
 	}
 }

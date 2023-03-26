@@ -21,15 +21,17 @@ import java.util.zip.ZipOutputStream;
 import de.soderer.dbimport.DbImportException;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
-import de.soderer.utilities.DbColumnType.SimpleDataType;
+import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.json.Json5Reader;
+import de.soderer.utilities.json.JsonNode;
 import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonReader.JsonToken;
 import de.soderer.utilities.json.JsonUtilities;
 import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.json.schema.JsonSchema;
+import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class JsonDataProvider extends DataProvider {
@@ -129,7 +131,7 @@ public class JsonDataProvider extends DataProvider {
 									dataTypes.put(propertyName, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyName) == null ? 0 : dataTypes.get(propertyName).getCharacterByteSize(), value.getBytes(StandardCharsets.UTF_8).length), -1, -1, true, false));
 								}
 							}
-						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.DateTime && currentType != SimpleDataType.Double && propertyValue instanceof Integer) {
+						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.DateTime && currentType != SimpleDataType.Float && propertyValue instanceof Integer) {
 							dataTypes.put(propertyName, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 						} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.DateTime && (propertyValue instanceof Float || propertyValue instanceof Double)) {
 							dataTypes.put(propertyName, new DbColumnType("DOUBLE", -1, -1, -1, true, false));
@@ -192,19 +194,20 @@ public class JsonDataProvider extends DataProvider {
 			openReader();
 		}
 
-		if (!jsonReader.readNextJsonNode()) {
+		final JsonNode nextJsonNode = jsonReader.readNextJsonNode();
+
+		if (nextJsonNode == null) {
 			return null;
 		} else {
-			final Object nextObject = jsonReader.getCurrentObject();
-			if (nextObject instanceof JsonObject) {
-				final JsonObject nextJsonObject = (JsonObject) nextObject;
+			if (nextJsonNode.isJsonObject()) {
+				final JsonObject nextJsonObject = (JsonObject) nextJsonNode.getValue();
 				final Map<String, Object> returnMap = new HashMap<>();
 				for (final String key : nextJsonObject.keySet()) {
 					returnMap.put(key, nextJsonObject.get(key));
 				}
 				return returnMap;
 			} else {
-				throw new Exception("Invalid json data of type: " + nextObject.getClass().getName());
+				throw new Exception("Invalid json data of type: " + nextJsonNode.getJsonDataType().getName());
 			}
 		}
 	}
@@ -279,42 +282,7 @@ public class JsonDataProvider extends DataProvider {
 			try {
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
-						// TODO: Needs lingala Zip4J library
-						//						@SuppressWarnings("resource")
-						//						final ZipFile zipFile = new ZipFile(importFilePathOrData, zipPassword);
-						//						final List<FileHeader> fileHeaders = zipFile.getFileHeaders();
-						//						if (fileHeaders == null || fileHeaders.size() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeaders.size() > 1) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						//						}
-						//						final FileHeader fileHeader = fileHeaders.get(0);
-						//						if (fileHeader == null) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeader.getUncompressedSize() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + fileHeader.getFileName());
-						//						}
-						//						inputStream = new InputStreamWithOtherItemsToClose(zipFile.getInputStream(fileHeader), zipFile);
+						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
 						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {

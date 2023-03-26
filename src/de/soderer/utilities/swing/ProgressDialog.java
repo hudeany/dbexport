@@ -5,6 +5,7 @@ import java.awt.FlowLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
@@ -81,7 +82,9 @@ public class ProgressDialog<T extends WorkerSimple<?>> extends ModalDialog<Resul
 		buttonClose.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
-				cancel();
+				if (new QuestionDialog(parent, getI18NString("cancel"), getI18NString("sureQuestion"), getI18NString("no"), getI18NString("yes")).open() == 1) {
+					cancel();
+				}
 			}
 		});
 		buttonPanel.add(buttonClose);
@@ -122,7 +125,7 @@ public class ProgressDialog<T extends WorkerSimple<?>> extends ModalDialog<Resul
 	}
 
 	@Override
-	public void showUnlimitedProgress() {
+	public void receiveUnlimitedProgressSignal() {
 		if (SwingUtilities.isEventDispatchThread()) {
 			progressBar.setIndeterminate(true);
 			progressBar.setStringPainted(false);
@@ -130,14 +133,14 @@ public class ProgressDialog<T extends WorkerSimple<?>> extends ModalDialog<Resul
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showUnlimitedProgress();
+					receiveUnlimitedProgressSignal();
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showProgress(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			updateProgressBar(progressBar, start, itemsToDo, itemsDone);
 			if (commentLabel != null) {
@@ -148,21 +151,21 @@ public class ProgressDialog<T extends WorkerSimple<?>> extends ModalDialog<Resul
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showProgress(start, itemsToDo, itemsDone);
+					receiveProgressSignal(start, itemsToDo, itemsDone);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void showDone(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			dispose();
 		} else {
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					showDone(start, end, itemsDone);
+					receiveDoneSignal(start, end, itemsDone);
 				}
 			});
 		}
@@ -229,5 +232,31 @@ public class ProgressDialog<T extends WorkerSimple<?>> extends ModalDialog<Resul
 	@Override
 	public void changeTitle(final String newTitle) {
 		setTitle(newTitle);
+	}
+
+	private static String getI18NString(final String resourceKey, final Object... arguments) {
+		if (LangResources.existsKey(resourceKey)) {
+			return LangResources.get(resourceKey, arguments);
+		} else if ("de".equalsIgnoreCase(Locale.getDefault().getLanguage())) {
+			String pattern;
+			switch(resourceKey) {
+				case "cancel": pattern = "Abbrechen"; break;
+				case "yes": pattern = "Ja"; break;
+				case "no": pattern = "Nein"; break;
+				case "sureQuestion": pattern = "Sind sie sich sicher?"; break;
+				default: pattern = "MessageKey unbekannt: " + resourceKey + (arguments != null && arguments.length > 0 ? " Argumente: " + Utilities.join(arguments, ", ") : "");
+			}
+			return MessageFormat.format(pattern, arguments);
+		} else {
+			String pattern;
+			switch(resourceKey) {
+				case "cancel": pattern = "Cancel"; break;
+				case "yes": pattern = "Yes"; break;
+				case "no": pattern = "No"; break;
+				case "sureQuestion": pattern = "Are you sure?"; break;
+				default: pattern = "MessageKey unknown: " + resourceKey + (arguments != null && arguments.length > 0 ? " arguments: " + Utilities.join(arguments, ", ") : "");
+			}
+			return MessageFormat.format(pattern, arguments);
+		}
 	}
 }

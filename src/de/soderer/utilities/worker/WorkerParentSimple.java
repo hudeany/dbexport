@@ -3,11 +3,11 @@ package de.soderer.utilities.worker;
 import java.time.LocalDateTime;
 
 public interface WorkerParentSimple {
-	void showUnlimitedProgress();
+	void receiveUnlimitedProgressSignal();
 
-	void showProgress(LocalDateTime start, long itemsToDo, long itemsDone);
+	void receiveProgressSignal(LocalDateTime start, long itemsToDo, long itemsDone);
 
-	void showDone(LocalDateTime start, LocalDateTime end, long itemsDone);
+	void receiveDoneSignal(LocalDateTime start, LocalDateTime end, long itemsDone);
 
 	void changeTitle(String text);
 

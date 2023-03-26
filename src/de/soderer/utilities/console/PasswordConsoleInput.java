@@ -81,7 +81,7 @@ public class PasswordConsoleInput {
 	}
 
 	public char[] readInput() throws Exception {
-		if (ConsoleUtilities.consoleSupportsAnsiCodes()) {
+		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 			boolean insertMode = true;
 			char[] content = presetContent == null ? "".toCharArray() : presetContent.toCharArray();
 			int cursorIndex = content.length;
@@ -254,6 +254,8 @@ public class PasswordConsoleInput {
 			} finally {
 				ConsoleUtilities.showCursor();
 			}
+		} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
+			return System.console().readPassword(prompt);
 		} else {
 			return System.console().readPassword(prompt);
 		}

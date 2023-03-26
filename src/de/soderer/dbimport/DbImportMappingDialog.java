@@ -23,8 +23,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import de.soderer.utilities.DbColumnType;
-import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.LangResources;
+import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Triple;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
@@ -114,7 +114,7 @@ public class DbImportMappingDialog extends ModalDialog<Boolean> {
 			mappingEntryPanel.add(Box.createRigidArea(new Dimension(5, 0)));
 
 			JComboBox<String> optionalComboBox = null;
-			if (dbColumnType.getSimpleDataType() == SimpleDataType.Double || dbColumnType.getSimpleDataType() == SimpleDataType.Integer) {
+			if (dbColumnType.getSimpleDataType() == SimpleDataType.Float || dbColumnType.getSimpleDataType() == SimpleDataType.Integer) {
 				optionalComboBox = new JComboBox<>();
 				optionalComboBox.addItem(".");
 				optionalComboBox.addItem(",");

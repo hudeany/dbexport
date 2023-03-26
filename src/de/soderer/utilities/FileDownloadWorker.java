@@ -22,17 +22,17 @@ public class FileDownloadWorker extends WorkerSimple<Boolean> {
 
 	@Override
 	public Boolean work() throws Exception {
-		showProgress();
+		signalProgress();
 
 		try {
 			if (destinationFile.exists()) {
 				throw new Exception("File already exists: " + destinationFile.getAbsolutePath());
 			}
 
-			showUnlimitedProgress();
+			signalUnlimitedProgress();
 			final URLConnection urlConnection = new URL(downloadUrl).openConnection();
 			itemsToDo = urlConnection.getContentLength();
-			showProgress(true);
+			signalProgress(true);
 			try (BufferedInputStream bufferedInputStream = new BufferedInputStream(urlConnection.getInputStream());
 					FileOutputStream fileOutputStream = new FileOutputStream(destinationFile)) {
 				final byte[] buffer = new byte[4096];
@@ -43,7 +43,7 @@ public class FileDownloadWorker extends WorkerSimple<Boolean> {
 					} else {
 						fileOutputStream.write(buffer, 0, readLength);
 						itemsDone += readLength;
-						showProgress();
+						signalProgress();
 					}
 				}
 				Utilities.clear(buffer);
@@ -59,7 +59,7 @@ public class FileDownloadWorker extends WorkerSimple<Boolean> {
 				destinationFile.delete();
 				return false;
 			} else {
-				showProgress(true);
+				signalProgress(true);
 				return true;
 			}
 		} catch (final Exception e) {

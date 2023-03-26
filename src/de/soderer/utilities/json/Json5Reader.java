@@ -39,7 +39,7 @@ public class Json5Reader extends JsonReader {
 	}
 
 	@Override
-	protected JsonToken readNextTokenInternal() throws Exception {
+	protected JsonToken readNextTokenInternal(final boolean updateJsonPath) throws Exception {
 		currentObject = null;
 		Character currentChar = readNextNonWhitespace();
 		if (currentChar == null) {
@@ -81,7 +81,7 @@ public class Json5Reader extends JsonReader {
 				}
 				break;
 			case ',': // Separator of JsonObject properties or JsonArray items
-				jsonToken = readNextTokenInternal();
+				jsonToken = readNextTokenInternal(false);
 				break;
 			case '/': // Start comment
 				currentChar = readNextCharacter();
@@ -98,7 +98,7 @@ public class Json5Reader extends JsonReader {
 				} else {
 					throw new Exception("Invalid json data '" + currentChar + "' in line " + getReadLines() + " at overall index " + getReadCharacters());
 				}
-				jsonToken = readNextTokenInternal();
+				jsonToken = readNextTokenInternal(false);
 				break;
 			case '"':
 			case '\'': // Start JsonObject propertykey or propertyvalue or JsonArray item
@@ -162,6 +162,10 @@ public class Json5Reader extends JsonReader {
 					throw new Exception("Invalid json data '" + currentChar + "' in line " + getReadLines() + " at overall index " + getReadCharacters());
 				}
 				break;
+		}
+
+		if (updateJsonPath) {
+			updateJsonPath(jsonToken);
 		}
 
 		return jsonToken;

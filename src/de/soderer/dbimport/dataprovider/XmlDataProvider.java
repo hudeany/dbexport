@@ -35,6 +35,7 @@ import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
+import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class XmlDataProvider extends DataProvider {
@@ -298,42 +299,7 @@ public class XmlDataProvider extends DataProvider {
 			try {
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
-						// TODO: Needs lingala Zip4J library
-						//						@SuppressWarnings("resource")
-						//						final ZipFile zipFile = new ZipFile(importFilePathOrData, zipPassword);
-						//						final List<FileHeader> fileHeaders = zipFile.getFileHeaders();
-						//						if (fileHeaders == null || fileHeaders.size() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeaders.size() > 1) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						//						}
-						//						final FileHeader fileHeader = fileHeaders.get(0);
-						//						if (fileHeader == null) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						//						} else if (fileHeader.getUncompressedSize() == 0) {
-						//							try {
-						//								zipFile.close();
-						//							} catch (@SuppressWarnings("unused") final IOException e) {
-						//								// Do nothing
-						//							}
-						//							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + fileHeader.getFileName());
-						//						}
-						//						datainputstream = new InputStreamWithOtherItemsToClose(zipFile.getInputStream(fileHeader), zipFile);
+						datainputstream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
 						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {

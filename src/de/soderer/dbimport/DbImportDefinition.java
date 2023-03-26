@@ -174,6 +174,10 @@ public class DbImportDefinition extends DbDefinition {
 
 	private String importDataTimeZone = TimeZone.getDefault().getID();
 
+	private String dateFormat = null;
+
+	private String dateTimeFormat = null;
+
 	public String getTableName() {
 		return tableName;
 	}
@@ -472,6 +476,22 @@ public class DbImportDefinition extends DbDefinition {
 		return importDataTimeZone;
 	}
 
+	public String getDateFormat() {
+		return dateFormat;
+	}
+
+	public void setDateFormat(final String dateFormat) {
+		this.dateFormat = dateFormat;
+	}
+
+	public String getDateTimeFormat() {
+		return dateTimeFormat;
+	}
+
+	public void setDateTimeFormat(final String dateTimeFormat) {
+		this.dateTimeFormat = dateTimeFormat;
+	}
+
 	@Override
 	public void checkParameters() throws DbImportException {
 		super.checkParameters();
@@ -570,7 +590,9 @@ public class DbImportDefinition extends DbDefinition {
 						getSecureConnection(),
 						getTrustStoreFilePath(),
 						getTrustStorePassword(),
-						tableNameForImport);
+						tableNameForImport,
+						getDateFormat(),
+						getDateTimeFormat());
 			}
 
 			final DataProvider dataProvider;
@@ -769,6 +791,12 @@ public class DbImportDefinition extends DbDefinition {
 		}
 		if (getImportDataTimeZone() != TimeZone.getDefault().getID()) {
 			params += " " + "-idtz " + getImportDataTimeZone() + "";
+		}
+		if (Utilities.isNotBlank(getDateFormat())) {
+			params += " " + "-dateFormat" + " " + getDateFormat();
+		}
+		if (Utilities.isNotBlank(getDateTimeFormat())) {
+			params += " " + "-dateTimeFormat" + " " + getDateTimeFormat();
 		}
 		return params;
 	}

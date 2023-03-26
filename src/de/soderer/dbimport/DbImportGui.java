@@ -192,6 +192,12 @@ public class DbImportGui extends UpdateableGuiApplication {
 
 	private final JButton mappingButton;
 
+	/** The field for DateFormat */
+	private final JTextField importDateFormatField;
+
+	/** The field for DateTimeFormat */
+	private final JTextField importDateTimeFormatField;
+
 	/** The temporary preferences password. */
 	private char[] temporaryPreferencesPassword = null;
 
@@ -391,6 +397,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 					final File trustStoreFile = selectFile(trustStoreFilePathField.getText(), LangResources.get("trustStoreFile"));
 					if (trustStoreFile != null) {
 						trustStoreFilePathField.setText(trustStoreFile.getAbsolutePath());
+						checkButtonStatus();
 					}
 				} catch (final Exception e) {
 					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -419,6 +426,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 						} else {
 							HttpUtilities.createTrustStoreFile(hostField.getText(), DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()).getDefaultPort(), new File(trustStoreFilePathField.getText()), trustStorePasswordField.getPassword());
 							new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
+							checkButtonStatus();
 						}
 					}
 				} catch (final Exception e) {
@@ -772,6 +780,28 @@ public class DbImportGui extends UpdateableGuiApplication {
 		importDataTimezonePanel.add(importDataTimezoneCombo);
 		mandatoryParameterPanel.add(importDataTimezonePanel);
 
+		// Import date format
+		final JPanel importDateFormatPanel = new JPanel();
+		importDateFormatPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel importDateFormatLabel = new JLabel(LangResources.get("importDateFormat"));
+		importDateFormatPanel.add(importDateFormatLabel);
+		importDateFormatField = new JTextField();
+		importDateFormatField.setToolTipText(LangResources.get("importDateFormat_help"));
+		importDateFormatField.setPreferredSize(new Dimension(200, importDateFormatField.getPreferredSize().height));
+		importDateFormatPanel.add(importDateFormatField);
+		mandatoryParameterPanel.add(importDateFormatPanel);
+
+		// Import datetime format
+		final JPanel importDateTimeFormatPanel = new JPanel();
+		importDateTimeFormatPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel importDateTimeFormatLabel = new JLabel(LangResources.get("importDateTimeFormat"));
+		importDateTimeFormatPanel.add(importDateTimeFormatLabel);
+		importDateTimeFormatField = new JTextField();
+		importDateTimeFormatField.setToolTipText(LangResources.get("importDateTimeFormat_help"));
+		importDateTimeFormatField.setPreferredSize(new Dimension(200, importDateTimeFormatField.getPreferredSize().height));
+		importDateTimeFormatPanel.add(importDateTimeFormatField);
+		mandatoryParameterPanel.add(importDateTimeFormatPanel);
+
 		// Optional parameters Panel
 		final JPanel optionalParametersPanel = new JPanel();
 		optionalParametersPanel.setLayout(new BoxLayout(optionalParametersPanel, BoxLayout.PAGE_AXIS));
@@ -1058,6 +1088,14 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dbImportDefinition.setDatabaseTimeZone((String) databaseTimezoneCombo.getSelectedItem());
 		dbImportDefinition.setImportDataTimeZone((String) importDataTimezoneCombo.getSelectedItem());
 
+		if (Utilities.isNotBlank(importDateFormatField.getText()) && importDateFormatField.isEnabled()) {
+			dbImportDefinition.setDateFormat(importDateFormatField.getText());
+		}
+
+		if (Utilities.isNotBlank(importDateTimeFormatField.getText()) && importDateTimeFormatField.isEnabled()) {
+			dbImportDefinition.setDateTimeFormat(importDateTimeFormatField.getText());
+		}
+
 		return dbImportDefinition;
 	}
 
@@ -1193,6 +1231,9 @@ public class DbImportGui extends UpdateableGuiApplication {
 		if (!duplicateModeFound) {
 			throw new Exception("Invalid duplicate mode");
 		}
+
+		importDateFormatField.setText(dbImportDefinition.getDateFormat());
+		importDateTimeFormatField.setText(dbImportDefinition.getDateTimeFormat());
 
 		updateWithNullDataBox.setSelected(dbImportDefinition.isUpdateNullData());
 
@@ -1444,6 +1485,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 					if (filesToImport.size() == 0) {
 						throw new DbImportException("Import file pattern has no matching files: " + (directoryPath));
 					} else {
+						Collections.sort(filesToImport);
 						multiImportFiles(dbImportGui, dbImportDefinition, filesToImport, dbImportDefinition.getTableName());
 					}
 				}

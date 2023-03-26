@@ -1,10 +1,6 @@
 package de.soderer.utilities;
 
 public class DbColumnType {
-	public enum SimpleDataType {
-		String, Date, DateTime, Integer, Double, Blob, Clob
-	}
-
 	private final String typeName;
 	private final long characterByteSize; // only for VARCHAR and VARCHAR2 types
 	private final int numericPrecision; // only for numeric types
@@ -60,7 +56,7 @@ public class DbColumnType {
 			return SimpleDataType.Integer;
 		} else {
 			// e.g.: PostgreSQL "REAL"
-			return SimpleDataType.Double;
+			return SimpleDataType.Float;
 		}
 	}
 
@@ -69,7 +65,7 @@ public class DbColumnType {
 		final SimpleDataType simpleDataType = getSimpleDataType();
 		return typeName
 				+ (simpleDataType == SimpleDataType.String ? "(" + characterByteSize + ")" : "")
-				+ (simpleDataType == SimpleDataType.Integer || simpleDataType == SimpleDataType.Double ? "(" + numericPrecision + ", " + numericScale + ")" : "")
+				+ (simpleDataType == SimpleDataType.Integer || simpleDataType == SimpleDataType.Float ? "(" + numericPrecision + ", " + numericScale + ")" : "")
 				+ (nullable ? " nullable": " not nullable")
 				+ (autoIncrement ? " autoIncrement": "");
 	}

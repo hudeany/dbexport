@@ -20,10 +20,10 @@ import de.soderer.dbimport.DbImportDefinition.DuplicateMode;
 import de.soderer.dbimport.DbImportDefinition.ImportMode;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
-import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
+import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
@@ -31,7 +31,7 @@ import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbNoSqlImportWorker extends DbImportWorker {
 	public DbNoSqlImportWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final String tableName) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName);
+		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName, null, null);
 
 		commitOnFullSuccessOnly = false;
 	}
@@ -60,7 +60,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
-		showUnlimitedProgress();
+		signalUnlimitedProgress();
 
 		if (analyseDataOnly) {
 			parent.changeTitle(LangResources.get("analyseData"));
@@ -133,11 +133,11 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 				itemsToDo = dataProvider.getItemsAmountToImport();
 				itemsDone = 0;
 				logToFile(logOutputStream, "Items to import: " + itemsToDo);
-				showProgress(true);
+				signalProgress(true);
 
 				if (importMode == ImportMode.CLEARINSERT) {
 					parent.changeTitle(LangResources.get("insertData"));
-					showProgress(true);
+					signalProgress(true);
 
 					// Just import in the destination table
 					insertItemsWithoutKeyColumns(connection, dbColumns, dbTableColumnsListToInsert, null, getMapping());
@@ -145,31 +145,31 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 					updatedItems = 0;
 					insertedItems = validItems - invalidItems.size();
 
-					showProgress(true);
+					signalProgress(true);
 				} else if (importMode == ImportMode.INSERT) {
 					parent.changeTitle(LangResources.get("insertData"));
-					showProgress(true);
+					signalProgress(true);
 
 					// Insert into destination table
 					updateAndInsertItems(connection, dbColumns, dbTableColumnsListToInsert, getMapping());
 
-					showProgress(true);
+					signalProgress(true);
 				} else if (importMode == ImportMode.UPDATE) {
 					parent.changeTitle(LangResources.get("updateData"));
-					showProgress(true);
+					signalProgress(true);
 
 					// Update destination table
 					updateAndInsertItems(connection, dbColumns, dbTableColumnsListToInsert, getMapping());
 
-					showProgress(true);
+					signalProgress(true);
 				} else if (importMode == ImportMode.UPSERT) {
 					parent.changeTitle(LangResources.get("insertData"));
-					showProgress(true);
+					signalProgress(true);
 
 					// Insert and update into destination table
 					updateAndInsertItems(connection, dbColumns, dbTableColumnsListToInsert, getMapping());
 
-					showProgress(true);
+					signalProgress(true);
 				} else {
 					throw new Exception("Invalid import mode");
 				}
@@ -179,7 +179,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 				countItems = DbUtilities.getTableEntriesCount(connection, tableName);
 
-				showProgress(true);
+				signalProgress(true);
 
 				if (logErroneousData & invalidItems.size() > 0) {
 					erroneousDataFile = dataProvider.filterDataItems(invalidItems, DateUtilities.formatDate(DateUtilities.DD_MM_YYYY_HH_MM_SS_ForFileName, getStartTime()) + ".errors");
@@ -199,7 +199,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 					logToFile(logOutputStream, "Import speed: immediately");
 				}
 				logToFile(logOutputStream, "End: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), getEndTime()));
-				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespan(Duration.between(getStartTime(), getEndTime()), true));
+				logToFile(logOutputStream, "Time elapsed: " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(getStartTime(), getEndTime()), true));
 			} catch (final SQLException sqle) {
 				throw new DbImportException("SQL error: " + sqle.getMessage());
 			} catch (final Exception e) {
@@ -265,7 +265,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 					preparedInsertStatement.addBatch();
 
 					validItems++;
-					showProgress();
+					signalProgress();
 				} catch (@SuppressWarnings("unused") final Exception e) {
 					invalidItems.add((int) itemsDone + 1);
 					preparedInsertStatement.clearParameters();
@@ -286,7 +286,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						}
 						connection.commit();
 						hasUnexecutedData = false;
-						showProgress();
+						signalProgress();
 					} else {
 						hasUnexecutedData = true;
 					}
@@ -442,7 +442,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						}
 						connection.commit();
 						hasUnexecutedInsertData = false;
-						showProgress();
+						signalProgress();
 
 						waitingInsertKeys.clear();
 					}
@@ -481,7 +481,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 						validItems++;
 						itemsToUpdate++;
-						showProgress();
+						signalProgress();
 					} catch (@SuppressWarnings("unused") final Exception e) {
 						invalidItems.add((int) itemsDone + 1);
 						preparedUpdateStatement.clearParameters();
@@ -507,7 +507,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 						validItems++;
 						itemsToInsert++;
-						showProgress();
+						signalProgress();
 					} catch (@SuppressWarnings("unused") final Exception e) {
 						invalidItems.add((int) itemsDone + 1);
 						preparedInsertStatement.clearParameters();
@@ -532,7 +532,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						}
 						connection.commit();
 						hasUnexecutedUpdateData = false;
-						showProgress();
+						signalProgress();
 					} else {
 						hasUnexecutedUpdateData = true;
 					}
@@ -551,7 +551,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						}
 						connection.commit();
 						hasUnexecutedInsertData = false;
-						showProgress();
+						signalProgress();
 
 						waitingInsertKeys.clear();
 					} else {

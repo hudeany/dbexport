@@ -9,8 +9,8 @@ import java.util.Map;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
-import de.soderer.utilities.DbColumnType.SimpleDataType;
 import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 
@@ -44,7 +44,7 @@ public abstract class DataProvider implements Closeable {
 				}
 			} else if ("file".equalsIgnoreCase(formatInfo) || currentValue.length() > 4000) {
 				dataTypes.put(propertyKey, new DbColumnType("BLOB", -1, -1, -1, true, false));
-			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Double && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && Utilities.isNotBlank(formatInfo) && !".".equals(formatInfo) && !",".equals(formatInfo) && !"file".equalsIgnoreCase(formatInfo) && !"lc".equalsIgnoreCase(formatInfo) && !"uc".equalsIgnoreCase(formatInfo)) {
+			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Float && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && Utilities.isNotBlank(formatInfo) && !".".equals(formatInfo) && !",".equals(formatInfo) && !"file".equalsIgnoreCase(formatInfo) && !"lc".equalsIgnoreCase(formatInfo) && !"uc".equalsIgnoreCase(formatInfo)) {
 				try {
 					DateUtilities.parseLocalDateTime(formatInfo, currentValue.trim());
 					if (formatInfo != null && (formatInfo.toLowerCase().contains("h") || formatInfo.contains("m") || formatInfo.toLowerCase().contains("s"))) {
@@ -61,7 +61,7 @@ public abstract class DataProvider implements Closeable {
 						dataTypes.put(propertyKey, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyKey) == null ? 0 : dataTypes.get(propertyKey).getCharacterByteSize(), currentValue.getBytes(StandardCharsets.UTF_8).length), -1, -1, true, false));
 					}
 				}
-			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Double && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && currentType != SimpleDataType.Date && Utilities.isBlank(formatInfo)) {
+			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Float && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && currentType != SimpleDataType.Date && Utilities.isBlank(formatInfo)) {
 				try {
 					DateUtilities.parseLocalDateTime(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("TIMESTAMP", -1, -1, -1, true, false));
@@ -79,7 +79,7 @@ public abstract class DataProvider implements Closeable {
 						}
 					}
 				}
-			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Double && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && currentType != SimpleDataType.DateTime && Utilities.isBlank(formatInfo)) {
+			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Integer && currentType != SimpleDataType.Float && currentType != SimpleDataType.Blob && currentType != SimpleDataType.Clob && currentType != SimpleDataType.DateTime && Utilities.isBlank(formatInfo)) {
 				try {
 					DateUtilities.parseLocalDate(DateUtilities.getDateFormatPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
@@ -92,7 +92,7 @@ public abstract class DataProvider implements Closeable {
 						dataTypes.put(propertyKey, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyKey) == null ? 0 : dataTypes.get(propertyKey).getCharacterByteSize(), currentValue.getBytes(StandardCharsets.UTF_8).length), -1, -1, true, false));
 					}
 				}
-			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.DateTime && currentType != SimpleDataType.Double && NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
+			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.DateTime && currentType != SimpleDataType.Float && NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 				dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 			} else if (currentType != SimpleDataType.String && currentType != SimpleDataType.Date && currentType != SimpleDataType.DateTime && NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
 				dataTypes.put(propertyKey, new DbColumnType("DOUBLE", -1, -1, -1, true, false));
