@@ -1,4 +1,4 @@
 <?xml version='1.0' encoding='utf-8' standalone='yes'?>
-<ApplicationVersions creationDate='2023-01-05 01:24:47'>
-	<DbExport version='22.5.11' md5CheckSum='7ba801aa291224739f7290beed2a7a38'>https://github.com/hudeany/dbcsvexport/releases/download/22.5.11/DbExport-22.5.11.jar</DbExport>
+<ApplicationVersions creationDate='2023-04-01 20:15:57'>
+	<DbExport version='23.2.0' md5CheckSum='78f3f6007e2f8054d0284bfef11a1f71'>https://github.com/hudeany/dbcsvexport/releases/download/23.2.0/DbExport-23.2.0.jar</DbExport>
 </ApplicationVersions>
