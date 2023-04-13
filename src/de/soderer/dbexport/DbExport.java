@@ -599,11 +599,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				// open the preconfigured GUI
 				de.soderer.utilities.swing.SwingUtilities.setSystemLookAndFeel();
 				try {
-					final DbExportGui dbImportGui = new DbExportGui(dbExportDefinition);
+					final DbExportGui dbExportGui = new DbExportGui(dbExportDefinition);
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							dbImportGui.setVisible(true);
+							dbExportGui.setVisible(true);
 						}
 					});
 					return -1;

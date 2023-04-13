@@ -17,7 +17,7 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 
 	private String indentation = "\t";
 
-	public DbJsonExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) throws Exception {
+	public DbJsonExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, isStatementFile, sqlStatementOrTablelist, outputpath);
 
 		setDateFormat(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);

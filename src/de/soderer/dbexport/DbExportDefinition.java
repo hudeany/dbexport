@@ -696,9 +696,8 @@ public class DbExportDefinition extends DbDefinition {
 	 *
 	 * @param parent
 	 * @return
-	 * @throws Exception
 	 */
-	public AbstractDbExportWorker getConfiguredWorker(final WorkerParentDual parent) throws Exception {
+	public AbstractDbExportWorker getConfiguredWorker(final WorkerParentDual parent) {
 		AbstractDbExportWorker worker;
 		if (getDataType() == DataType.JSON) {
 			worker = new DbJsonExportWorker(parent,

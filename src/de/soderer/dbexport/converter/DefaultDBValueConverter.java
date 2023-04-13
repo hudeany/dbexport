@@ -118,7 +118,6 @@ public class DefaultDBValueConverter {
 		return File.createTempFile(new File(lobOutputFilePathPrefix).getName() + "_", "." + lobType + (zip ? ".zip" : ""), new File(exportFilePath).getParentFile()).getAbsolutePath();
 	}
 
-	@SuppressWarnings("resource")
 	protected OutputStream openLobOutputStream(final File lobOutputFile) throws IOException, FileNotFoundException {
 		if (zip) {
 			final OutputStream outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(lobOutputFile));

@@ -748,13 +748,13 @@ public class DbExportGui extends UpdateableGuiApplication {
 					final SecurePreferencesDialog credentialsDialog = new SecurePreferencesDialog(dbExportGui, DbExport.APPLICATION_NAME + " " + LangResources.get("preferences"),
 							LangResources.get("preferences_text"), DbExport.SECURE_PREFERENCES_FILE, LangResources.get("load"), LangResources.get("create"), LangResources.get("update"),
 							LangResources.get("delete"), LangResources.get("preferences_save"), LangResources.get("cancel"), LangResources.get("preferences_password_text"),
-							LangResources.get("username"), LangResources.get("password"), LangResources.get("ok"), LangResources.get("cancel"));
+							LangResources.get("password"), LangResources.get("ok"), LangResources.get("cancel"));
 
-					credentialsDialog.setCurrentSecureDataEntry(getConfigurationAsDefinition());
+					credentialsDialog.setCurrentDataEntry(getConfigurationAsDefinition());
 					credentialsDialog.setPassword(temporaryPreferencesPassword);
 					credentialsDialog.open();
-					if (credentialsDialog.getCurrentSecureDataEntry() != null) {
-						setConfigurationByDefinition((DbExportDefinition) credentialsDialog.getCurrentSecureDataEntry());
+					if (credentialsDialog.getCurrentDataEntry() != null) {
+						setConfigurationByDefinition((DbExportDefinition) credentialsDialog.getCurrentDataEntry());
 					}
 
 					temporaryPreferencesPassword = credentialsDialog.getPassword();

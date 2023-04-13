@@ -499,6 +499,37 @@ public class Utilities {
 	}
 
 	/**
+	 * Get a collection like a set as a ordered list
+	 *
+	 * @param c
+	 * @return
+	 */
+	@SafeVarargs
+	public static <T extends Comparable<? super T>> List<T> sortButPutItemsFirst(final Collection<T> collection, final T... firstItems) {
+		final List<T> firstItemsList = new ArrayList<>(Arrays.asList(firstItems));
+		final List<T> list = new ArrayList<>(collection);
+		Collections.sort(list, new Comparator<T>() {
+			@Override
+			public int compare(final T o1, final T o2) {
+				if (o1.equals(o2)) {
+					return 0;
+				} else if (firstItemsList.contains(o1)) {
+					if (firstItemsList.contains(o2)) {
+						return firstItemsList.indexOf(o1) < firstItemsList.indexOf(o2) ? -1 : 1;
+					} else {
+						return -1;
+					}
+				} else if (firstItemsList.contains(o2)) {
+					return 1;
+				} else {
+					return o1.compareTo(o2);
+				}
+			}
+		});
+		return list;
+	}
+
+	/**
 	 * Sort a map by a Comparator for the keytype
 	 *
 	 * @param mapToSort

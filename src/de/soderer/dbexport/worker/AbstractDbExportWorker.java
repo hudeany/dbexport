@@ -38,13 +38,20 @@ import de.soderer.dbexport.converter.MySQLDBValueConverter;
 import de.soderer.dbexport.converter.OracleDBValueConverter;
 import de.soderer.dbexport.converter.PostgreSQLDBValueConverter;
 import de.soderer.dbexport.converter.SQLiteDBValueConverter;
+import de.soderer.utilities.DatabaseConstraint;
+import de.soderer.utilities.DatabaseForeignKey;
+import de.soderer.utilities.DatabaseIndex;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
+import de.soderer.utilities.json.JsonArray;
+import de.soderer.utilities.json.JsonObject;
+import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.worker.WorkerDual;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.zip.Zip4jUtilities;
@@ -96,7 +103,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
-	public AbstractDbExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) throws Exception {
+	public AbstractDbExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent);
 		this.dbVendor = dbVendor;
 		this.hostname = hostname;
@@ -371,7 +378,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 
@@ -384,14 +390,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else {
 				if (zip) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
-						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
-							outputFilePath = outputFilePath + ".txt";
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
 						}
 
 						outputFilePath = outputFilePath + ".zip";
 					}
-				} else if (!outputFilePath.toLowerCase().endsWith(".txt")) {
-					outputFilePath = outputFilePath + ".txt";
+				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
+					outputFilePath = outputFilePath + ".json";
 				}
 
 				if (new File(outputFilePath).exists()) {
@@ -402,8 +408,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
-					if (!entryFileName.toLowerCase().endsWith(".txt")) {
-						entryFileName += ".txt";
+					if (!entryFileName.toLowerCase().endsWith(".json")) {
+						entryFileName += ".json";
 					}
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
@@ -415,46 +421,18 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 			signalProgress();
 
-			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
-				if (i > 0) {
-					outputStream.write(("\n").getBytes(StandardCharsets.UTF_8));
+			try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
+				jsonWriter.openJsonObject();
+				for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
+					final JsonObject tableJsonObject = createTableStructureJsonObject(connection, tablesToExport.get(i).toLowerCase());
+
+					jsonWriter.openJsonObjectProperty(tablesToExport.get(i).toLowerCase());
+					jsonWriter.add(tableJsonObject);
+
+					itemsDone++;
+					signalProgress();
 				}
-
-				// Tablename
-				outputStream.write(("Table " + tablesToExport.get(i).toLowerCase() + ":\n").getBytes(StandardCharsets.UTF_8));
-
-				final CaseInsensitiveSet keyColumns = DbUtilities.getPrimaryKeyColumns(connection, tablesToExport.get(i));
-				final CaseInsensitiveMap<DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tablesToExport.get(i));
-				final List<List<String>> foreignKeys = DbUtilities.getForeignKeys(connection, tablesToExport.get(i));
-
-				// Columns (primary key columns first)
-				for (final String keyColumn : Utilities.asSortedList(keyColumns)) {
-					outputStream.write(("\t" + keyColumn + " " + dbColumns.get(keyColumn).getTypeName() + " (Simple: " + dbColumns.get(keyColumn).getSimpleDataType() + ")\n").getBytes(StandardCharsets.UTF_8));
-				}
-				final List<String> columnNames = new ArrayList<>(dbColumns.keySet());
-				Collections.sort(columnNames);
-				for (final String columnName : columnNames) {
-					if (!keyColumns.contains(columnName)) {
-						outputStream.write(("\t" + columnName.toLowerCase() + " " + dbColumns.get(columnName).getTypeName() + " (Simple: " + dbColumns.get(columnName).getSimpleDataType() + ")\n").getBytes(StandardCharsets.UTF_8));
-					}
-				}
-
-				// Primary key
-				if (!keyColumns.isEmpty()) {
-					outputStream.write("Primary key:\n".getBytes(StandardCharsets.UTF_8));
-					outputStream.write(("\t" + Utilities.join(Utilities.asSortedList(keyColumns), ", ").toLowerCase() + "\n").getBytes(StandardCharsets.UTF_8));
-				}
-
-				// Foreign keys
-				if (!foreignKeys.isEmpty()) {
-					outputStream.write("Foreign keys:\n".getBytes(StandardCharsets.UTF_8));
-					for (final List<String> foreignKey : foreignKeys) {
-						outputStream.write(("\t" + foreignKey.get(1) + " => " + foreignKey.get(2) + "." + foreignKey.get(3) + "\n").toLowerCase().getBytes(StandardCharsets.UTF_8));
-					}
-				}
-
-				itemsDone++;
-				signalProgress();
+				jsonWriter.closeJsonObject();
 			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
@@ -465,7 +443,117 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
-	@SuppressWarnings("resource")
+	private static JsonObject createTableStructureJsonObject(final Connection connection, final String tablename) throws Exception {
+		final CaseInsensitiveSet keyColumns = DbUtilities.getPrimaryKeyColumns(connection, tablename);
+		final CaseInsensitiveMap<DbColumnType> dbColumns = DbUtilities.getColumnDataTypes(connection, tablename);
+		final List<DatabaseForeignKey> foreignKeys = DbUtilities.getForeignKeys(connection, tablename);
+		final List<DatabaseIndex> indices = DbUtilities.getIndices(connection, tablename);
+		final List<DatabaseConstraint> constraints = DbUtilities.getConstraints(connection, tablename);
+		final CaseInsensitiveMap<String> defaultValues = DbUtilities.getColumnDefaultValues(connection, tablename);
+
+		final JsonObject tableJsonObject = new JsonObject();
+
+		// Keycolumns list
+		if (!keyColumns.isEmpty()) {
+			final JsonArray keyColumnsJsonArray = new JsonArray();
+			tableJsonObject.add("keycolumns", keyColumnsJsonArray);
+			for (final String keyColumnName : Utilities.asSortedList(keyColumns)) {
+				if (keyColumns.contains(keyColumnName)) {
+					keyColumnsJsonArray.add(keyColumnName.toLowerCase());
+				}
+			}
+		}
+
+		final JsonArray columnsJsonArray = new JsonArray();
+		tableJsonObject.add("columns", columnsJsonArray);
+
+		// Keycolumns datatypes
+		for (final String columnName : Utilities.asSortedList(dbColumns.keySet())) {
+			if (keyColumns.contains(columnName)) {
+				columnsJsonArray.add(createColumnJsonObject(columnName, dbColumns.get(columnName), defaultValues.get(columnName)));
+			}
+		}
+
+		// Other columns datatypes
+		for (final String columnName : Utilities.asSortedList(dbColumns.keySet())) {
+			if (!keyColumns.contains(columnName)) {
+				columnsJsonArray.add(createColumnJsonObject(columnName, dbColumns.get(columnName), defaultValues.get(columnName)));
+			}
+		}
+
+		// Indices
+		if (indices != null && !indices.isEmpty()) {
+			final JsonArray indicesJsonArray = new JsonArray();
+			tableJsonObject.add("indices", indicesJsonArray);
+			for (final DatabaseIndex index : indices) {
+				final JsonObject indexJsonObject = new JsonObject();
+				indicesJsonArray.add(indexJsonObject);
+				if (index.getIndexName() != null) {
+					indexJsonObject.add("name", index.getIndexName());
+				}
+				final JsonArray indexedColumnsJsonArray = new JsonArray();
+				indexJsonObject.add("indexedColumns", indexedColumnsJsonArray);
+				for (final String columnName : index.getIndexedColumns()) {
+					indexedColumnsJsonArray.add(columnName);
+				}
+			}
+		}
+
+		// Foreign keys
+		if (foreignKeys != null && !foreignKeys.isEmpty()) {
+			final JsonArray foreignKeysJsonArray = new JsonArray();
+			tableJsonObject.add("foreignKeys", foreignKeysJsonArray);
+			for (final DatabaseForeignKey foreignKey : foreignKeys) {
+				final JsonObject foreignKeyJsonObject = new JsonObject();
+				foreignKeysJsonArray.add(foreignKeyJsonObject);
+				if (foreignKey.getForeignKeyName() != null) {
+					foreignKeyJsonObject.add("name", foreignKey.getForeignKeyName());
+				}
+				foreignKeyJsonObject.add("columnName", foreignKey.getColumnName());
+				foreignKeyJsonObject.add("referencedTable", foreignKey.getReferencedTableName());
+				foreignKeyJsonObject.add("referencedColumn", foreignKey.getReferencedColumnName());
+			}
+		}
+
+		// Constraints
+		if (constraints != null && !constraints.isEmpty()) {
+			final JsonArray constraintsJsonArray = new JsonArray();
+			tableJsonObject.add("constraints", constraintsJsonArray);
+			for (final DatabaseConstraint constraint : constraints) {
+				final JsonObject constraintJsonObject = new JsonObject();
+				constraintsJsonArray.add(constraintJsonObject);
+				if (constraint.getConstraintName() != null) {
+					constraintJsonObject.add("name", constraint.getConstraintName());
+				}
+				constraintJsonObject.add("type", constraint.getConstraintType().name());
+				if (constraint.getColumnName() != null) {
+					constraintJsonObject.add("columnName", constraint.getColumnName());
+				}
+			}
+		}
+
+		return tableJsonObject;
+	}
+
+	private static JsonObject createColumnJsonObject(final String columnName, final DbColumnType columnType, final String defaultValue) {
+		final JsonObject columnJsonObject = new JsonObject();
+
+		columnJsonObject.add("name", columnName.toLowerCase());
+		columnJsonObject.add("datatype", columnType.getSimpleDataType().name());
+		if (columnType.getSimpleDataType() == SimpleDataType.String) {
+			columnJsonObject.add("datasize", columnType.getCharacterByteSize());
+		}
+		if (!columnType.isNullable()) {
+			columnJsonObject.add("nullable", columnType.isNullable());
+		}
+		if (defaultValue != null) {
+			columnJsonObject.add("defaultvalue", defaultValue);
+		}
+		columnJsonObject.add("databasevendorspecific_datatype", columnType.getTypeName());
+
+		return columnJsonObject;
+	}
+
 	private void exportDbStructure(final Connection connection, final String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 		try {
@@ -477,14 +565,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else {
 				if (zip) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
-						if (!outputFilePath.toLowerCase().endsWith(".txt")) {
-							outputFilePath = outputFilePath + ".txt";
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
 						}
 
 						outputFilePath = outputFilePath + ".zip";
 					}
-				} else if (!outputFilePath.toLowerCase().endsWith(".txt")) {
-					outputFilePath = outputFilePath + ".txt";
+				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
+					outputFilePath = outputFilePath + ".json";
 				}
 
 				if (new File(outputFilePath).exists()) {
@@ -495,8 +583,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
-					if (!entryFileName.toLowerCase().endsWith(".txt")) {
-						entryFileName += ".txt";
+					if (!entryFileName.toLowerCase().endsWith(".json")) {
+						entryFileName += ".json";
 					}
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
@@ -505,17 +593,33 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
 			}
+			try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
+				jsonWriter.openJsonObject();
 
-			try (Statement statement = connection.createStatement()) {
-				statement.setFetchSize(100);
-				try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
-					final ResultSetMetaData metaData = resultSet.getMetaData();
+				final JsonArray columnsJsonArray = new JsonArray();
 
-					outputStream.write((sqlStatement + "\n\n").getBytes(StandardCharsets.UTF_8));
-					for (int i = 1; i <= metaData.getColumnCount(); i ++) {
-						outputStream.write((metaData.getColumnName(i) + " " + metaData.getColumnTypeName(i) + " (" + DbUtilities.getTypeNameById(metaData.getColumnType(i)) + ")\n").getBytes(StandardCharsets.UTF_8));
+				try (Statement statement = connection.createStatement()) {
+					statement.setFetchSize(100);
+					try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+						final ResultSetMetaData metaData = resultSet.getMetaData();
+						for (int i = 1; i <= metaData.getColumnCount(); i ++) {
+							final JsonObject columnJsonObject = new JsonObject();
+							columnsJsonArray.add(columnJsonObject);
+
+							columnJsonObject.add("name", metaData.getColumnName(i));
+							columnJsonObject.add("datatype", DbUtilities.getTypeNameById(metaData.getColumnType(i)));
+							columnJsonObject.add("databasevendorspecific_datatype", metaData.getColumnTypeName(i));
+						}
 					}
 				}
+
+				jsonWriter.openJsonObjectProperty("statement");
+				jsonWriter.addSimpleJsonObjectPropertyValue(sqlStatement);
+
+				jsonWriter.openJsonObjectProperty("columns");
+				jsonWriter.add(columnsJsonArray);
+
+				jsonWriter.closeJsonObject();
 			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
@@ -526,7 +630,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	private void export(final Connection connection, final String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 		OutputStream logOutputStream = null;
@@ -693,6 +796,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 							signalItemProgress();
 						}
 					}
+					
+					if (cancel) {
+						// Statement must be cancelled, or the "ResultSet.close()" will wait for all remaining data to be read
+						statement.cancel();
+					}
+					
 					endOutput();
 				}
 
@@ -760,6 +869,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			Utilities.closeQuietly(logOutputStream);
 
 			if (errorOccurred && fileWasCreated && new File(outputFilePath).exists() && overallExportedLines == 0) {
+				new File(outputFilePath).delete();
+			} else if (cancel && fileWasCreated && new File(outputFilePath).exists()) {
 				new File(outputFilePath).delete();
 			}
 		}
