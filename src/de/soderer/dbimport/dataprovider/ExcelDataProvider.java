@@ -284,7 +284,6 @@ public class ExcelDataProvider extends DataProvider {
 		return returnMap;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;

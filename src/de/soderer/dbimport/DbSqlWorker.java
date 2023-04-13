@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -25,6 +26,7 @@ import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.SqlScriptReader;
+import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvDataException;
 import de.soderer.utilities.worker.WorkerParentSimple;
@@ -242,7 +244,6 @@ public class DbSqlWorker extends DbImportWorker {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	private void openReader() throws Exception {
 		final InputStream inputStream = null;
 		try {
@@ -252,5 +253,10 @@ public class DbSqlWorker extends DbImportWorker {
 			Utilities.closeQuietly(inputStream);
 			throw e;
 		}
+	}
+
+	@Override
+	public Map<String, Tuple<String, String>> getMapping() throws Exception {
+		return mapping;
 	}
 }

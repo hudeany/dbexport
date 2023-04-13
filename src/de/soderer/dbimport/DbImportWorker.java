@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import de.soderer.dbimport.DbImportDefinition.DuplicateMode;
 import de.soderer.dbimport.DbImportDefinition.ImportMode;
@@ -47,6 +48,10 @@ import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
+import de.soderer.utilities.json.JsonArray;
+import de.soderer.utilities.json.JsonNode;
+import de.soderer.utilities.json.JsonObject;
+import de.soderer.utilities.json.JsonReader;
 import de.soderer.utilities.worker.WorkerParentSimple;
 import de.soderer.utilities.worker.WorkerSimple;
 
@@ -66,6 +71,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 	protected char[] trustStorePassword;
 	protected String tableName;
 	protected boolean createTableIfNotExists = false;
+	protected String structureFilePath;
 	protected boolean tableWasCreated = false;
 	protected boolean commitOnFullSuccessOnly = true;
 	protected boolean createNewIndexIfNeeded = true;
@@ -162,7 +168,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 	}
 
 	public Map<String, Tuple<String, String>> getMapping() throws Exception {
-		if (mapping == null && (! (this instanceof DbSqlWorker))) {
+		if (mapping == null) {
 			mapping = new HashMap<>();
 			for (final String propertyName : dataProvider.getAvailableDataPropertyNames()) {
 				mapping.put(propertyName.toLowerCase(), new Tuple<>(propertyName, ""));
@@ -292,6 +298,10 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 	public void setCreateTableIfNotExists(final boolean createTableIfNotExists) {
 		this.createTableIfNotExists = createTableIfNotExists;
+	}
+
+	public void setStructureFilePath(final String structureFilePath) {
+		this.structureFilePath = structureFilePath;
 	}
 
 	public void setLogErroneousData(final boolean logErroneousData) {
@@ -646,6 +656,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				+ "Duplicate mode: " + duplicateMode + "\n"
 				+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
 				+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
+				+ (structureFilePath != null ? "Structure file: " + structureFilePath + "\n" : "")
 				+ "Mapping: \n" + TextUtilities.addLeadingTab(convertMappingToString(getMapping())) + "\n"
 				+ (Utilities.isNotBlank(additionalInsertValues) ? "Additional insert values: " + additionalInsertValues + "\n" : "")
 				+ (Utilities.isNotBlank(additionalUpdateValues) ? "Additional update values: " + additionalUpdateValues + "\n" : "")
@@ -658,41 +669,152 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 	protected void createTableIfNeeded(final Connection connection, final String tableNameToUse, final List<String> keyColumnsToUse) throws Exception, DbImportException, SQLException {
 		if (!DbUtilities.checkTableExist(connection, tableNameToUse)) {
 			if (createTableIfNotExists) {
-				final Map<String, DbColumnType> importDataTypes = dataProvider.scanDataPropertyTypes(mapping);
-				final Map<String, DbColumnType> dbDataTypes = new HashMap<>();
-				for (final Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
-					if (getMapping() != null) {
-						for (final Entry<String,Tuple<String,String>> mappingEntry : getMapping().entrySet()) {
-							if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
-								dbDataTypes.put(mappingEntry.getKey(), importDataTypes.get(importDataType.getKey()));
-								break;
-							}
-						}
-					} else {
-						if (!Pattern.matches("[_a-zA-Z0-9]{1,30}", importDataType.getKey())) {
-							throw new DbImportException("Cannot create table without mapping for data propertyname: " + importDataType.getKey());
-						}
-						dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
+				if (structureFilePath != null) {
+					try {
+						createTableFromStructureFile(connection, tableNameToUse, structureFilePath);
+						tableWasCreated = true;
+					} catch (final Exception e) {
+						throw new DbImportException("Cannot create new table '" + tableNameToUse + "' by structure file: " + e.getMessage(), e);
 					}
-				}
-				if (dbVendor == DbVendor.PostgreSQL) {
-					// Close a maybe open transaction to allow DDL-statement
-					connection.rollback();
-				}
-				try {
-					DbUtilities.createTable(connection, tableNameToUse, dbDataTypes, keyColumnsToUse);
-					tableWasCreated = true;
-				} catch (final Exception e) {
-					throw new DbImportException("Cannot create new table '" + tableNameToUse + "': " + e.getMessage(), e);
-				}
-				if (dbVendor == DbVendor.PostgreSQL) {
-					// Commit DDL-statement
-					connection.commit();
+				} else {
+					final Map<String, DbColumnType> importDataTypes = dataProvider.scanDataPropertyTypes(mapping);
+					final Map<String, DbColumnType> dbDataTypes = new HashMap<>();
+					for (final Entry<String, DbColumnType> importDataType : importDataTypes.entrySet()) {
+						if (getMapping() != null) {
+							for (final Entry<String,Tuple<String,String>> mappingEntry : getMapping().entrySet()) {
+								if (mappingEntry.getValue().getFirst().equals(importDataType.getKey())) {
+									dbDataTypes.put(mappingEntry.getKey(), importDataTypes.get(importDataType.getKey()));
+									break;
+								}
+							}
+						} else {
+							if (!Pattern.matches("[_a-zA-Z0-9]{1,30}", importDataType.getKey())) {
+								throw new DbImportException("Cannot create table without mapping for data propertyname: " + importDataType.getKey());
+							}
+							dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
+						}
+					}
+					if (dbVendor == DbVendor.PostgreSQL) {
+						// Close a maybe open transaction to allow DDL-statement
+						connection.rollback();
+					}
+					try {
+						DbUtilities.createTable(connection, tableNameToUse, dbDataTypes, keyColumnsToUse);
+						tableWasCreated = true;
+					} catch (final Exception e) {
+						throw new DbImportException("Cannot create new table '" + tableNameToUse + "': " + e.getMessage(), e);
+					}
+					if (dbVendor == DbVendor.PostgreSQL) {
+						// Commit DDL-statement
+						connection.commit();
+					}
 				}
 			} else {
 				throw new DbImportException("Table does not exist: " + tableNameToUse);
 			}
 		}
+	}
+
+	private void createTableFromStructureFile(final Connection connection, final String tableNameToUse, final String structureFilePathToLookIn) throws Exception {
+		try (FileInputStream jsonStructureDataInputStream = new FileInputStream(structureFilePathToLookIn);
+				JsonReader jsonReader = new JsonReader(jsonStructureDataInputStream)) {
+			parent.changeTitle(LangResources.get("creatingMissingTablesAndColumns"));
+
+			final JsonNode dbStructureJsonNode = jsonReader.read();
+
+			if (!dbStructureJsonNode.isJsonObject()) {
+				throw new Exception("Invalid db structure file. Must contain JsonObject with table properties");
+			}
+
+			final JsonObject dbStructureJsonObject = (JsonObject) dbStructureJsonNode.getValue();
+
+			itemsToDo = dbStructureJsonObject.size();
+			itemsDone = 0;
+
+			JsonObject foundTableJsonObject = null;
+			for (final Entry<String, Object> tableEntry : dbStructureJsonObject.entrySet()) {
+				final String currentTableName = tableEntry.getKey();
+				final JsonObject tableJsonObject = (JsonObject) tableEntry.getValue();
+				if (currentTableName.equalsIgnoreCase(tableNameToUse)) {
+					foundTableJsonObject = tableJsonObject;
+					break;
+				}
+			}
+
+			if (foundTableJsonObject != null) {
+				parent.changeTitle(LangResources.get("workingOnTable", tableNameToUse));
+				createTable(connection, tableNameToUse, foundTableJsonObject);
+			}
+
+			signalProgress(true);
+			setEndTime(LocalDateTime.now());
+		}
+	}
+
+	private void createTable(final Connection connection, final String tableNameToCreate, final JsonObject tableJsonObject) throws Exception {
+		if  (tableJsonObject == null) {
+			throw new Exception("Cannot create table without table definition");
+		}
+
+		final JsonArray columnsJsonArray = (JsonArray) tableJsonObject.get("columns");
+		if  (columnsJsonArray == null) {
+			throw new Exception("Cannot create table without columns definition");
+		}
+
+		try (Statement statement = connection.createStatement()) {
+			String columnsPart = "";
+			for (final Object columnObject : columnsJsonArray) {
+				final JsonObject columnJsonObject = (JsonObject) columnObject;
+
+				if (columnsPart.length() > 0) {
+					columnsPart += ", ";
+				}
+
+				columnsPart = columnsPart + getColumnNameAndType(columnJsonObject);
+			}
+
+			final List<String> keyColumnsToSet = ((JsonArray) tableJsonObject.get("keycolumns")).stream().map(String.class::cast).collect(Collectors.toList());
+
+			String primaryKeyPart = "";
+			if (Utilities.isNotEmpty(keyColumnsToSet)) {
+				primaryKeyPart = ", PRIMARY KEY (" + DbUtilities.joinColumnVendorEscaped(dbVendor, keyColumnsToSet) + ")";
+			}
+			statement.execute("CREATE TABLE " + tableNameToCreate + " (" + columnsPart + primaryKeyPart + ")");
+			if (dbVendor == DbVendor.Derby) {
+				connection.commit();
+			}
+		}
+	}
+
+	private String getColumnNameAndType(final JsonObject columnJsonObject) throws Exception {
+		final String name = DbUtilities.escapeVendorReservedNames(dbVendor, (String) columnJsonObject.get("name"));
+		final SimpleDataType simpleDataType = SimpleDataType.getSimpleDataTypeByName((String) columnJsonObject.get("datatype"));
+		int characterByteSize = -1;
+		if (columnJsonObject.containsPropertyKey("datasize")) {
+			characterByteSize = (Integer) columnJsonObject.get("datasize");
+		}
+
+		String defaultvalue = null;
+		if (columnJsonObject.containsPropertyKey("defaultvalue")) {
+			defaultvalue = (String) columnJsonObject.get("defaultvalue");
+		}
+		String defaultvaluePart = "";
+		if (defaultvalue != null) {
+			if (simpleDataType == SimpleDataType.String) {
+				defaultvaluePart = defaultvalue;
+				if (!defaultvaluePart.startsWith("'") || !defaultvaluePart.endsWith("'")) {
+					defaultvaluePart = "'" + defaultvaluePart + "'";
+				}
+			} else {
+				defaultvaluePart = defaultvalue;
+			}
+
+			defaultvaluePart = " DEFAULT " + defaultvaluePart;
+		}
+
+		// "databasevendorspecific_datatype"
+
+		return name + " " + DbUtilities.getDataType(dbVendor, simpleDataType) + (characterByteSize > -1 ? "(" + characterByteSize + ")" : "") + defaultvaluePart;
 	}
 
 	public String getResultStatistics() {
@@ -792,7 +914,6 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 						final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 
-						@SuppressWarnings("resource")
 						final Closeable itemToClose = setParameter(preparedStatement, i++, simpleDataType, dataValue, formatInfo);
 						itemsToCloseAfterwards.add(itemToClose);
 					}

@@ -224,7 +224,6 @@ public class XmlDataProvider extends DataProvider {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;

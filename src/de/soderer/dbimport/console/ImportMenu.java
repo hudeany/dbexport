@@ -306,6 +306,8 @@ public class ImportMenu extends ConsoleMenu {
 
 				System.out.println("  " + Utilities.rightPad("create)", bulletSize) + " " + Utilities.rightPad("Scan data and create suitable table:", nameSize) + dbImportDefinition.isCreateTable());
 				autoCompletionStrings.add("create");
+				System.out.println("  " + Utilities.rightPad("structure)", bulletSize) + " " + Utilities.rightPad("Structure file:", nameSize) + (dbImportDefinition.getStructureFilePath() == null ? "<empty>" : dbImportDefinition.getStructureFilePath()));
+				autoCompletionStrings.add("structure");
 				System.out.println("  " + Utilities.rightPad("logerrors)", bulletSize) + " " + Utilities.rightPad("Log error data items in file:", nameSize) + dbImportDefinition.isLogErroneousData());
 				autoCompletionStrings.add("logerrors");
 				if (dbImportDefinition.getImportFilePathOrData().toLowerCase().endsWith(".zip")) {
@@ -383,6 +385,11 @@ public class ImportMenu extends ConsoleMenu {
 					System.out.println("Please enter data path");
 					final String dataPath = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					dbImportDefinition.setDataPath(dataPath);
+				} else if ("structure".equalsIgnoreCase(choice)) {
+					System.out.println();
+					System.out.println("Please enter structure file path");
+					final String structureFilePath = new FilepathConsoleInput().setPrompt(" > ").readInput();
+					dbImportDefinition.setStructureFilePath(Utilities.isBlank(structureFilePath) ? null : structureFilePath);
 				} else if ("sp".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter schema file path");
@@ -524,6 +531,11 @@ public class ImportMenu extends ConsoleMenu {
 					dbImportDefinition.setAdditionalUpdateValues(additionalUpdateValues);
 				} else if ("create".equalsIgnoreCase(choice)) {
 					dbImportDefinition.setCreateTable(!dbImportDefinition.isCreateTable());
+				} else if ("structure".equalsIgnoreCase(choice)) {
+					System.out.println();
+					System.out.println("Please enter structure file path");
+					final String structureFilePath = new FilepathConsoleInput().setPrompt(" > ").readInput();
+					dbImportDefinition.setStructureFilePath(Utilities.isBlank(structureFilePath) ? null : structureFilePath);
 				} else if ("logerrors".equalsIgnoreCase(choice)) {
 					dbImportDefinition.setLogErroneousData(!dbImportDefinition.isLogErroneousData());
 				} else if ("zippassword".equalsIgnoreCase(choice)) {

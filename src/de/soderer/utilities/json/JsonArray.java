@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class JsonArray implements Iterable<Object> {
 	private final List<Object> items = new ArrayList<>();
@@ -29,6 +30,10 @@ public class JsonArray implements Iterable<Object> {
 	@Override
 	public Iterator<Object> iterator() {
 		return items.iterator();
+	}
+
+	public Stream<Object> stream() {
+		return items.stream();
 	}
 
 	@Override

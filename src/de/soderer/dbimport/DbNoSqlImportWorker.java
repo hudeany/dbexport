@@ -256,7 +256,6 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 						final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 
-						@SuppressWarnings("resource")
 						final
 						Closeable itemToClose = setParameter(preparedInsertStatement, i++, simpleDataType, dataValue, formatInfo);
 						itemsToCloseAfterwards.add(itemToClose);
@@ -404,7 +403,6 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						// Bug mitigation for Cassandra JDBC driver: Driver does not set apostrophes around strings as key column value in prepared statements
 						keyDataValue = "'" + keyDataValue + "'";
 					}
-					@SuppressWarnings("resource")
 					final Closeable keyItemToClose = setParameter(preparedDetectStatement, keyIndex++, simpleDataType, keyDataValue, formatInfo);
 					if (keyItemToClose != null) {
 						detectItemsToCloseAfterwards.add(keyItemToClose);
@@ -458,7 +456,6 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 								final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToUpdate).getFirst());
 								final String formatInfo = mappingToUse.get(unescapedDbColumnToUpdate).getSecond();
 
-								@SuppressWarnings("resource")
 								final Closeable itemToClose = setParameter(preparedUpdateStatement, i++, simpleDataType, dataValue, formatInfo);
 								updateItemsToCloseAfterwards.add(itemToClose);
 							}
@@ -470,7 +467,6 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 							final Object keyDataValue = itemData.get(mappingToUse.get(unescapedDbKeyColumn).getFirst());
 							final String formatInfo = mappingToUse.get(unescapedDbKeyColumn).getSecond();
 
-							@SuppressWarnings("resource")
 							final Closeable itemToClose = setParameter(preparedUpdateStatement, i++, simpleDataType, keyDataValue, formatInfo);
 							if (itemToClose != null) {
 								detectItemsToCloseAfterwards.add(itemToClose);
@@ -495,7 +491,6 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 							final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 							final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 
-							@SuppressWarnings("resource")
 							final Closeable itemToClose = setParameter(preparedInsertStatement, i++, simpleDataType, dataValue, formatInfo);
 							if (itemToClose != null) {
 								insertItemsToCloseAfterwards.add(itemToClose);

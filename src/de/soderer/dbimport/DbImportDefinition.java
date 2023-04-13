@@ -150,6 +150,8 @@ public class DbImportDefinition extends DbDefinition {
 
 	private boolean createTable = false;
 
+	private String structureFilePath = null;
+
 	private boolean trimData = false;
 
 	private String mapping = "";
@@ -372,6 +374,14 @@ public class DbImportDefinition extends DbDefinition {
 
 	public void setCreateTable(final boolean createTable) {
 		this.createTable = createTable;
+	}
+
+	public String getStructureFilePath() {
+		return structureFilePath;
+	}
+
+	public void setStructureFilePath(final String structureFilePath) {
+		this.structureFilePath = structureFilePath;
 	}
 
 	public String getMapping() {
@@ -663,6 +673,7 @@ public class DbImportDefinition extends DbDefinition {
 			worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
 			worker.setUpdateNullData(isUpdateNullData());
 			worker.setCreateTableIfNotExists(isCreateTable());
+			worker.setStructureFilePath(getStructureFilePath());
 			worker.setLogErroneousData(isLogErroneousData());
 			worker.setDatabaseTimeZone(databaseTimeZone);
 			worker.setImportDataTimeZone(importDataTimeZone);
@@ -742,6 +753,9 @@ public class DbImportDefinition extends DbDefinition {
 		}
 		if (isCreateTable()) {
 			params += " " + "-create";
+		}
+		if (getStructureFilePath() != null && getStructureFilePath().length() > 0) {
+			params += " " + "-structure '" + getStructureFilePath().replace("'", "\\'") + "'";
 		}
 		if (isTrimData()) {
 			params += " " + "-t";

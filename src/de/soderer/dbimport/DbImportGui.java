@@ -13,6 +13,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -128,6 +129,12 @@ public class DbImportGui extends UpdateableGuiApplication {
 	private final JPasswordField zipPasswordField;
 
 	private final JTextField dataPathField;
+
+	private final JTextField structureFilePathField;
+
+	private final JButton structureFileButton;
+
+	private final JButton createCompleteStructureFileButton;
 
 	private final JTextField schemaFilePathField;
 
@@ -543,6 +550,99 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dataPathPanel.add(dataPathField);
 		mandatoryParameterPanel.add(dataPathPanel);
 
+		// Structure file panel
+		final JPanel structureFilePathPanel = new JPanel();
+		structureFilePathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel structureFilePathLabel = new JLabel(LangResources.get("structureFilePath"));
+		structureFilePathPanel.add(structureFilePathLabel);
+		structureFilePathField = new JTextField();
+		structureFilePathField.setToolTipText(LangResources.get("structureFilePath_help"));
+		structureFilePathField.setPreferredSize(new Dimension(130, structureFilePathField.getPreferredSize().height));
+		structureFilePathField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(final KeyEvent event) {
+				checkButtonStatus();
+			}
+		});
+		structureFilePathPanel.add(structureFilePathField);
+
+		structureFileButton = new JButton("...");
+		structureFileButton.setPreferredSize(new Dimension(20, structureFilePathField.getPreferredSize().height));
+		structureFileButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent event) {
+				try {
+					final File structureFile = selectFile(structureFilePathField.getText(), LangResources.get("structureFilePath"));
+					if (structureFile != null) {
+						structureFilePathField.setText(structureFile.getAbsolutePath());
+					}
+				} catch (final Exception e) {
+					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+				}
+			}
+		});
+		structureFilePathPanel.add(structureFileButton);
+
+		createCompleteStructureFileButton = new JButton("+");
+		createCompleteStructureFileButton.setToolTipText(LangResources.get("createCompleteStructure_help"));
+		createCompleteStructureFileButton.setPreferredSize(new Dimension(40, structureFilePathField.getPreferredSize().height));
+		createCompleteStructureFileButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent event) {
+				try {
+					if (Utilities.isBlank((structureFilePathField.getText()))) {
+						final File structureFile = selectFile(structureFilePathField.getText(), LangResources.get("createCompleteStructure"));
+						if (structureFile != null) {
+							structureFilePathField.setText(structureFile.getAbsolutePath());
+						}
+					}
+
+					if (Utilities.isNotBlank((structureFilePathField.getText()))) {
+						if (!new File(structureFilePathField.getText()).exists()) {
+							new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File does not exist: '" + structureFilePathField.getText() + "'").setBackgroundColor(SwingColor.LightRed).open();
+						} else {
+							final DbImportDefinition configurationAsDefinition = getConfigurationAsDefinition();
+							try (FileInputStream jsonStructureDataInputStream = new FileInputStream(structureFilePathField.getText());
+									Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword(), configurationAsDefinition.getSecureConnection(), Utilities.isBlank(configurationAsDefinition.getTrustStoreFilePath()) ? null : new File(configurationAsDefinition.getTrustStoreFilePath()), configurationAsDefinition.getTrustStorePassword(), true)) {
+								final DbStructureWorker worker = new DbStructureWorker(
+										null,
+										configurationAsDefinition.getDbVendor(),
+										configurationAsDefinition.getHostname(),
+										configurationAsDefinition.getDbName(),
+										configurationAsDefinition.getUsername(),
+										configurationAsDefinition.getPassword(),
+										configurationAsDefinition.getSecureConnection(),
+										configurationAsDefinition.getTrustStoreFilePath(),
+										configurationAsDefinition.getTrustStorePassword(),
+										jsonStructureDataInputStream);
+								final ProgressDialog<DbStructureWorker> progressDialog = new ProgressDialog<>(dbImportGui, DbImport.APPLICATION_NAME, null, worker);
+								worker.setParent(progressDialog);
+								final Result result = progressDialog.open();
+
+								if (result == Result.CANCELED) {
+									new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME, LangResources.get("error.canceledbyuser")).setBackgroundColor(SwingColor.Yellow).open();
+								} else if (result == Result.ERROR) {
+									final Exception e = worker.getError();
+									if (e instanceof DbImportException) {
+										new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + ((DbImportException) e).getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+									} else {
+										final String stacktrace = ExceptionUtilities.getStackTrace(e);
+										new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace).setBackgroundColor(SwingColor.LightRed).open();
+									}
+								} else {
+									new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " OK", "Structure creation result:\n\t" + worker.getCreatedTables() + " created tables\n\t" + worker.getCreatedColumns() + " added columns").setBackgroundColor(SwingColor.Green).open();
+								}
+							}
+						}
+					}
+				} catch (final Exception e) {
+					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+				}
+			}
+		});
+		structureFilePathPanel.add(createCompleteStructureFileButton);
+		mandatoryParameterPanel.add(structureFilePathPanel);
+
 		// Schema file panel
 		final JPanel schemaFilePathPanel = new JPanel();
 		schemaFilePathPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -897,13 +997,13 @@ public class DbImportGui extends UpdateableGuiApplication {
 					final SecurePreferencesDialog credentialsDialog = new SecurePreferencesDialog(dbImportGui, DbImport.APPLICATION_NAME + " " + LangResources.get("preferences"),
 							LangResources.get("preferences_text"), DbImport.SECURE_PREFERENCES_FILE, LangResources.get("load"), LangResources.get("create"), LangResources.get("update"),
 							LangResources.get("delete"), LangResources.get("preferences_save"), LangResources.get("cancel"), LangResources.get("preferences_password_text"),
-							LangResources.get("username"), LangResources.get("password"), LangResources.get("ok"), LangResources.get("cancel"));
+							LangResources.get("password"), LangResources.get("ok"), LangResources.get("cancel"));
 
-					credentialsDialog.setCurrentSecureDataEntry(getConfigurationAsDefinition());
+					credentialsDialog.setCurrentDataEntry(getConfigurationAsDefinition());
 					credentialsDialog.setPassword(temporaryPreferencesPassword);
 					credentialsDialog.open();
-					if (credentialsDialog.getCurrentSecureDataEntry() != null) {
-						setConfigurationByDefinition((DbImportDefinition) credentialsDialog.getCurrentSecureDataEntry());
+					if (credentialsDialog.getCurrentDataEntry() != null) {
+						setConfigurationByDefinition((DbImportDefinition) credentialsDialog.getCurrentDataEntry());
 					}
 
 					temporaryPreferencesPassword = credentialsDialog.getPassword();
@@ -1078,6 +1178,10 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dbImportDefinition.setUpdateNullData(updateWithNullDataBox.isSelected());
 		dbImportDefinition.setKeycolumns(Utilities.splitAndTrimList(keyColumnsField.getText()));
 		dbImportDefinition.setCreateTable(createTableBox.isSelected());
+		dbImportDefinition.setStructureFilePath(structureFilePathField.getText());
+		if (schemaFilePathField.isEnabled() && Utilities.isNotBlank(schemaFilePathField.getText())) {
+			dbImportDefinition.setSchemaFilePath(schemaFilePathField.getText());
+		}
 		dbImportDefinition.setMapping(mappingField.getText());
 		dbImportDefinition.setAdditionalInsertValues(additionalInsertValuesField.getText());
 		dbImportDefinition.setAdditionalUpdateValues(additionalUpdateValuesField.getText());
@@ -1446,6 +1550,8 @@ public class DbImportGui extends UpdateableGuiApplication {
 					|| ImportMode.UPSERT.toString().equalsIgnoreCase((String) importModeCombo.getSelectedItem()));
 		}
 		additionalUpdateValuesField.setBackground(additionalUpdateValuesField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
+
+		createCompleteStructureFileButton.setEnabled(Utilities.isNotBlank(structureFilePathField.getText()));
 	}
 
 	/**

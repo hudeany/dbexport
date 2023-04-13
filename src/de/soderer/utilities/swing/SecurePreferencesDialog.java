@@ -32,11 +32,10 @@ import de.soderer.utilities.WrongPasswordException;
 public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 	private static final long serialVersionUID = -2855354859482098916L;
 
-	private final File securePreferencesFile;
+	private final File preferencesFile;
 	private SecureDataStore secureDataStore = null;
-	private Object currentSecureDataEntry;
+	private Object currentDataEntry;
 
-	private final String text_Username;
 	private final String text_PasswordText;
 	private final String text_Password;
 	private final String text_OK;
@@ -57,16 +56,15 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 
 	public SecurePreferencesDialog(final Window parent, final String title, final String text, final File securePreferencesFile,
 			final String textButton_Load, final String textButton_Create, final String textButton_Update, final String textButton_Delete, final String textButton_Save, final String textButton_Cancel, final String text_PasswordText,
-			final String text_Username, final String text_Password, final String text_OK, final String text_Cancel) {
+			final String text_Password, final String text_OK, final String text_Cancel) {
 		super(parent, title);
 
-		this.text_Username = text_Username;
 		this.text_PasswordText = text_PasswordText;
 		this.text_Password = text_Password;
 		this.text_OK = text_OK;
 		this.text_Cancel = text_Cancel;
 
-		this.securePreferencesFile = securePreferencesFile;
+		preferencesFile = securePreferencesFile;
 
 		setResizable(false);
 
@@ -123,7 +121,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 					if (rowIndex >= 0) {
 						final DefaultTableModel tableModel = (DefaultTableModel) preferencesTable.getModel();
 						final String entryName = (String) tableModel.getValueAt(rowIndex, 0);
-						currentSecureDataEntry = secureDataStore.getEntry(currentSecureDataEntry.getClass(), entryName);
+						currentDataEntry = secureDataStore.getEntry(currentDataEntry.getClass(), entryName);
 						dispose();
 					}
 				}
@@ -153,7 +151,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 				if (preferencesTable.getSelectedRows().length == 1) {
 					final DefaultTableModel tableModel = (DefaultTableModel) preferencesTable.getModel();
 					final String entryName = (String) tableModel.getValueAt(preferencesTable.getSelectedRows()[0], 0);
-					currentSecureDataEntry = secureDataStore.getEntry(currentSecureDataEntry.getClass(), entryName);
+					currentDataEntry = secureDataStore.getEntry(currentDataEntry.getClass(), entryName);
 					dispose();
 				}
 			}
@@ -172,9 +170,9 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 				}
 
 				if (Utilities.isNotBlank(newNameField.getText())) {
-					secureDataStore.addEntry(newNameField.getText(), currentSecureDataEntry);
+					secureDataStore.addEntry(newNameField.getText(), currentDataEntry);
 					if (getPassword() == null) {
-						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 						final Credentials credentials = credentialsDialog.open();
 						if (credentials != null) {
 							setPassword(credentials.getPassword());
@@ -189,7 +187,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 							e.printStackTrace();
 							new QuestionDialog((Window) getParent(), getTitle(), LangResources.get("cannotSaveKeystore"), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 						}
-						currentSecureDataEntry = null;
+						currentDataEntry = null;
 						dispose();
 					}
 				}
@@ -208,9 +206,9 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 					final DefaultTableModel tableModel = (DefaultTableModel) preferencesTable.getModel();
 					for (final int rowNum : preferencesTable.getSelectedRows()) {
 						final String entryName = (String) tableModel.getValueAt(rowNum, 0);
-						secureDataStore.addEntry(entryName, currentSecureDataEntry);
+						secureDataStore.addEntry(entryName, currentDataEntry);
 						if (getPassword() == null) {
-							final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+							final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 							final Credentials credentials = credentialsDialog.open();
 							if (credentials != null) {
 								setPassword(credentials.getPassword());
@@ -225,7 +223,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 								e.printStackTrace();
 								new QuestionDialog((Window) getParent(), getTitle(), LangResources.get("cannotSaveKeystore"), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 							}
-							currentSecureDataEntry = null;
+							currentDataEntry = null;
 							dispose();
 						}
 					}
@@ -246,11 +244,11 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 					for (int i = preferencesTable.getSelectedRows().length - 1; i >= 0; i--) {
 						final int rowNum = preferencesTable.getSelectedRows()[i];
 						final String entryName = (String) tableModel.getValueAt(rowNum, 0);
-						secureDataStore.removeEntry(currentSecureDataEntry.getClass(), entryName);
+						secureDataStore.removeEntry(currentDataEntry.getClass(), entryName);
 						tableModel.removeRow(rowNum);
 					}
 					if (getPassword() == null) {
-						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 						final Credentials credentials = credentialsDialog.open();
 						if (credentials != null) {
 							setPassword(credentials.getPassword());
@@ -265,7 +263,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 							e.printStackTrace();
 							new QuestionDialog((Window) getParent(), getTitle(), LangResources.get("cannotSaveKeystore"), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 						}
-						currentSecureDataEntry = null;
+						currentDataEntry = null;
 						dispose();
 					}
 				}
@@ -289,14 +287,14 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 				}
 
 				if (Utilities.isNotBlank(newNameField.getText())) {
-					secureDataStore.addEntry(newNameField.getText(), currentSecureDataEntry);
+					secureDataStore.addEntry(newNameField.getText(), currentDataEntry);
 				} else if (preferencesTable.getSelectedRows().length == 1) {
 					final DefaultTableModel tableModel = (DefaultTableModel) preferencesTable.getModel();
 					for (final int rowNum : preferencesTable.getSelectedRows()) {
 						final String entryName = (String) tableModel.getValueAt(rowNum, 0);
-						secureDataStore.addEntry(entryName, currentSecureDataEntry);
+						secureDataStore.addEntry(entryName, currentDataEntry);
 						if (getPassword() == null) {
-							final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+							final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 							final Credentials credentials = credentialsDialog.open();
 							if (credentials != null) {
 								setPassword(credentials.getPassword());
@@ -311,13 +309,13 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 								e.printStackTrace();
 								new QuestionDialog((Window) getParent(), getTitle(), LangResources.get("cannotSaveKeystore"), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 							}
-							currentSecureDataEntry = null;
+							currentDataEntry = null;
 							dispose();
 						}
 					}
 				}
 
-				final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+				final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 				final Credentials credentials = credentialsDialog.open();
 				if (credentials != null) {
 					setPassword(credentials.getPassword());
@@ -327,7 +325,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 						e.printStackTrace();
 						new QuestionDialog((Window) getParent(), getTitle(), LangResources.get("cannotSaveKeystore"), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 					}
-					currentSecureDataEntry = null;
+					currentDataEntry = null;
 					dispose();
 				}
 			}
@@ -340,7 +338,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 		cancelButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
-				currentSecureDataEntry = null;
+				currentDataEntry = null;
 				dispose();
 			}
 		});
@@ -365,12 +363,12 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 		newNameField.requestFocus();
 	}
 
-	public void setCurrentSecureDataEntry(final Object secureDataEntry) {
-		currentSecureDataEntry = secureDataEntry;
+	public void setCurrentDataEntry(final Object dataEntry) {
+		currentDataEntry = dataEntry;
 	}
 
-	public Object getCurrentSecureDataEntry() {
-		return currentSecureDataEntry;
+	public Object getCurrentDataEntry() {
+		return currentDataEntry;
 	}
 
 	public char[] getPassword() {
@@ -388,15 +386,15 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 	@Override
 	public Boolean open() {
 		try {
-			if (securePreferencesFile.exists()) {
+			if (preferencesFile.exists()) {
 				boolean retry = true;
 				while (secureDataStore == null && retry) {
 					try {
 						secureDataStore = new SecureDataStore();
-						secureDataStore.load(securePreferencesFile, getPassword());
+						secureDataStore.load(preferencesFile, getPassword());
 					} catch (@SuppressWarnings("unused") final WrongPasswordException e) {
 						secureDataStore = null;
-						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, text_Username, text_Password, text_OK, text_Cancel);
+						final CredentialsDialog credentialsDialog = new CredentialsDialog((Window) getParent(), getTitle(), text_PasswordText, false, true, null, text_Password, text_OK, text_Cancel);
 						final Credentials credentials = credentialsDialog.open();
 						if (credentials != null) {
 							setPassword(credentials.getPassword());
@@ -409,7 +407,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 
 				if (secureDataStore != null) {
 					final DefaultTableModel tableModel = (DefaultTableModel) preferencesTable.getModel();
-					for (final String entryName : secureDataStore.getEntryNames(currentSecureDataEntry.getClass())) {
+					for (final String entryName : secureDataStore.getEntryNames(currentDataEntry.getClass())) {
 						tableModel.addRow(new Object[] { entryName });
 					}
 

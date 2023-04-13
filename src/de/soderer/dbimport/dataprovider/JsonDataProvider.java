@@ -218,7 +218,6 @@ public class JsonDataProvider extends DataProvider {
 		jsonReader = null;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;
@@ -318,7 +317,6 @@ public class JsonDataProvider extends DataProvider {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	private void openReader() throws Exception {
 		if (jsonReader != null) {
 			throw new Exception("Reader was already opened before");

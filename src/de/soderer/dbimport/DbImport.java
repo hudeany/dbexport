@@ -411,6 +411,20 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 					} else if ("-create".equalsIgnoreCase(arguments[i])) {
 						dbImportDefinition.setCreateTable(true);
 						wasAllowedParam = true;
+					} else if ("-structure".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter for structure file path");
+						} else if (Utilities.isBlank(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for structure file path");
+						} else if (!new File(arguments[i]).exists()) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Structure file file does not exist");
+						} else if (Utilities.isNotBlank(dbImportDefinition.getMapping())) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Structure file path is already defined");
+						} else {
+							dbImportDefinition.setStructureFilePath(arguments[i]);
+						}
+						wasAllowedParam = true;
 					} else if ("-logerrors".equalsIgnoreCase(arguments[i])) {
 						dbImportDefinition.setLogErroneousData(true);
 						wasAllowedParam = true;
@@ -452,7 +466,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						} else if (Utilities.isNotBlank(dbImportDefinition.getMapping())) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Schema file path is already defined");
 						} else {
-							dbImportDefinition.setSchemaFilePath(new String(Utilities.readFileToByteArray(new File(arguments[i])), StandardCharsets.UTF_8));
+							dbImportDefinition.setSchemaFilePath(arguments[i]);
 						}
 						wasAllowedParam = true;
 					} else if ("-zippassword".equalsIgnoreCase(arguments[i])) {

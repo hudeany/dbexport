@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class JsonObject implements Iterable<Map.Entry<String, Object>> {
 	private final Map<String, Object> properties = new LinkedHashMap<>();
@@ -49,6 +50,18 @@ public class JsonObject implements Iterable<Map.Entry<String, Object>> {
 	@Override
 	public Iterator<Entry<String, Object>> iterator() {
 		return properties.entrySet().iterator();
+	}
+
+	public Stream<Entry<String, Object>> entriesStream () {
+		return properties.entrySet().stream();
+	}
+
+	public Stream<String> keysStream () {
+		return properties.keySet().stream();
+	}
+
+	public Stream<Object> valuesStream () {
+		return properties.values().stream();
 	}
 
 	@Override

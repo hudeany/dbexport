@@ -334,7 +334,6 @@ public class CsvDataProvider extends DataProvider {
 		}
 	}
 
-	@SuppressWarnings("resource")
 	private void openReader() throws Exception {
 		if (csvReader != null) {
 			throw new Exception("Reader was already opened before");
