@@ -8,11 +8,11 @@ import java.util.Locale;
 import java.util.Map;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.NumberUtilities;
-import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbColumnType;
+import de.soderer.utilities.db.SimpleDataType;
 
 public abstract class DataProvider implements Closeable {
 	abstract public String getConfigurationLogString();

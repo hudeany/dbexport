@@ -1,4 +1,4 @@
-package de.soderer.utilities;
+package de.soderer.utilities.db;
 
 import java.awt.Window;
 import java.io.File;
@@ -9,8 +9,11 @@ import java.io.OutputStream;
 
 import javax.swing.JFileChooser;
 
-import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.LangResources;
+import de.soderer.utilities.SectionedProperties;
+import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.SimpleConsoleInput;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SwingColor;
 

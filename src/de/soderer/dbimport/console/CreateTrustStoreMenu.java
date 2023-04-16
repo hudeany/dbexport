@@ -6,13 +6,13 @@ import java.util.List;
 
 import de.soderer.dbimport.ConnectionTestDefinition;
 import de.soderer.dbimport.DbImport;
-import de.soderer.utilities.DbDefinition;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
 

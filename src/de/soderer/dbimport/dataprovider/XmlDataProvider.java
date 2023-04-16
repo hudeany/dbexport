@@ -31,9 +31,9 @@ import javax.xml.validation.Validator;
 
 import de.soderer.dbimport.DbImportException;
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
 import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;

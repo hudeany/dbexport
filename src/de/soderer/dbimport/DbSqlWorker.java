@@ -22,13 +22,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
-import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.SqlScriptReader;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvDataException;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.worker.WorkerParentSimple;
 import de.soderer.utilities.zip.Zip4jUtilities;
 

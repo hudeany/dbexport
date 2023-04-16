@@ -16,10 +16,10 @@ import de.soderer.dbimport.dataprovider.JsonDataProvider;
 import de.soderer.dbimport.dataprovider.OdsDataProvider;
 import de.soderer.dbimport.dataprovider.XmlDataProvider;
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbImportDefinition extends DbDefinition {

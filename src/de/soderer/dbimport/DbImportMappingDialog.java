@@ -22,13 +22,13 @@ import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
-import de.soderer.utilities.DbColumnType;
 import de.soderer.utilities.LangResources;
-import de.soderer.utilities.SimpleDataType;
 import de.soderer.utilities.Triple;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
+import de.soderer.utilities.db.DbColumnType;
+import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.swing.ModalDialog;
 
 public class DbImportMappingDialog extends ModalDialog<Boolean> {

@@ -1,6 +1,8 @@
-package de.soderer.utilities;
+package de.soderer.utilities.db;
 
 import java.util.List;
+
+import de.soderer.utilities.Utilities;
 
 public class DatabaseIndex {
 	private String tableName;
