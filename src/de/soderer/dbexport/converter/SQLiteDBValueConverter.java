@@ -8,9 +8,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.Base64;
 
-import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbUtilities;
 
 public class SQLiteDBValueConverter extends DefaultDBValueConverter {
 	public SQLiteDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {

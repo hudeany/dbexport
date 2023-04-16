@@ -1,8 +1,8 @@
 package de.soderer.dbexport;
 
-import de.soderer.utilities.DbDefinition;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 
 public class ConnectionTestDefinition extends DbDefinition {
 	/** The statement to use for check. */

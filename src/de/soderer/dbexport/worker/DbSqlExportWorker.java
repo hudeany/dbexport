@@ -13,8 +13,8 @@ import java.util.Date;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 public class DbSqlExportWorker extends AbstractDbExportWorker {

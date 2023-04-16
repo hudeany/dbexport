@@ -13,11 +13,11 @@ import java.util.Date;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvFormat;
 import de.soderer.utilities.csv.CsvFormat.QuoteMode;
+import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.csv.CsvReader;
 import de.soderer.utilities.csv.CsvWriter;
 import de.soderer.utilities.worker.WorkerParentDual;

@@ -1,4 +1,4 @@
-package de.soderer.utilities;
+package de.soderer.utilities.db;
 
 public class DbNotExistsException extends Exception {
 	private static final long serialVersionUID = -3769530565881724303L;

@@ -1,8 +1,10 @@
-package de.soderer.utilities;
+package de.soderer.utilities.db;
 
 import java.io.File;
 
-import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 
 public class DbDefinition {
 	/** The db vendor. */

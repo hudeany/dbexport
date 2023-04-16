@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
+import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.worker.WorkerParentDual;
 

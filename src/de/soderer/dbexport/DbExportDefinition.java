@@ -12,10 +12,10 @@ import de.soderer.dbexport.worker.DbCsvExportWorker;
 import de.soderer.dbexport.worker.DbJsonExportWorker;
 import de.soderer.dbexport.worker.DbSqlExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
-import de.soderer.utilities.DbDefinition;
-import de.soderer.utilities.DbUtilities;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 /**

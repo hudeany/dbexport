@@ -4,7 +4,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 
-import de.soderer.utilities.DbUtilities;
+import de.soderer.utilities.db.DbUtilities;
 
 public class OracleDBValueConverter extends DefaultDBValueConverter {
 	public OracleDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {

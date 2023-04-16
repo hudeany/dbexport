@@ -12,12 +12,12 @@ import java.util.stream.Stream;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
 import de.soderer.dbexport.DbExportDefinition.DataType;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
 

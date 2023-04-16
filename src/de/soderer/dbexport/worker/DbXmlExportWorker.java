@@ -12,8 +12,8 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
 
