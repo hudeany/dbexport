@@ -8,7 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.worker.WorkerParentDual;
 
@@ -17,8 +17,8 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 
 	private String indentation = "\t";
 
-	public DbJsonExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, isStatementFile, sqlStatementOrTablelist, outputpath);
+	public DbJsonExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 
 		setDateFormat(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);
 		setDateTimeFormat(DateUtilities.ISO_8601_DATETIME_FORMAT_NO_TIMEZONE);

@@ -12,7 +12,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
 
 import de.soderer.utilities.DateUtilities;
-import de.soderer.utilities.DbUtilities.DbVendor;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
@@ -23,8 +23,8 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private String indentation = "\t";
 	private String nullValueText = "";
 
-	public DbXmlExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, isStatementFile, sqlStatementOrTablelist, outputpath);
+	public DbXmlExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 
 	public void setIndentation(final String indentation) {

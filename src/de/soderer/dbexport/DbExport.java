@@ -426,7 +426,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
 						} else {
-							dbExportDefinition.setTrustStoreFilePath(arguments[i]);
+							dbExportDefinition.setTrustStoreFile(new File(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
@@ -441,8 +441,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (dbExportDefinition.getDbVendor() == null) {
 							dbExportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (dbExportDefinition.getHostname() == null && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
-							dbExportDefinition.setHostname(arguments[i]);
+						} else if (dbExportDefinition.getHostnameAndPort() == null && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
+							dbExportDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (dbExportDefinition.getDbName() == null) {
 							dbExportDefinition.setDbName(arguments[i]);
@@ -494,7 +494,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
 						} else {
-							connectionTestDefinition.setTrustStoreFilePath(arguments[i]);
+							connectionTestDefinition.setTrustStoreFile(new File(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
@@ -509,8 +509,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (connectionTestDefinition.getDbVendor() == null) {
 							connectionTestDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (connectionTestDefinition.getHostname() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
-							connectionTestDefinition.setHostname(arguments[i]);
+						} else if (connectionTestDefinition.getHostnameAndPort() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
+							connectionTestDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (connectionTestDefinition.getDbName() == null) {
 							connectionTestDefinition.setDbName(arguments[i]);
@@ -585,9 +585,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					return 0;
 				} else if (consoleMenuExecutionCode == -5) {
 					// Create TrustStore
-					HttpUtilities.createTrustStoreFile(connectionTestDefinition.getHostname(), 443, new File(connectionTestDefinition.getTrustStoreFilePath()), connectionTestDefinition.getTrustStorePassword());
+					HttpUtilities.createTrustStoreFile(connectionTestDefinition.getHostnameAndPort(), 443, connectionTestDefinition.getTrustStoreFile(), connectionTestDefinition.getTrustStorePassword());
 					System.out.println();
-					System.out.println("Created TrustStore in file '" + connectionTestDefinition.getTrustStoreFilePath() + "'");
+					System.out.println("Created TrustStore in file '" + connectionTestDefinition.getTrustStoreFile().getAbsolutePath() + "'");
 					return 0;
 				} else {
 					System.out.println();
@@ -724,14 +724,14 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			Connection testConnection = null;
 			try {
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating db connection");
-				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostname())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
+				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
-						testConnection = DbUtilities.createConnection(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getHostname(), connectionTestDefinition.getDbName(), connectionTestDefinition.getUsername(), connectionTestDefinition.getPassword(), false, null, null, false);
+						testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
 						testConnection = DbUtilities.createNewDatabase(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getDbName());
 					}
 				} else {
-					testConnection = DbUtilities.createConnection(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getHostname(), connectionTestDefinition.getDbName(), connectionTestDefinition.getUsername(), connectionTestDefinition.getPassword(), connectionTestDefinition.getSecureConnection(), Utilities.isBlank(connectionTestDefinition.getTrustStoreFilePath()) ? null : new File(connectionTestDefinition.getTrustStoreFilePath()), connectionTestDefinition.getTrustStorePassword(), false);
+					testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 				}
 
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Successfully created db connection");

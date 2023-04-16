@@ -29,6 +29,7 @@ import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportException;
 import de.soderer.dbexport.converter.CassandraDBValueConverter;
 import de.soderer.dbexport.converter.DefaultDBValueConverter;
@@ -43,6 +44,7 @@ import de.soderer.utilities.DatabaseForeignKey;
 import de.soderer.utilities.DatabaseIndex;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.SimpleDataType;
@@ -59,14 +61,7 @@ import de.soderer.utilities.zip.ZipUtilities;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
-	protected DbUtilities.DbVendor dbVendor = null;
-	private final String hostname;
-	private final String dbName;
-	private final String username;
-	private final char[] password;
-	private final boolean secureConnection;
-	private final String trustStoreFilePath;
-	private final char[] trustStorePassword;
+	protected DbDefinition dbDefinition = null;
 	private boolean isStatementFile = false;
 	private String sqlStatementOrTablelist;
 	private String outputpath;
@@ -103,16 +98,9 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
-	public AbstractDbExportWorker(final WorkerParentDual parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public AbstractDbExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent);
-		this.dbVendor = dbVendor;
-		this.hostname = hostname;
-		this.dbName = dbName;
-		this.username = username;
-		this.password = password;
-		this.secureConnection = secureConnection;
-		this.trustStoreFilePath = trustStoreFilePath;
-		this.trustStorePassword = trustStorePassword;
+		this.dbDefinition = dbDefinition;
 		this.isStatementFile = isStatementFile;
 		this.sqlStatementOrTablelist = sqlStatementOrTablelist;
 		this.outputpath = outputpath;
@@ -230,27 +218,44 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	public Boolean work() throws Exception {
 		overallExportedLines = 0;
 
-		if (dbVendor == null) {
-			throw new Exception("Unsupported db vendor: null");
-		} else if (dbVendor == DbVendor.Oracle) {
-			dbValueConverter = new OracleDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.SQLite) {
-			dbValueConverter = new SQLiteDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.MySQL) {
-			dbValueConverter = new MySQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.MariaDB) {
-			dbValueConverter = new MariaDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.PostgreSQL) {
-			dbValueConverter = new PostgreSQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.Firebird) {
-			dbValueConverter = new FirebirdDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else if (dbVendor == DbVendor.Cassandra) {
-			dbValueConverter = new CassandraDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
-		} else {
-			dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+		dbDefinition.checkParameters(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE);
+
+		switch (dbDefinition.getDbVendor()) {
+			case Oracle:
+				dbValueConverter = new OracleDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case SQLite:
+				dbValueConverter = new SQLiteDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case MySQL:
+				dbValueConverter = new MySQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case MariaDB:
+				dbValueConverter = new MariaDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case PostgreSQL:
+				dbValueConverter = new PostgreSQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case Firebird:
+				dbValueConverter = new FirebirdDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case Cassandra:
+				dbValueConverter = new CassandraDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case Derby:
+				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case HSQL:
+				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			case MsSQL:
+				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				break;
+			default:
+				throw new Exception("Unsupported db vendor: null");
 		}
 
-		try (Connection connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, true)) {
+		try (Connection connection = DbUtilities.createConnection(dbDefinition, true)) {
 			if (isStatementFile) {
 				if (Utilities.isBlank(sqlStatementOrTablelist)) {
 					throw new DbExportException("Statementfile is missing");
@@ -341,12 +346,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 						final List<String> escapedKeyColumns = new ArrayList<>();
 						for (final String unescapedKeyColumnName : keyColumnNames) {
-							escapedKeyColumns.add(DbUtilities.escapeVendorReservedNames(dbVendor, unescapedKeyColumnName));
+							escapedKeyColumns.add(DbUtilities.escapeVendorReservedNames(dbDefinition.getDbVendor(), unescapedKeyColumnName));
 						}
 
 						final List<String> escapedReadoutColumns = new ArrayList<>();
 						for (final String unescapedColumnName : readoutColumns) {
-							escapedReadoutColumns.add(DbUtilities.escapeVendorReservedNames(dbVendor, unescapedColumnName));
+							escapedReadoutColumns.add(DbUtilities.escapeVendorReservedNames(dbDefinition.getDbVendor(), unescapedColumnName));
 						}
 
 						String orderPart = "";
@@ -372,8 +377,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		} catch (final Exception e) {
 			throw e;
 		} finally {
-			if (dbVendor == DbVendor.Derby) {
-				DbUtilities.shutDownDerbyDb(dbName);
+			if (dbDefinition.getDbVendor() == DbVendor.Derby) {
+				DbUtilities.shutDownDerbyDb(dbDefinition.getDbName());
 			}
 		}
 	}
@@ -697,7 +702,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 			try (Statement statement = DbUtilities.getStatementForLargeQuery(connection)) {
 				String countSqlStatementString = "SELECT COUNT(*) FROM (" + sqlStatement + ") data";
-				if (dbVendor == DbVendor.Cassandra) {
+				if (dbDefinition.getDbVendor() == DbVendor.Cassandra) {
 					if (sqlStatement.toLowerCase().contains(" order by ")) {
 						countSqlStatementString = "SELECT COUNT(*)" + sqlStatement.substring(sqlStatement.toLowerCase().indexOf(" from "), sqlStatement.toLowerCase().indexOf(" order by "));
 					} else {
@@ -796,12 +801,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 							signalItemProgress();
 						}
 					}
-					
+
 					if (cancel) {
 						// Statement must be cancelled, or the "ResultSet.close()" will wait for all remaining data to be read
 						statement.cancel();
 					}
-					
+
 					endOutput();
 				}
 

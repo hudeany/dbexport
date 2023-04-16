@@ -12,6 +12,7 @@ import de.soderer.dbexport.worker.DbCsvExportWorker;
 import de.soderer.dbexport.worker.DbJsonExportWorker;
 import de.soderer.dbexport.worker.DbSqlExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
@@ -546,9 +547,8 @@ public class DbExportDefinition extends DbDefinition {
 	 * @throws Exception
 	 *             the exception
 	 */
-	@Override
-	public void checkParameters() throws DbExportException {
-		super.checkParameters();
+	public void checkParameters() throws Exception {
+		super.checkParameters(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE);
 
 		if (outputpath == null) {
 			throw new DbExportException("Outputpath is missing");
@@ -701,14 +701,7 @@ public class DbExportDefinition extends DbDefinition {
 		AbstractDbExportWorker worker;
 		if (getDataType() == DataType.JSON) {
 			worker = new DbJsonExportWorker(parent,
-					getDbVendor(),
-					getHostname(),
-					getDbName(),
-					getUsername(),
-					getPassword(),
-					getSecureConnection(),
-					getTrustStoreFilePath(),
-					getTrustStorePassword(),
+					this,
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
@@ -716,14 +709,7 @@ public class DbExportDefinition extends DbDefinition {
 			((DbJsonExportWorker) worker).setIndentation(getIndentation());
 		} else if (getDataType() == DataType.XML) {
 			worker = new DbXmlExportWorker(parent,
-					getDbVendor(),
-					getHostname(),
-					getDbName(),
-					getUsername(),
-					getPassword(),
-					getSecureConnection(),
-					getTrustStoreFilePath(),
-					getTrustStorePassword(),
+					this,
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
@@ -736,14 +722,7 @@ public class DbExportDefinition extends DbDefinition {
 			((DbXmlExportWorker) worker).setNullValueText(getNullValueString());
 		} else if (getDataType() == DataType.SQL) {
 			worker = new DbSqlExportWorker(parent,
-					getDbVendor(),
-					getHostname(),
-					getDbName(),
-					getUsername(),
-					getPassword(),
-					getSecureConnection(),
-					getTrustStoreFilePath(),
-					getTrustStorePassword(),
+					this,
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
@@ -754,14 +733,7 @@ public class DbExportDefinition extends DbDefinition {
 			((DbSqlExportWorker) worker).setBeautify(isBeautify());
 		} else {
 			worker = new DbCsvExportWorker(parent,
-					getDbVendor(),
-					getHostname(),
-					getDbName(),
-					getUsername(),
-					getPassword(),
-					getSecureConnection(),
-					getTrustStoreFilePath(),
-					getTrustStorePassword(),
+					this,
 					isStatementFile(),
 					getSqlStatementOrTablelist(),
 					getOutputpath());
@@ -795,7 +767,7 @@ public class DbExportDefinition extends DbDefinition {
 		String params = "";
 		params += getDbVendor().name();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.HSQL && getDbVendor() != DbVendor.Derby) {
-			params += " " + getHostname();
+			params += " " + getHostnameAndPort();
 		}
 		params += " " + getDbName();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {

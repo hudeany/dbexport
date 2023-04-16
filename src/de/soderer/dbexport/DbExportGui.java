@@ -42,6 +42,7 @@ import de.soderer.dbexport.DbExportDefinition.DataType;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbDriverSupplier;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.ExceptionUtilities;
@@ -253,7 +254,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		connectionCheckButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
-				try (Connection connection = DbUtilities.createConnection(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()), hostField.getText(), dbNameField.getText(), userField.getText(), passwordField.getPassword(), secureConnectionBox.isSelected(), Utilities.isNotBlank(trustStoreFilePathField.getText()) ? new File(trustStoreFilePathField.getText()) : null, trustStorePasswordField.getPassword(), false)) {
+				try (Connection connection = DbUtilities.createConnection(getConfigurationAsDefinition(), false)) {
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
 				} catch (final Exception e) {
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -810,10 +811,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 		buttonPanel.add(closeButton);
 
 		final JScrollPane mandatoryParameterScrollPane = new JScrollPane(mandatoryParameterPanel);
-		mandatoryParameterScrollPane.setPreferredSize(new Dimension(470, 400));
+		mandatoryParameterScrollPane.setPreferredSize(new Dimension(475, 400));
 		mandatoryParameterScrollPane.getVerticalScrollBar().setUnitIncrement(8);
 		parameterPanel.add(mandatoryParameterScrollPane);
 
+		optionalParametersPanel.setPreferredSize(new Dimension(250, 400));
 		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
 		add(Box.createRigidArea(new Dimension(0, 5)));
@@ -842,7 +844,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		final DbExportDefinition dbExportDefinition = new DbExportDefinition();
 
 		dbExportDefinition.setDbVendor((String) dbTypeCombo.getSelectedItem());
-		dbExportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
+		dbExportDefinition.setHostnameAndPort(hostField.isEnabled() ? hostField.getText() : null);
 		dbExportDefinition.setDbName(dbNameField.getText());
 		dbExportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
 		dbExportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
@@ -911,7 +913,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			}
 		}
 
-		hostField.setText(dbExportDefinition.getHostname());
+		hostField.setText(dbExportDefinition.getHostnameAndPort());
 		dbNameField.setText(dbExportDefinition.getDbName());
 		userField.setText(dbExportDefinition.getUsername());
 		passwordField.setText(dbExportDefinition.getPassword() == null ? "" : new String(dbExportDefinition.getPassword()));
@@ -1125,7 +1127,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 	private void export(final DbExportDefinition dbExportDefinition, final DbExportGui dbExportGui) {
 		try {
 			dbExportDefinition.checkParameters();
-			if (!new DbExportDriverSupplier(this, dbExportDefinition.getDbVendor()).supplyDriver()) {
+			if (!new DbDriverSupplier(this, dbExportDefinition.getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
 				throw new Exception("Cannot aquire db driver for db vendor: " + dbExportDefinition.getDbVendor());
 			}
 
