@@ -1,7 +1,6 @@
 package de.soderer.dbimport;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
@@ -20,6 +19,7 @@ import de.soderer.dbimport.DbImportDefinition.DuplicateMode;
 import de.soderer.dbimport.DbImportDefinition.ImportMode;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.LangResources;
@@ -30,8 +30,8 @@ import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbNoSqlImportWorker extends DbImportWorker {
-	public DbNoSqlImportWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final String tableName) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName, null, null);
+	public DbNoSqlImportWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final String tableName) throws Exception {
+		super(parent, dbDefinition, tableName, null, null);
 
 		commitOnFullSuccessOnly = false;
 	}
@@ -78,7 +78,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 			Connection connection = null;
 			boolean previousAutoCommit = false;
 			try {
-				connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, false);
+				connection = DbUtilities.createConnection(dbDefinition, false);
 
 				previousAutoCommit = connection.getAutoCommit();
 				connection.setAutoCommit(false);
@@ -239,7 +239,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 			}
 		}
 
-		final String statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbColumnsListToInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbColumnsListToInsert.size(), ", ") + ")";
+		final String statementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbColumnsListToInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbColumnsListToInsert.size(), ", ") + ")";
 
 		try (PreparedStatement preparedInsertStatement = connection.prepareStatement(statementString)) {
 
@@ -252,7 +252,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 					int i = 1;
 					for (final String dbColumnToInsert : dbColumnsListToInsert) {
 						final SimpleDataType simpleDataType = dbColumns.get(dbColumnToInsert).getSimpleDataType();
-						final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+						final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumnToInsert);
 						final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 						final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 
@@ -349,7 +349,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 				if (updateValuesSqlPart.length() > 0) {
 					updateValuesSqlPart.append(", ");
 				}
-				updateValuesSqlPart.append(DbUtilities.escapeVendorReservedNames(dbVendor, columnName)).append(" = ?");
+				updateValuesSqlPart.append(DbUtilities.escapeVendorReservedNames(dbDefinition.getDbVendor(), columnName)).append(" = ?");
 			}
 		}
 
@@ -366,7 +366,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 			}
 		}
 
-		final String insertStatementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbColumnsListToUpdateAndInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbColumnsListToUpdateAndInsert.size(), ", ") + ")";
+		final String insertStatementString = "INSERT INTO " + tableName + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbColumnsListToUpdateAndInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbColumnsListToUpdateAndInsert.size(), ", ") + ")";
 
 		try (PreparedStatement preparedDetectStatement = connection.prepareStatement(detectStatementString);
 				PreparedStatement preparedUpdateStatement = connection.prepareStatement(updateStatementString);
@@ -387,7 +387,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 				int keyIndex = 1;
 				for (final String keyColumn : keyColumns) {
 					final SimpleDataType simpleDataType = dbColumns.get(keyColumn).getSimpleDataType();
-					final String unescapedDbKeyColumn = DbUtilities.unescapeVendorReservedNames(dbVendor, keyColumn);
+					final String unescapedDbKeyColumn = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), keyColumn);
 					Object keyDataValue = itemData.get(mappingToUse.get(unescapedDbKeyColumn).getFirst());
 					final String formatInfo = mappingToUse.get(unescapedDbKeyColumn).getSecond();
 					Object insertKeyValue = keyDataValue;
@@ -399,7 +399,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						}
 					}
 					insertKey = insertKey + insertKeyValue + ";";
-					if (dbVendor == DbVendor.Cassandra && simpleDataType == SimpleDataType.String) {
+					if (dbDefinition.getDbVendor() == DbVendor.Cassandra && simpleDataType == SimpleDataType.String) {
 						// Bug mitigation for Cassandra JDBC driver: Driver does not set apostrophes around strings as key column value in prepared statements
 						keyDataValue = "'" + keyDataValue + "'";
 					}
@@ -452,7 +452,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						for (final String dbColumnToUpdate : dbColumnsListToUpdateAndInsert) {
 							if (!keyColumns.contains(dbColumnToUpdate)) {
 								final SimpleDataType simpleDataType = dbColumns.get(dbColumnToUpdate).getSimpleDataType();
-								final String unescapedDbColumnToUpdate = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToUpdate);
+								final String unescapedDbColumnToUpdate = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumnToUpdate);
 								final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToUpdate).getFirst());
 								final String formatInfo = mappingToUse.get(unescapedDbColumnToUpdate).getSecond();
 
@@ -463,7 +463,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 						for (final String keyColumn : keyColumns) {
 							final SimpleDataType simpleDataType = dbColumns.get(keyColumn).getSimpleDataType();
-							final String unescapedDbKeyColumn = DbUtilities.unescapeVendorReservedNames(dbVendor, keyColumn);
+							final String unescapedDbKeyColumn = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), keyColumn);
 							final Object keyDataValue = itemData.get(mappingToUse.get(unescapedDbKeyColumn).getFirst());
 							final String formatInfo = mappingToUse.get(unescapedDbKeyColumn).getSecond();
 
@@ -487,7 +487,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						int i = 1;
 						for (final String dbColumnToInsert : dbColumnsListToUpdateAndInsert) {
 							final SimpleDataType simpleDataType = dbColumns.get(dbColumnToInsert).getSimpleDataType();
-							final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+							final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumnToInsert);
 							final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 							final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 

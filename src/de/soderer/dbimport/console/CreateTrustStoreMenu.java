@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.soderer.dbimport.ConnectionTestDefinition;
-import de.soderer.dbimport.DbDefinition;
 import de.soderer.dbimport.DbImport;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
@@ -47,7 +47,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 			printMessages();
 
 			while (true) {
-				while (Utilities.isBlank(connectionTestDefinition.getHostname())) {
+				while (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) {
 					System.out.println();
 					System.out.println("Please enter db hostname and optional port separated by ':' (Default port is 443, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
@@ -56,11 +56,11 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
 					} else {
-						connectionTestDefinition.setHostname(choice);
+						connectionTestDefinition.setHostnameAndPort(choice);
 					}
 				}
 
-				while (Utilities.isBlank(connectionTestDefinition.getTrustStoreFilePath())) {
+				while (connectionTestDefinition.getTrustStoreFile() == null) {
 					System.out.println();
 					System.out.println("Please enter db TrustStore filepath (Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
@@ -73,7 +73,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					} else if (new File(choice).exists()) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Filepath already exists", TextColor.Light_red));
 					} else {
-						connectionTestDefinition.setTrustStoreFilePath(choice);
+						connectionTestDefinition.setTrustStoreFile(new File(choice));
 					}
 				}
 
@@ -92,8 +92,8 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 				final List<String> autoCompletionStrings = new ArrayList<>();
 				autoCompletionStrings.add("");
 
-				System.out.println("  " + Utilities.rightPad("Hostname (and port):", bulletSize) + " " + connectionTestDefinition.getHostname());
-				System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + connectionTestDefinition.getTrustStoreFilePath());
+				System.out.println("  " + Utilities.rightPad("Hostname (and port):", bulletSize) + " " + connectionTestDefinition.getHostnameAndPort());
+				System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + connectionTestDefinition.getTrustStoreFile().getAbsolutePath());
 				System.out.println("  " + Utilities.rightPad("TrustStore password:", bulletSize) + " " + (connectionTestDefinition.getTrustStorePassword() == null ? "<empty>" : "***"));
 
 				System.out.println();
@@ -118,11 +118,11 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					getParentMenu().getMessages().add("Canceled by user");
 				} else if ("reset".equalsIgnoreCase(choice)) {
 					connectionTestDefinition.setDbVendor((DbVendor) null);
-					connectionTestDefinition.setHostname(null);
+					connectionTestDefinition.setHostnameAndPort(null);
 					connectionTestDefinition.setDbName(null);
 					connectionTestDefinition.setUsername(null);
 					connectionTestDefinition.setPassword(null);
-					connectionTestDefinition.setTrustStoreFilePath(null);
+					connectionTestDefinition.setTrustStoreFile(null);
 					connectionTestDefinition.setTrustStorePassword(null);
 				} else if ("password".equalsIgnoreCase(choice)) {
 					System.out.println();
@@ -131,8 +131,8 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(passwordArray) ? passwordArray : null);
 				} else if ("params".equalsIgnoreCase(choice)) {
 					String params = "createtruststore";
-					params += " " + connectionTestDefinition.getHostname();
-					params += " " + connectionTestDefinition.getTrustStoreFilePath();
+					params += " " + connectionTestDefinition.getHostnameAndPort();
+					params += " " + connectionTestDefinition.getTrustStoreFile().getAbsolutePath();
 					if (connectionTestDefinition.getTrustStorePassword() != null) {
 						params += " \"" + new String(connectionTestDefinition.getTrustStorePassword()) + "\"";
 					}

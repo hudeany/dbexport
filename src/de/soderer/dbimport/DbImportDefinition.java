@@ -16,6 +16,7 @@ import de.soderer.dbimport.dataprovider.JsonDataProvider;
 import de.soderer.dbimport.dataprovider.OdsDataProvider;
 import de.soderer.dbimport.dataprovider.XmlDataProvider;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
@@ -502,9 +503,8 @@ public class DbImportDefinition extends DbDefinition {
 		this.dateTimeFormat = dateTimeFormat;
 	}
 
-	@Override
-	public void checkParameters() throws DbImportException {
-		super.checkParameters();
+	public void checkParameters() throws Exception {
+		super.checkParameters(DbImport.APPLICATION_NAME, DbImport.CONFIGURATION_FILE);
 
 		if (importFilePathOrData == null) {
 			throw new DbImportException("ImportFilePath or data is missing");
@@ -566,14 +566,7 @@ public class DbImportDefinition extends DbDefinition {
 		DbImportWorker worker;
 		if (getDataType() == DataType.SQL) {
 			worker = new DbSqlWorker(parent,
-					getDbVendor(),
-					getHostname(),
-					getDbName(),
-					getUsername(),
-					getPassword(),
-					getSecureConnection(),
-					getTrustStoreFilePath(),
-					getTrustStorePassword(),
+					this,
 					tableNameForImport,
 					isInlineData(),
 					importFileOrData,
@@ -581,25 +574,11 @@ public class DbImportDefinition extends DbDefinition {
 		} else {
 			if (getDbVendor() == DbVendor.Cassandra) {
 				worker = new DbNoSqlImportWorker(parent,
-						getDbVendor(),
-						getHostname(),
-						getDbName(),
-						getUsername(),
-						getPassword(),
-						getSecureConnection(),
-						getTrustStoreFilePath(),
-						getTrustStorePassword(),
+						this,
 						tableNameForImport);
 			} else {
 				worker = new DbImportWorker(parent,
-						getDbVendor(),
-						getHostname(),
-						getDbName(),
-						getUsername(),
-						getPassword(),
-						getSecureConnection(),
-						getTrustStoreFilePath(),
-						getTrustStorePassword(),
+						this,
 						tableNameForImport,
 						getDateFormat(),
 						getDateTimeFormat());
@@ -686,7 +665,7 @@ public class DbImportDefinition extends DbDefinition {
 		String params = "";
 		params += getDbVendor().name();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.HSQL && getDbVendor() != DbVendor.Derby) {
-			params += " " + getHostname();
+			params += " " + getHostnameAndPort();
 		}
 		params += " " + getDbName();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {

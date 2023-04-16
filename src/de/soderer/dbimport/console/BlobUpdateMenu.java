@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import de.soderer.dbimport.BlobImportDefinition;
-import de.soderer.dbimport.DbDefinition;
 import de.soderer.dbimport.DbImport;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
@@ -63,7 +63,7 @@ public class BlobUpdateMenu extends ConsoleMenu {
 					}
 				}
 
-				if (Utilities.isBlank(blobImportDefinition.getHostname()) && blobImportDefinition.getDbVendor() != DbVendor.SQLite && blobImportDefinition.getDbVendor() != DbVendor.HSQL && blobImportDefinition.getDbVendor() != DbVendor.Derby) {
+				if (Utilities.isBlank(blobImportDefinition.getHostnameAndPort()) && blobImportDefinition.getDbVendor() != DbVendor.SQLite && blobImportDefinition.getDbVendor() != DbVendor.HSQL && blobImportDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter db hostname and optional port separated by ':' (No port uses db vendors default port, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
@@ -72,7 +72,7 @@ public class BlobUpdateMenu extends ConsoleMenu {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
 					} else {
-						blobImportDefinition.setHostname(choice);
+						blobImportDefinition.setHostnameAndPort(choice);
 					}
 				}
 
@@ -180,7 +180,7 @@ public class BlobUpdateMenu extends ConsoleMenu {
 
 				System.out.println("  " + Utilities.rightPad("DbVendor:", bulletSize) + " " + blobImportDefinition.getDbVendor().name());
 				if (blobImportDefinition.getDbVendor() != DbVendor.SQLite && blobImportDefinition.getDbVendor() != DbVendor.HSQL && blobImportDefinition.getDbVendor() != DbVendor.Derby) {
-					System.out.println("  " + Utilities.rightPad("Hostname:", bulletSize) + " " + blobImportDefinition.getHostname());
+					System.out.println("  " + Utilities.rightPad("Hostname:", bulletSize) + " " + blobImportDefinition.getHostnameAndPort());
 				}
 				if (blobImportDefinition.getDbVendor() == DbVendor.SQLite || blobImportDefinition.getDbVendor() == DbVendor.Derby) {
 					System.out.println("  " + Utilities.rightPad("Db filepath:", bulletSize) + " " + blobImportDefinition.getDbName());
@@ -193,8 +193,8 @@ public class BlobUpdateMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("Db password:", bulletSize) + " " + (blobImportDefinition.getPassword() == null ? "<empty>" : "***"));
 
 				if (blobImportDefinition.getDbVendor() == DbVendor.Oracle || blobImportDefinition.getDbVendor() == DbVendor.MySQL || blobImportDefinition.getDbVendor() == DbVendor.MariaDB) {
-					System.out.println("  " + Utilities.rightPad("Secure connection:", bulletSize) + " " + (blobImportDefinition.getSecureConnection() ? "yes" : "no"));
-					System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + (Utilities.isBlank(blobImportDefinition.getTrustStoreFilePath()) ? "<none>" : blobImportDefinition.getTrustStoreFilePath()));
+					System.out.println("  " + Utilities.rightPad("Secure connection:", bulletSize) + " " + (blobImportDefinition.isSecureConnection() ? "yes" : "no"));
+					System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + (blobImportDefinition.getTrustStoreFile() == null ? "<none>" : blobImportDefinition.getTrustStoreFile().getAbsolutePath()));
 					System.out.println("  " + Utilities.rightPad("TrustStore password:", bulletSize) + " " + (blobImportDefinition.getTrustStorePassword() == null ? "<empty>" : "***"));
 				}
 
@@ -239,30 +239,30 @@ public class BlobUpdateMenu extends ConsoleMenu {
 					return 0;
 				} else if ("reset".equalsIgnoreCase(choice)) {
 					blobImportDefinition.setDbVendor((DbVendor) null);
-					blobImportDefinition.setHostname(null);
+					blobImportDefinition.setHostnameAndPort(null);
 					blobImportDefinition.setUsername(null);
 					blobImportDefinition.setDbName(null);
 					blobImportDefinition.setDbName(null);
 					blobImportDefinition.setBlobImportStatement(null);
 					blobImportDefinition.setPassword(null);
 					blobImportDefinition.setSecureConnection(false);
-					blobImportDefinition.setTrustStoreFilePath(null);
+					blobImportDefinition.setTrustStoreFile(null);
 					blobImportDefinition.setTrustStorePassword(null);
 				} else if ("secure".equalsIgnoreCase(choice)) {
-					blobImportDefinition.setSecureConnection(blobImportDefinition.getSecureConnection());
+					blobImportDefinition.setSecureConnection(blobImportDefinition.isSecureConnection());
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter db TrustStore filepath (Blank => None)");
 					String choiceTruststore = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choiceTruststore = choiceTruststore == null ? "" : choiceTruststore.trim();
 					if (Utilities.isBlank(choiceTruststore)) {
-						blobImportDefinition.setTrustStoreFilePath(null);
+						blobImportDefinition.setTrustStoreFile(null);
 					} else if (!FileUtilities.isValidFilePath(choiceTruststore)) {
 						getErrors().add("Not a valid filepath");
 					} else if (!new File(choiceTruststore).exists()) {
 						getErrors().add("Filepath does not exist");
 					} else {
-						blobImportDefinition.setTrustStoreFilePath(choiceTruststore);
+						blobImportDefinition.setTrustStoreFile(new File(choiceTruststore));
 					}
 				} else if ("truststorepassword".equalsIgnoreCase(choice)) {
 					System.out.println();

@@ -467,16 +467,17 @@ public class DbUtilities {
 		}
 	}
 
-	public static Connection createConnection(final DbVendor dbVendor, final String hostnameAndPort, final String dbName, final String userName, final char[] password) throws Exception {
-		return createConnection(dbVendor, hostnameAndPort, dbName, userName, password, false, null, null, false);
-	}
-
-	public static Connection createConnection(final DbVendor dbVendor, final String hostnameAndPort, final String dbName, final String userName, final char[] password, final boolean retryOnError) throws Exception {
-		return createConnection(dbVendor, hostnameAndPort, dbName, userName, password, false, null, null, retryOnError);
-	}
-
 	@SuppressWarnings("resource")
-	public static Connection createConnection(final DbVendor dbVendor, final String hostnameAndPort, String dbName, final String userName, final char[] password, final boolean secureConnection, File trustStoreFile, final char[] trustStorePassword, final boolean retryOnError) throws Exception {
+	public static Connection createConnection(final DbDefinition dbDefinition, final boolean retryOnError) throws Exception {
+		final DbVendor dbVendor = dbDefinition.getDbVendor();
+		final String hostnameAndPort = dbDefinition.getHostnameAndPort();
+		String dbName = dbDefinition.getDbName();
+		final String userName = dbDefinition.getUsername();
+		final char[] password = dbDefinition.getPassword();
+		final boolean secureConnection = dbDefinition.isSecureConnection();
+		File trustStoreFile = dbDefinition.getTrustStoreFile();
+		final char[] trustStorePassword = dbDefinition.getTrustStorePassword();
+
 		if (dbVendor == null) {
 			throw new Exception("Unknown db vendor");
 		} else if (Utilities.isEmpty(hostnameAndPort) && dbVendor != DbVendor.HSQL && dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby){
@@ -3168,8 +3169,8 @@ public class DbUtilities {
 		return pattern.matcher(alias).matches();
 	}
 
-	public static void updateBlob(final DbVendor dbVendor, final String hostname, final String dbName, final String userName, final char[] password, final boolean secureConnection, final File trustStoreFile, final char[] trustStorePassword, final String sqlUpdateStatementWithPlaceholder, final String filePath) throws Exception {
-		try (Connection connection = createConnection(dbVendor, hostname, dbName, userName, password, secureConnection, trustStoreFile, trustStorePassword, false)) {
+	public static void updateBlob(final DbDefinition dbDefinition, final String sqlUpdateStatementWithPlaceholder, final String filePath) throws Exception {
+		try (Connection connection = createConnection(dbDefinition, false)) {
 			try (FileInputStream inputStream = new FileInputStream(new File(filePath))) {
 				try (PreparedStatement preparedStatement = connection.prepareStatement(sqlUpdateStatementWithPlaceholder)) {
 					preparedStatement.setBinaryStream(1, inputStream);

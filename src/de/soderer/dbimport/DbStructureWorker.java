@@ -1,6 +1,5 @@
 package de.soderer.dbimport;
 
-import java.io.File;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -9,6 +8,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbNotExistsException;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -25,31 +25,17 @@ import de.soderer.utilities.worker.WorkerSimple;
 
 public class DbStructureWorker extends WorkerSimple<Boolean> {
 	// Mandatory parameters
-	protected DbUtilities.DbVendor dbVendor = null;
-	protected String hostname;
-	protected String dbName;
-	protected String username;
-	protected char[] password;
-	protected boolean secureConnection;
-	protected String trustStoreFilePath;
-	protected char[] trustStorePassword;
+	protected DbDefinition dbDefinition = null;
 
 	protected long createdTables = 0;
 	protected long createdColumns = 0;
 
 	protected InputStream jsonStructureDataInputStream;
 
-	public DbStructureWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final InputStream jsonStructureDataInputStream) throws Exception {
+	public DbStructureWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final InputStream jsonStructureDataInputStream) throws Exception {
 		super(parent);
 
-		this.dbVendor = dbVendor;
-		this.hostname = hostname;
-		this.dbName = dbName;
-		this.username = username;
-		this.password = password;
-		this.secureConnection = secureConnection;
-		this.trustStoreFilePath = trustStoreFilePath;
-		this.trustStorePassword = trustStorePassword;
+		this.dbDefinition = dbDefinition;
 		this.jsonStructureDataInputStream = jsonStructureDataInputStream;
 	}
 
@@ -60,14 +46,14 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 		Connection connection = null;
 		boolean previousAutoCommit = false;
 		try (JsonReader jsonReader = new JsonReader(jsonStructureDataInputStream)) {
-			if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
+			if (dbDefinition.getDbVendor() == DbVendor.Derby || (dbDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbDefinition.getHostnameAndPort())) || dbDefinition.getDbVendor() == DbVendor.SQLite) {
 				try {
-					connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), false, null, null, true);
+					connection = DbUtilities.createConnection(dbDefinition, true);
 				} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
-					connection = DbUtilities.createNewDatabase(dbVendor, dbName);
+					connection = DbUtilities.createNewDatabase(dbDefinition.getDbVendor(), dbDefinition.getDbName());
 				}
 			} else {
-				connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, false);
+				connection = DbUtilities.createConnection(dbDefinition, false);
 			}
 
 			previousAutoCommit = connection.getAutoCommit();
@@ -121,8 +107,8 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 				connection.setAutoCommit(previousAutoCommit);
 				connection.close();
 				connection = null;
-				if (dbVendor == DbVendor.Derby) {
-					DbUtilities.shutDownDerbyDb(dbName);
+				if (dbDefinition.getDbVendor() == DbVendor.Derby) {
+					DbUtilities.shutDownDerbyDb(dbDefinition.getDbName());
 				}
 			}
 		}
@@ -156,10 +142,10 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 
 			String primaryKeyPart = "";
 			if (Utilities.isNotEmpty(keyColumns)) {
-				primaryKeyPart = ", PRIMARY KEY (" + DbUtilities.joinColumnVendorEscaped(dbVendor, keyColumns) + ")";
+				primaryKeyPart = ", PRIMARY KEY (" + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), keyColumns) + ")";
 			}
 			statement.execute("CREATE TABLE " + tableName + " (" + columnsPart + primaryKeyPart + ")");
-			if (dbVendor == DbVendor.Derby) {
+			if (dbDefinition.getDbVendor() == DbVendor.Derby) {
 				connection.commit();
 			}
 		}
@@ -174,14 +160,14 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 			final String columnsPart = getColumnNameAndType(columnJsonObject);
 
 			statement.execute("ALTER TABLE " + tableName + " ADD " + columnsPart);
-			if (dbVendor == DbVendor.Derby) {
+			if (dbDefinition.getDbVendor() == DbVendor.Derby) {
 				connection.commit();
 			}
 		}
 	}
 
 	private String getColumnNameAndType(final JsonObject columnJsonObject) throws Exception {
-		final String name = DbUtilities.escapeVendorReservedNames(dbVendor, (String) columnJsonObject.get("name"));
+		final String name = DbUtilities.escapeVendorReservedNames(dbDefinition.getDbVendor(), (String) columnJsonObject.get("name"));
 		final SimpleDataType simpleDataType = SimpleDataType.getSimpleDataTypeByName((String) columnJsonObject.get("datatype"));
 		int characterByteSize = -1;
 		if (columnJsonObject.containsPropertyKey("datasize")) {
@@ -208,7 +194,7 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 
 		// "databasevendorspecific_datatype"
 
-		return name + " " + DbUtilities.getDataType(dbVendor, simpleDataType) + (characterByteSize > -1 ? "(" + characterByteSize + ")" : "") + defaultvaluePart;
+		return name + " " + DbUtilities.getDataType(dbDefinition.getDbVendor(), simpleDataType) + (characterByteSize > -1 ? "(" + characterByteSize + ")" : "") + defaultvaluePart;
 	}
 
 	public long getCreatedTables() {

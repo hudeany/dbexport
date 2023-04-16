@@ -37,6 +37,7 @@ import de.soderer.dbimport.DbImportDefinition.ImportMode;
 import de.soderer.dbimport.dataprovider.DataProvider;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbNotExistsException;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
@@ -57,18 +58,11 @@ import de.soderer.utilities.worker.WorkerSimple;
 
 public class DbImportWorker extends WorkerSimple<Boolean> {
 	// Mandatory parameters
-	protected DbUtilities.DbVendor dbVendor = null;
+	protected DbDefinition dbDefinition = null;
 	protected ImportMode importMode = ImportMode.INSERT;
 	protected DuplicateMode duplicateMode = DuplicateMode.UPDATE_ALL_JOIN;
 	protected List<String> keyColumns = null;
 	protected List<String> keyColumnsWithFunctions = null;
-	protected String hostname;
-	protected String dbName;
-	protected String username;
-	protected char[] password;
-	protected boolean secureConnection;
-	protected String trustStoreFilePath;
-	protected char[] trustStorePassword;
 	protected String tableName;
 	protected boolean createTableIfNotExists = false;
 	protected String structureFilePath;
@@ -115,17 +109,10 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 	protected DataProvider dataProvider = null;
 
-	public DbImportWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final String tableName, final String dateFormatPattern, final String dateTimeFormatPattern) throws Exception {
+	public DbImportWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final String tableName, final String dateFormatPattern, final String dateTimeFormatPattern) throws Exception {
 		super(parent);
 
-		this.dbVendor = dbVendor;
-		this.hostname = hostname;
-		this.dbName = dbName;
-		this.username = username;
-		this.password = password;
-		this.secureConnection = secureConnection;
-		this.trustStoreFilePath = trustStoreFilePath;
-		this.trustStorePassword = trustStorePassword;
+		this.dbDefinition = dbDefinition;
 		this.tableName = tableName;
 		this.dateFormatPattern = dateFormatPattern;
 		this.dateTimeFormatPattern = dateTimeFormatPattern;
@@ -160,7 +147,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			mapping = DbImportMappingDialog.parseMappingString(mappingString);
 			dbTableColumnsListToInsert = new ArrayList<>();
 			for (final String dbColumn : mapping.keySet()) {
-				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumn));
+				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumn));
 			}
 		} else {
 			mapping = null;
@@ -175,7 +162,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			}
 			dbTableColumnsListToInsert = new ArrayList<>();
 			for (final String dbColumn : mapping.keySet()) {
-				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumn));
+				dbTableColumnsListToInsert.add(DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumn));
 			}
 		}
 		return mapping;
@@ -185,7 +172,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 		final List<String> dataPropertyNames = dataProvider.getAvailableDataPropertyNames();
 		if (mapping != null) {
 			for (String dbColumnToInsert : dbTableColumnsListToInsert) {
-				dbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+				dbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumnToInsert);
 				if (!dbColumns.containsKey(dbColumnToInsert)) {
 					throw new DbImportException("DB table does not contain mapped column: " + dbColumnToInsert);
 				}
@@ -218,7 +205,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			for (final String keyColumn : keyColumns) {
 				boolean isIncluded = false;
 				for (final Entry<String, Tuple<String, String>> entry : mapping.entrySet()) {
-					if (DbUtilities.unescapeVendorReservedNames(dbVendor, keyColumn).equals(DbUtilities.unescapeVendorReservedNames(dbVendor, entry.getKey()))) {
+					if (DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), keyColumn).equals(DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), entry.getKey()))) {
 						isIncluded = true;
 						break;
 					}
@@ -323,14 +310,14 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			String tempTableName = null;
 			boolean constraintWereDeactivated = false;
 			try {
-				if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
+				if (dbDefinition.getDbVendor() == DbVendor.Derby || (dbDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbDefinition.getHostnameAndPort())) || dbDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
-						connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), false, null, null, true);
+						connection = DbUtilities.createConnection(dbDefinition, true);
 					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
-						connection = DbUtilities.createNewDatabase(dbVendor, dbName);
+						connection = DbUtilities.createNewDatabase(dbDefinition.getDbVendor(), dbDefinition.getDbName());
 					}
 				} else {
-					connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, false);
+					connection = DbUtilities.createConnection(dbDefinition, false);
 				}
 
 				previousAutoCommit = connection.getAutoCommit();
@@ -349,7 +336,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 				if (deactivateForeignKeyConstraints) {
 					constraintWereDeactivated = true;
-					DbUtilities.setForeignKeyConstraintStatus(dbVendor, connection, false);
+					DbUtilities.setForeignKeyConstraintStatus(dbDefinition.getDbVendor(), connection, false);
 					connection.commit();
 				}
 
@@ -601,7 +588,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				throw e;
 			} finally {
 				if (deactivateForeignKeyConstraints && constraintWereDeactivated && connection != null) {
-					DbUtilities.setForeignKeyConstraintStatus(dbVendor, connection, true);
+					DbUtilities.setForeignKeyConstraintStatus(dbDefinition.getDbVendor(), connection, true);
 					connection.commit();
 				}
 
@@ -617,8 +604,8 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 					connection.setAutoCommit(previousAutoCommit);
 					connection.close();
 					connection = null;
-					if (dbVendor == DbVendor.Derby) {
-						DbUtilities.shutDownDerbyDb(dbName);
+					if (dbDefinition.getDbVendor() == DbVendor.Derby) {
+						DbUtilities.shutDownDerbyDb(dbDefinition.getDbName());
 					}
 				}
 
@@ -694,7 +681,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 							dbDataTypes.put(importDataType.getKey(), importDataTypes.get(importDataType.getKey()));
 						}
 					}
-					if (dbVendor == DbVendor.PostgreSQL) {
+					if (dbDefinition.getDbVendor() == DbVendor.PostgreSQL) {
 						// Close a maybe open transaction to allow DDL-statement
 						connection.rollback();
 					}
@@ -704,7 +691,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 					} catch (final Exception e) {
 						throw new DbImportException("Cannot create new table '" + tableNameToUse + "': " + e.getMessage(), e);
 					}
-					if (dbVendor == DbVendor.PostgreSQL) {
+					if (dbDefinition.getDbVendor() == DbVendor.PostgreSQL) {
 						// Commit DDL-statement
 						connection.commit();
 					}
@@ -777,17 +764,17 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 			String primaryKeyPart = "";
 			if (Utilities.isNotEmpty(keyColumnsToSet)) {
-				primaryKeyPart = ", PRIMARY KEY (" + DbUtilities.joinColumnVendorEscaped(dbVendor, keyColumnsToSet) + ")";
+				primaryKeyPart = ", PRIMARY KEY (" + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), keyColumnsToSet) + ")";
 			}
 			statement.execute("CREATE TABLE " + tableNameToCreate + " (" + columnsPart + primaryKeyPart + ")");
-			if (dbVendor == DbVendor.Derby) {
+			if (dbDefinition.getDbVendor() == DbVendor.Derby) {
 				connection.commit();
 			}
 		}
 	}
 
 	private String getColumnNameAndType(final JsonObject columnJsonObject) throws Exception {
-		final String name = DbUtilities.escapeVendorReservedNames(dbVendor, (String) columnJsonObject.get("name"));
+		final String name = DbUtilities.escapeVendorReservedNames(dbDefinition.getDbVendor(), (String) columnJsonObject.get("name"));
 		final SimpleDataType simpleDataType = SimpleDataType.getSimpleDataTypeByName((String) columnJsonObject.get("datatype"));
 		int characterByteSize = -1;
 		if (columnJsonObject.containsPropertyKey("datasize")) {
@@ -814,7 +801,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 		// "databasevendorspecific_datatype"
 
-		return name + " " + DbUtilities.getDataType(dbVendor, simpleDataType) + (characterByteSize > -1 ? "(" + characterByteSize + ")" : "") + defaultvaluePart;
+		return name + " " + DbUtilities.getDataType(dbDefinition.getDbVendor(), simpleDataType) + (characterByteSize > -1 ? "(" + characterByteSize + ")" : "") + defaultvaluePart;
 	}
 
 	public String getResultStatistics() {
@@ -887,9 +874,9 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 		String statementString;
 		if (Utilities.isBlank(itemIndexColumn)) {
-			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbTableColumnsListToInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
+			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbTableColumnsListToInsert) + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ")";
 		} else {
-			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbVendor, dbTableColumnsListToInsert) + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
+			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbTableColumnsListToInsert) + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
 		}
 
 		@SuppressWarnings("resource")
@@ -910,7 +897,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 					int i = 1;
 					for (final String dbColumnToInsert : dbTableColumnsListToInsert) {
 						final SimpleDataType simpleDataType = dbColumns.get(dbColumnToInsert).getSimpleDataType();
-						final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbVendor, dbColumnToInsert);
+						final String unescapedDbColumnToInsert = DbUtilities.unescapeVendorReservedNames(dbDefinition.getDbVendor(), dbColumnToInsert);
 						final Object dataValue = itemData.get(mappingToUse.get(unescapedDbColumnToInsert).getFirst());
 						final String formatInfo = mappingToUse.get(unescapedDbColumnToInsert).getSecond();
 
@@ -934,7 +921,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						connection.rollback();
 						throw new DbImportException(e.getClass().getSimpleName() + " error in item index " + (itemsDone + 1) + ": " + e.getMessage(), e);
 					} else {
-						if (dbVendor == DbVendor.SQLite) {
+						if (dbDefinition.getDbVendor() == DbVendor.SQLite) {
 							// SQLite seems to not react on preparedStatement.clearParameters() calls
 							for (int i = 1; i <= dbTableColumnsListToInsert.size(); i++) {
 								preparedStatement.setObject(i, null);
@@ -961,7 +948,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						}
 						if (!commitOnFullSuccessOnly) {
 							connection.commit();
-							if (dbVendor == DbVendor.Firebird) {
+							if (dbDefinition.getDbVendor() == DbVendor.Firebird) {
 								preparedStatement.close();
 								preparedStatement = connection.prepareStatement(statementString);
 							}
@@ -1043,7 +1030,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				if (!new File(valueString).exists()) {
 					throw new Exception("File does not exist: " + valueString);
 				} else if (simpleDataType == SimpleDataType.Blob) {
-					if (dbVendor == DbVendor.SQLite) {
+					if (dbDefinition.getDbVendor() == DbVendor.SQLite) {
 						// SQLite ignores "setBinaryStream"
 						final byte[] data = Utilities.readFileToByteArray(new File(valueString));
 						preparedStatement.setBytes(columnIndex, data);
@@ -1053,7 +1040,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 					}
 					importedDataAmount += new File(valueString).length();
 				} else {
-					if (dbVendor == DbVendor.SQLite || dbVendor == DbVendor.PostgreSQL) {
+					if (dbDefinition.getDbVendor() == DbVendor.SQLite || dbDefinition.getDbVendor() == DbVendor.PostgreSQL) {
 						// PostgreSQL and SQLite do not read the stream
 						final byte[] data = Utilities.readFileToByteArray(new File(valueString));
 						preparedStatement.setString(columnIndex, new String(data, textFileEncoding));

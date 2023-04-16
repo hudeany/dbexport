@@ -1,5 +1,6 @@
 package de.soderer.dbimport;
 
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 
@@ -34,9 +35,8 @@ public class ConnectionTestDefinition extends DbDefinition {
 		this.sleepTime = sleepTime;
 	}
 
-	@Override
-	public void checkParameters() throws DbImportException {
-		super.checkParameters();
+	public void checkParameters() throws Exception {
+		super.checkParameters(DbImport.APPLICATION_NAME, DbImport.CONFIGURATION_FILE);
 
 		if (iterations < 0) {
 			throw new DbImportException("Invalid connectiontest iterations");
@@ -51,7 +51,7 @@ public class ConnectionTestDefinition extends DbDefinition {
 		String params = "connectiontest";
 		params += " " + getDbVendor().name();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.HSQL && getDbVendor() != DbVendor.Derby) {
-			params += " " + getHostname();
+			params += " " + getHostnameAndPort();
 		}
 		params += " " + getDbName();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {

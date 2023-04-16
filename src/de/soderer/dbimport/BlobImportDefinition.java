@@ -2,6 +2,7 @@ package de.soderer.dbimport;
 
 import java.io.File;
 
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.Utilities;
 
@@ -32,9 +33,8 @@ public class BlobImportDefinition extends DbDefinition {
 		this.importFilePath = Utilities.replaceUsersHome(importFilePath);
 	}
 
-	@Override
-	public void checkParameters() throws DbImportException {
-		super.checkParameters();
+	public void checkParameters() throws Exception {
+		super.checkParameters(DbImport.APPLICATION_NAME, DbImport.CONFIGURATION_FILE);
 
 		if (Utilities.isBlank(blobImportStatement)) {
 			throw new DbImportException("BlobImportStatement is missing");
@@ -55,7 +55,7 @@ public class BlobImportDefinition extends DbDefinition {
 		String params = "importblob";
 		params += " " + getDbVendor().name();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.HSQL && getDbVendor() != DbVendor.Derby) {
-			params += " " + getHostname();
+			params += " " + getHostnameAndPort();
 		}
 		params += " " + getDbName();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {

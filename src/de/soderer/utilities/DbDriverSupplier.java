@@ -1,4 +1,4 @@
-package de.soderer.dbimport;
+package de.soderer.utilities;
 
 import java.awt.Window;
 import java.io.File;
@@ -9,20 +9,16 @@ import java.io.OutputStream;
 
 import javax.swing.JFileChooser;
 
-import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
-import de.soderer.utilities.LangResources;
-import de.soderer.utilities.SectionedProperties;
-import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.SimpleConsoleInput;
 import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SwingColor;
 
-public class DbImportDriverSupplier {
+public class DbDriverSupplier {
 	private final Window parent;
 	private final DbVendor dbVendor;
 
-	public DbImportDriverSupplier(final Window parent, final DbVendor dbVendor) throws Exception {
+	public DbDriverSupplier(final Window parent, final DbVendor dbVendor) throws Exception {
 		if (dbVendor == null) {
 			throw new Exception("Invalid empty db vendor");
 		}
@@ -31,40 +27,40 @@ public class DbImportDriverSupplier {
 		this.dbVendor = dbVendor;
 	}
 
-	public boolean supplyDriver() throws Exception {
+	public boolean supplyDriver(final String applicationName, final File configurationFile) throws Exception {
 		if (checkDriverIsAvailable()) {
 			return true;
 		} else {
-			String driverFile = getDriverFilePathFromConfigFile();
+			String driverFile = getDriverFilePathFromConfigFile(configurationFile);
 			if (driverFile != null) {
 				if (checkDriverFile(driverFile)) {
 					return true;
 				} else {
-					driverFile = aquireDriverFileFromUser();
+					driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
 				}
 			} else {
-				driverFile = aquireDriverFileFromUser();
+				driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
 			}
 			while (Utilities.isNotBlank(driverFile)) {
 				if (checkDriverFile(driverFile)) {
-					writeDriverFilePathToConfigFile(driverFile);
+					writeDriverFilePathToConfigFile(configurationFile, driverFile);
 					return true;
 				}
-				driverFile = aquireDriverFileFromUser();
+				driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
 			}
 			return false;
 		}
 	}
 
-	private String aquireDriverFileFromUser() throws Exception {
+	private String aquireDriverFileFromUser(final String applicationName, final File configurationFile) throws Exception {
 		if (parent == null) {
-			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), DbImport.CONFIGURATION_FILE));
+			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile));
 			System.out.println(LangResources.get("emptyForCancel"));
 			return new SimpleConsoleInput().setPrompt(LangResources.get("enterDriverFile") + ": ").readInput();
 		} else {
-			new QuestionDialog(parent, DbImport.APPLICATION_NAME + " DB driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), DbImport.CONFIGURATION_FILE), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
+			new QuestionDialog(parent, applicationName + " DB driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 			final JFileChooser fileChooser = new JFileChooser();
-			fileChooser.setDialogTitle(DbImport.APPLICATION_NAME + " " + LangResources.get("driverFileSelectTitle", dbVendor.toString()));
+			fileChooser.setDialogTitle(applicationName + " " + LangResources.get("driverFileSelectTitle", dbVendor.toString()));
 			if (JFileChooser.APPROVE_OPTION == fileChooser.showOpenDialog(parent)) {
 				return fileChooser.getSelectedFile().toString();
 			} else {
@@ -79,7 +75,7 @@ public class DbImportDriverSupplier {
 	 * @param dbVendor
 	 * @return
 	 */
-	public boolean checkDriverIsAvailable() {
+	private boolean checkDriverIsAvailable() {
 		try {
 			if (dbVendor == DbVendor.Derby) {
 				// Prevent creation of file "derby.log"
@@ -120,27 +116,27 @@ public class DbImportDriverSupplier {
 	 * @return
 	 * @throws Exception
 	 */
-	private String getDriverFilePathFromConfigFile() throws Exception {
+	private String getDriverFilePathFromConfigFile(final File configurationFile) throws Exception {
 		final SectionedProperties configuration = new SectionedProperties(true);
-		if (!DbImport.CONFIGURATION_FILE.exists()) {
+		if (!configurationFile.exists()) {
 			// Create prefilled configuration file
 			for (final DbVendor vendorToCreate : DbVendor.values()) {
-				configuration.setValue(vendorToCreate.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
+				configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
 			}
-			try (OutputStream outputStream = new FileOutputStream(DbImport.CONFIGURATION_FILE)) {
+			try (OutputStream outputStream = new FileOutputStream(configurationFile)) {
 				configuration.save(outputStream);
 			}
 			return null;
 		} else {
 			// Load and fill existing configuration file
-			try (InputStream inputStream = new FileInputStream(DbImport.CONFIGURATION_FILE)) {
+			try (InputStream inputStream = new FileInputStream(configurationFile)) {
 				configuration.load(inputStream);
 			}
-			final String driverFile = configuration.getValue(dbVendor.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME);
+			final String driverFile = configuration.getValue(dbVendor.toString().toLowerCase(), "driver_location");
 			if (driverFile == null) {
 				// Create the missing entry with an empty value
-				configuration.setValue(dbVendor.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
-				try (OutputStream outputStream = new FileOutputStream(DbImport.CONFIGURATION_FILE)) {
+				configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", "");
+				try (OutputStream outputStream = new FileOutputStream(configurationFile)) {
 					configuration.save(outputStream);
 				}
 				return null;
@@ -159,27 +155,27 @@ public class DbImportDriverSupplier {
 	 * @param driverFilePath
 	 * @throws Exception
 	 */
-	private void writeDriverFilePathToConfigFile(final String driverFilePath) throws Exception {
+	private void writeDriverFilePathToConfigFile(final File configurationFile, final String driverFilePath) throws Exception {
 		final SectionedProperties configuration = new SectionedProperties(true);
-		if (!DbImport.CONFIGURATION_FILE.exists()) {
+		if (!configurationFile.exists()) {
 			// Create prefilled configuration file
 			for (final DbVendor vendorToCreate : DbVendor.values()) {
 				if (vendorToCreate == dbVendor) {
-					configuration.setValue(vendorToCreate.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, driverFilePath);
+					configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", driverFilePath);
 				} else {
-					configuration.setValue(vendorToCreate.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, "");
+					configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
 				}
 			}
-			try (OutputStream outputStream = new FileOutputStream(DbImport.CONFIGURATION_FILE)) {
+			try (OutputStream outputStream = new FileOutputStream(configurationFile)) {
 				configuration.save(outputStream);
 			}
 		} else {
 			// Load and fill existing configuration file
-			try (InputStream inputStream = new FileInputStream(DbImport.CONFIGURATION_FILE)) {
+			try (InputStream inputStream = new FileInputStream(configurationFile)) {
 				configuration.load(inputStream);
 			}
-			configuration.setValue(dbVendor.toString().toLowerCase(), DbImport.CONFIGURATION_DRIVERLOCATIONPROPERTYNAME, driverFilePath);
-			try (OutputStream outputStream = new FileOutputStream(DbImport.CONFIGURATION_FILE)) {
+			configuration.setValue(dbVendor.toString().toLowerCase(), "driver_location", driverFilePath);
+			try (OutputStream outputStream = new FileOutputStream(configurationFile)) {
 				configuration.save(outputStream);
 			}
 		}

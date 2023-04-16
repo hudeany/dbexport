@@ -170,22 +170,14 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 	}
 
 	private static Connection getDatabaseConnection(final DbImportDefinition dbImportDefinitionParam) throws Exception {
-		final DbVendor dbVendor = dbImportDefinitionParam.getDbVendor();
-		final String hostname = dbImportDefinitionParam.getHostname();
-		final String dbName = dbImportDefinitionParam.getDbName();
-		final String username = dbImportDefinitionParam.getUsername();
-		final char[] password = dbImportDefinitionParam.getPassword();
-		final boolean secureConnection = dbImportDefinitionParam.getSecureConnection();
-		final String trustStoreFilePath = dbImportDefinitionParam.getTrustStoreFilePath();
-		final char[] trustStorePassword = dbImportDefinitionParam.getTrustStorePassword();
-		if (dbVendor == DbVendor.Derby || (dbVendor == DbVendor.HSQL && Utilities.isBlank(hostname)) || dbVendor == DbVendor.SQLite) {
+		if (dbImportDefinitionParam.getDbVendor() == DbVendor.Derby || (dbImportDefinitionParam.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbImportDefinitionParam.getHostnameAndPort())) || dbImportDefinitionParam.getDbVendor() == DbVendor.SQLite) {
 			try {
-				return DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), false, null, null, true);
+				return DbUtilities.createConnection(dbImportDefinitionParam, true);
 			} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
-				return DbUtilities.createNewDatabase(dbVendor, dbName);
+				return DbUtilities.createNewDatabase(dbImportDefinitionParam.getDbVendor(), dbImportDefinitionParam.getDbName());
 			}
 		} else {
-			return DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, false);
+			return DbUtilities.createConnection(dbImportDefinitionParam, false);
 		}
 	}
 

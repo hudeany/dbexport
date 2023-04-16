@@ -22,8 +22,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities;
-import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.SqlScriptReader;
 import de.soderer.utilities.Tuple;
@@ -42,8 +42,8 @@ public class DbSqlWorker extends DbImportWorker {
 
 	private final Charset encoding = StandardCharsets.UTF_8;
 
-	public DbSqlWorker(final WorkerParentSimple parent, final DbVendor dbVendor, final String hostname, final String dbName, final String username, final char[] password, final boolean secureConnection, final String trustStoreFilePath, final char[] trustStorePassword, final String tableName, final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword) throws Exception {
-		super(parent, dbVendor, hostname, dbName, username, password, secureConnection, trustStoreFilePath, trustStorePassword, tableName, null, null);
+	public DbSqlWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final String tableName, final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword) throws Exception {
+		super(parent, dbDefinition, tableName, null, null);
 
 		this.isInlineData = isInlineData;
 		this.importFilePathOrData = importFilePathOrData;
@@ -103,7 +103,7 @@ public class DbSqlWorker extends DbImportWorker {
 		Connection connection = null;
 		boolean previousAutoCommit = false;
 		try {
-			connection = DbUtilities.createConnection(dbVendor, hostname, dbName, username, (password == null ? null : password), secureConnection, Utilities.isNotBlank(trustStoreFilePath) ? new File(trustStoreFilePath) : null, trustStorePassword, true);
+			connection = DbUtilities.createConnection(dbDefinition, true);
 			previousAutoCommit = connection.getAutoCommit();
 			connection.setAutoCommit(false);
 

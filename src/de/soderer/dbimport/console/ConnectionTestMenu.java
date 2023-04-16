@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import de.soderer.dbimport.ConnectionTestDefinition;
-import de.soderer.dbimport.DbDefinition;
 import de.soderer.dbimport.DbImport;
+import de.soderer.utilities.DbDefinition;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.NumberUtilities;
@@ -64,7 +64,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					}
 				}
 
-				if (Utilities.isBlank(connectionTestDefinition.getHostname()) && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.HSQL && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
+				if (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort()) && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.HSQL && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter db hostname and optional port separated by ':' (No port uses db vendors default port, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
@@ -73,7 +73,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
 					} else {
-						connectionTestDefinition.setHostname(choice);
+						connectionTestDefinition.setHostnameAndPort(choice);
 					}
 				}
 
@@ -155,7 +155,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 
 				System.out.println("  " + Utilities.rightPad("DbVendor:", bulletSize) + " " + connectionTestDefinition.getDbVendor().name());
 				if (connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.HSQL && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
-					System.out.println("  " + Utilities.rightPad("Hostname:", bulletSize) + " " + connectionTestDefinition.getHostname());
+					System.out.println("  " + Utilities.rightPad("Hostname:", bulletSize) + " " + connectionTestDefinition.getHostnameAndPort());
 				}
 				if (connectionTestDefinition.getDbVendor() == DbVendor.SQLite || connectionTestDefinition.getDbVendor() == DbVendor.Derby) {
 					System.out.println("  " + Utilities.rightPad("Db filepath:", bulletSize) + " " + connectionTestDefinition.getDbName());
@@ -168,8 +168,8 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("Db password:", bulletSize) + " " + (connectionTestDefinition.getPassword() == null ? "<empty>" : "***"));
 
 				if (connectionTestDefinition.getDbVendor() == DbVendor.Oracle || connectionTestDefinition.getDbVendor() == DbVendor.MySQL || connectionTestDefinition.getDbVendor() == DbVendor.MariaDB) {
-					System.out.println("  " + Utilities.rightPad("Secure connection:", bulletSize) + " " + (connectionTestDefinition.getSecureConnection() ? "yes" : "no"));
-					System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + (Utilities.isBlank(connectionTestDefinition.getTrustStoreFilePath()) ? "<none>" : connectionTestDefinition.getTrustStoreFilePath()));
+					System.out.println("  " + Utilities.rightPad("Secure connection:", bulletSize) + " " + (connectionTestDefinition.isSecureConnection() ? "yes" : "no"));
+					System.out.println("  " + Utilities.rightPad("TrustStore filepath:", bulletSize) + " " + (connectionTestDefinition.getTrustStoreFile() == null ? "<none>" : connectionTestDefinition.getTrustStoreFile().getAbsolutePath()));
 					System.out.println("  " + Utilities.rightPad("TrustStore password:", bulletSize) + " " + (connectionTestDefinition.getTrustStorePassword() == null ? "<empty>" : "***"));
 				}
 
@@ -214,28 +214,28 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					return 0;
 				} else if ("reset".equalsIgnoreCase(choice)) {
 					connectionTestDefinition.setDbVendor((DbVendor) null);
-					connectionTestDefinition.setHostname(null);
+					connectionTestDefinition.setHostnameAndPort(null);
 					connectionTestDefinition.setDbName(null);
 					connectionTestDefinition.setUsername(null);
 					connectionTestDefinition.setPassword(null);
 					connectionTestDefinition.setSecureConnection(false);
-					connectionTestDefinition.setTrustStoreFilePath(null);
+					connectionTestDefinition.setTrustStoreFile(null);
 					connectionTestDefinition.setTrustStorePassword(null);
 				} else if ("secure".equalsIgnoreCase(choice)) {
-					connectionTestDefinition.setSecureConnection(connectionTestDefinition.getSecureConnection());
+					connectionTestDefinition.setSecureConnection(connectionTestDefinition.isSecureConnection());
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter db TrustStore filepath (Blank => None)");
 					String choiceTruststore = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choiceTruststore = choiceTruststore == null ? "" : choiceTruststore.trim();
 					if (Utilities.isBlank(choiceTruststore)) {
-						connectionTestDefinition.setTrustStoreFilePath(null);
+						connectionTestDefinition.setTrustStoreFile(null);
 					} else if (!FileUtilities.isValidFilePath(choiceTruststore)) {
 						getErrors().add("Not a valid filepath");
 					} else if (!new File(choiceTruststore).exists()) {
 						getErrors().add("Filepath does not exist");
 					} else {
-						connectionTestDefinition.setTrustStoreFilePath(choiceTruststore);
+						connectionTestDefinition.setTrustStoreFile(new File(choiceTruststore));
 					}
 				} else if ("truststorepassword".equalsIgnoreCase(choice)) {
 					System.out.println();

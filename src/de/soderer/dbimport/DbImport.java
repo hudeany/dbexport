@@ -541,7 +541,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
 						} else {
-							dbImportDefinition.setTrustStoreFilePath(arguments[i]);
+							dbImportDefinition.setTrustStoreFile(new File(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
@@ -556,8 +556,8 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (dbImportDefinition.getDbVendor() == null) {
 							dbImportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (dbImportDefinition.getHostname() == null && dbImportDefinition.getDbVendor() != DbVendor.SQLite && dbImportDefinition.getDbVendor() != DbVendor.Derby) {
-							dbImportDefinition.setHostname(arguments[i]);
+						} else if (dbImportDefinition.getHostnameAndPort() == null && dbImportDefinition.getDbVendor() != DbVendor.SQLite && dbImportDefinition.getDbVendor() != DbVendor.Derby) {
+							dbImportDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (dbImportDefinition.getDbName() == null) {
 							dbImportDefinition.setDbName(arguments[i]);
@@ -601,7 +601,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
 						} else {
-							blobImportDefinition.setTrustStoreFilePath(arguments[i]);
+							blobImportDefinition.setTrustStoreFile(new File(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
@@ -616,8 +616,8 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (blobImportDefinition.getDbVendor() == null) {
 							blobImportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (blobImportDefinition.getHostname() == null && blobImportDefinition.getDbVendor() != DbVendor.SQLite && blobImportDefinition.getDbVendor() != DbVendor.Derby) {
-							blobImportDefinition.setHostname(arguments[i]);
+						} else if (blobImportDefinition.getHostnameAndPort() == null && blobImportDefinition.getDbVendor() != DbVendor.SQLite && blobImportDefinition.getDbVendor() != DbVendor.Derby) {
+							blobImportDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (blobImportDefinition.getDbName() == null) {
 							blobImportDefinition.setDbName(arguments[i]);
@@ -669,7 +669,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststore");
 						} else {
-							connectionTestDefinition.setTrustStoreFilePath(arguments[i]);
+							connectionTestDefinition.setTrustStoreFile(new File(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-truststorepassword".equalsIgnoreCase(arguments[i])) {
@@ -684,8 +684,8 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 						if (connectionTestDefinition.getDbVendor() == null) {
 							connectionTestDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (connectionTestDefinition.getHostname() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
-							connectionTestDefinition.setHostname(arguments[i]);
+						} else if (connectionTestDefinition.getHostnameAndPort() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
+							connectionTestDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (connectionTestDefinition.getDbName() == null) {
 							connectionTestDefinition.setDbName(arguments[i]);
@@ -736,7 +736,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 					// Validate all given parameters
 					blobImportDefinition.checkParameters();
 
-					DbUtilities.updateBlob(blobImportDefinition.getDbVendor(), blobImportDefinition.getHostname(), blobImportDefinition.getDbName(), blobImportDefinition.getUsername(), blobImportDefinition.getPassword(), blobImportDefinition.getSecureConnection(), Utilities.isBlank(blobImportDefinition.getTrustStoreFilePath()) ? null : new File(blobImportDefinition.getTrustStoreFilePath()), blobImportDefinition.getTrustStorePassword(), blobImportDefinition.getBlobImportStatement(), blobImportDefinition.getImportFilePath());
+					DbUtilities.updateBlob(blobImportDefinition, blobImportDefinition.getBlobImportStatement(), blobImportDefinition.getImportFilePath());
 					return 0;
 				} else if (consoleMenuExecutionCode == -3) {
 					// Validate all given parameters
@@ -750,9 +750,9 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 					return 0;
 				} else if (consoleMenuExecutionCode == -5) {
 					// Create TrustStore
-					HttpUtilities.createTrustStoreFile(connectionTestDefinition.getHostname(), 443, new File(connectionTestDefinition.getTrustStoreFilePath()), connectionTestDefinition.getTrustStorePassword());
+					HttpUtilities.createTrustStoreFile(connectionTestDefinition.getHostnameAndPort(), 443, connectionTestDefinition.getTrustStoreFile(), connectionTestDefinition.getTrustStorePassword());
 					System.out.println();
-					System.out.println("Created TrustStore in file '" + connectionTestDefinition.getTrustStoreFilePath() + "'");
+					System.out.println("Created TrustStore in file '" + connectionTestDefinition.getTrustStoreFile().getAbsolutePath() + "'");
 					return 0;
 				} else {
 					System.out.println();
@@ -787,7 +787,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 					blobImportDefinition.setPassword(passwordArray);
 				}
 
-				DbUtilities.updateBlob(blobImportDefinition.getDbVendor(), blobImportDefinition.getHostname(), blobImportDefinition.getDbName(), blobImportDefinition.getUsername(), blobImportDefinition.getPassword(), blobImportDefinition.getSecureConnection(), Utilities.isBlank(blobImportDefinition.getTrustStoreFilePath()) ? null : new File(blobImportDefinition.getTrustStoreFilePath()), blobImportDefinition.getTrustStorePassword(), blobImportDefinition.getBlobImportStatement(), blobImportDefinition.getImportFilePath());
+				DbUtilities.updateBlob(blobImportDefinition, blobImportDefinition.getBlobImportStatement(), blobImportDefinition.getImportFilePath());
 				return 0;
 			} else if (connectionTest) {
 				// If started without GUI we may enter the missing password via the terminal
@@ -1004,14 +1004,14 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			Connection testConnection = null;
 			try {
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating db connection");
-				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostname())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
+				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
-						testConnection = DbUtilities.createConnection(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getHostname(), connectionTestDefinition.getDbName(), connectionTestDefinition.getUsername(), connectionTestDefinition.getPassword(), false, null, null, false);
+						testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
 						testConnection = DbUtilities.createNewDatabase(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getDbName());
 					}
 				} else {
-					testConnection = DbUtilities.createConnection(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getHostname(), connectionTestDefinition.getDbName(), connectionTestDefinition.getUsername(), connectionTestDefinition.getPassword(), connectionTestDefinition.getSecureConnection(), Utilities.isBlank(connectionTestDefinition.getTrustStoreFilePath()) ? null : new File(connectionTestDefinition.getTrustStoreFilePath()), connectionTestDefinition.getTrustStorePassword(), false);
+					testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 				}
 
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Successfully created db connection");

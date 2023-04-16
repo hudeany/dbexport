@@ -47,6 +47,7 @@ import de.soderer.dbimport.DbImportDefinition.ImportMode;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.DbColumnType;
+import de.soderer.utilities.DbDriverSupplier;
 import de.soderer.utilities.DbUtilities;
 import de.soderer.utilities.DbUtilities.DbVendor;
 import de.soderer.utilities.ExceptionUtilities;
@@ -283,7 +284,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		connectionCheckButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
-				try (Connection connection = DbUtilities.createConnection(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()), hostField.getText(), dbNameField.getText(), userField.getText(), passwordField.getPassword(), secureConnectionBox.isSelected(), Utilities.isNotBlank(trustStoreFilePathField.getText()) ? new File(trustStoreFilePathField.getText()) : null, trustStorePasswordField.getPassword(), false)) {
+				try (Connection connection = DbUtilities.createConnection(dbImportDefinition, false)) {
 					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
 				} catch (final Exception e) {
 					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -601,19 +602,11 @@ public class DbImportGui extends UpdateableGuiApplication {
 						if (!new File(structureFilePathField.getText()).exists()) {
 							new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File does not exist: '" + structureFilePathField.getText() + "'").setBackgroundColor(SwingColor.LightRed).open();
 						} else {
-							final DbImportDefinition configurationAsDefinition = getConfigurationAsDefinition();
 							try (FileInputStream jsonStructureDataInputStream = new FileInputStream(structureFilePathField.getText());
-									Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword(), configurationAsDefinition.getSecureConnection(), Utilities.isBlank(configurationAsDefinition.getTrustStoreFilePath()) ? null : new File(configurationAsDefinition.getTrustStoreFilePath()), configurationAsDefinition.getTrustStorePassword(), true)) {
+									Connection connection = DbUtilities.createConnection(dbImportDefinition, true)) {
 								final DbStructureWorker worker = new DbStructureWorker(
 										null,
-										configurationAsDefinition.getDbVendor(),
-										configurationAsDefinition.getHostname(),
-										configurationAsDefinition.getDbName(),
-										configurationAsDefinition.getUsername(),
-										configurationAsDefinition.getPassword(),
-										configurationAsDefinition.getSecureConnection(),
-										configurationAsDefinition.getTrustStoreFilePath(),
-										configurationAsDefinition.getTrustStorePassword(),
+										getConfigurationAsDefinition(),
 										jsonStructureDataInputStream);
 								final ProgressDialog<DbStructureWorker> progressDialog = new ProgressDialog<>(dbImportGui, DbImport.APPLICATION_NAME, null, worker);
 								worker.setParent(progressDialog);
@@ -1059,10 +1052,11 @@ public class DbImportGui extends UpdateableGuiApplication {
 		buttonPanel.add(closeButton);
 
 		final JScrollPane mandatoryParameterScrollPane = new JScrollPane(mandatoryParameterPanel);
-		mandatoryParameterScrollPane.setPreferredSize(new Dimension(440, 400));
+		mandatoryParameterScrollPane.setPreferredSize(new Dimension(475, 400));
 		mandatoryParameterScrollPane.getVerticalScrollBar().setUnitIncrement(8);
 		parameterPanel.add(mandatoryParameterScrollPane);
 
+		optionalParametersPanel.setPreferredSize(new Dimension(250, 400));
 		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
 		add(Box.createRigidArea(new Dimension(0, 5)));
@@ -1087,7 +1081,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 			throw new Exception("TableName is needed for mapping");
 		}
 
-		try (Connection connection = DbUtilities.createConnection(configurationAsDefinition.getDbVendor(), configurationAsDefinition.getHostname(), configurationAsDefinition.getDbName(), configurationAsDefinition.getUsername(), configurationAsDefinition.getPassword(), configurationAsDefinition.getSecureConnection(), Utilities.isBlank(configurationAsDefinition.getTrustStoreFilePath()) ? null : new File(configurationAsDefinition.getTrustStoreFilePath()), configurationAsDefinition.getTrustStorePassword(), true)) {
+		try (Connection connection = DbUtilities.createConnection(configurationAsDefinition, true)) {
 			CaseInsensitiveMap<DbColumnType> columnTypes = null;
 			if (DbUtilities.checkTableExist(connection, configurationAsDefinition.getTableName())) {
 				columnTypes = DbUtilities.getColumnDataTypes(connection, configurationAsDefinition.getTableName());
@@ -1152,12 +1146,12 @@ public class DbImportGui extends UpdateableGuiApplication {
 		final DbImportDefinition dbImportDefinition = new DbImportDefinition();
 
 		dbImportDefinition.setDbVendor(DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()));
-		dbImportDefinition.setHostname(hostField.isEnabled() ? hostField.getText() : null);
+		dbImportDefinition.setHostnameAndPort(hostField.isEnabled() ? hostField.getText() : null);
 		dbImportDefinition.setDbName(dbNameField.getText());
 		dbImportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
 		dbImportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
 		dbImportDefinition.setSecureConnection(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected());
-		dbImportDefinition.setTrustStoreFilePath(trustStoreFilePathField.isEnabled() ? trustStoreFilePathField.getText() : null);
+		dbImportDefinition.setTrustStoreFile(trustStoreFilePathField.isEnabled() ? new File(trustStoreFilePathField.getText()) : null);
 		dbImportDefinition.setTableName(tableNameField.getText());
 		dbImportDefinition.setImportFilePathOrData(importFilePathOrDataField.getText(), false);
 		dbImportDefinition.setDataType(DataType.getFromString((String) dataTypeCombo.getSelectedItem()));
@@ -1219,12 +1213,12 @@ public class DbImportGui extends UpdateableGuiApplication {
 			}
 		}
 
-		hostField.setText(dbImportDefinition.getHostname());
+		hostField.setText(dbImportDefinition.getHostnameAndPort());
 		dbNameField.setText(dbImportDefinition.getDbName());
 		userField.setText(dbImportDefinition.getUsername());
 		passwordField.setText(dbImportDefinition.getPassword() == null ? "" : new String(dbImportDefinition.getPassword()));
-		secureConnectionBox.setSelected(dbImportDefinition.getSecureConnection());
-		trustStoreFilePathField.setText(Utilities.isBlank(dbImportDefinition.getTrustStoreFilePath()) ? "" : dbImportDefinition.getTrustStoreFilePath());
+		secureConnectionBox.setSelected(dbImportDefinition.isSecureConnection());
+		trustStoreFilePathField.setText(dbImportDefinition.getTrustStoreFile() == null ? "" : dbImportDefinition.getTrustStoreFile().getAbsolutePath());
 		zipPasswordField.setText(dbImportDefinition.getZipPassword() == null ? "" : new String(dbImportDefinition.getZipPassword()));
 
 		tableNameField.setText(dbImportDefinition.getTableName());
@@ -1566,7 +1560,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 	private void importData(final DbImportDefinition dbImportDefinition, final DbImportGui dbImportGui) throws Exception {
 		try {
 			dbImportDefinition.checkParameters();
-			if (!new DbImportDriverSupplier(this, dbImportDefinition.getDbVendor()).supplyDriver()) {
+			if (!new DbDriverSupplier(this, dbImportDefinition.getDbVendor()).supplyDriver(DbImport.APPLICATION_NAME, DbImport.CONFIGURATION_FILE)) {
 				throw new Exception("Cannot aquire db driver for db vendor: " + dbImportDefinition.getDbVendor());
 			}
 		} catch (final Exception e) {
