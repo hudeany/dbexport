@@ -37,7 +37,8 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 	@Override
 	public Boolean work() throws Exception {
-		boolean constraintWereDeactivated = false;
+		boolean constraintsWereDeactivated = false;
+		boolean triggersWereDeactivated = false;
 
 		try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
 			signalUnlimitedProgress();
@@ -74,9 +75,22 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 			}
 
 			if (dbImportDefinition.isDeactivateForeignKeyConstraints()) {
-				signalItemStart("Deactivating foreign key constraints", null);
-				constraintWereDeactivated = true;
+				if (dbImportDefinition.isVerbose()) {
+					parent.changeTitle(LangResources.get("deactivateForeignKeyConstraints"));
+				}
+				constraintsWereDeactivated = true;
 				DbUtilities.setForeignKeyConstraintStatus(dbImportDefinition.getDbVendor(), connection, false);
+				if (!connection.getAutoCommit()) {
+					connection.commit();
+				}
+			}
+
+			if (dbImportDefinition.isDeactivateTriggers()) {
+				if (dbImportDefinition.isVerbose()) {
+					parent.changeTitle(LangResources.get("deactivateTriggers"));
+				}
+				triggersWereDeactivated = true;
+				DbUtilities.setTriggerStatus(dbImportDefinition.getDbVendor(), connection, false);
 				if (!connection.getAutoCommit()) {
 					connection.commit();
 				}
@@ -116,6 +130,7 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 				// prevent multiple constraint deactivation
 				subWorker.setDeactivateForeignKeyConstraints(false);
+				subWorker.setDeactivateTriggers(false);
 
 				signalItemStart(tableToImport + " (" + fileToImport.getName() + ") " + (itemsDone + 1) + "/" + itemsToDo, subWorker.getConfigurationLogString());
 
@@ -123,10 +138,10 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 				importedDataSize += subWorker.getImportedDataAmount();
 
-				final String tableImportShortResult = tableToImport + " (" + fileToImport.getName() + ", " +  Utilities.getHumanReadableNumber(subWorker.getImportedDataAmount(), "Byte", false, 5, false, Locale.getDefault()) + ")";
+				final String tableImportShortResult = tableToImport + " (" + fileToImport.getName() + ", " + Utilities.getHumanReadableNumber(subWorker.getImportedDataAmount(), "Byte", false, 5, false, Locale.getDefault()) + ")";
 				if (subWorker.getError() != null) {
 					multiImportHadError = true;
-					multiImportResult.append(tableImportShortResult + ": ERROR (" + subWorker.getError().getMessage() + ")\n");
+					multiImportResult.append(tableImportShortResult + ": ERROR (" + subWorker.getError().getMessage().replace("\n", "") + ")\n");
 				} else {
 					multiImportResult.append(tableImportShortResult + ": OK\n");
 				}
@@ -157,13 +172,28 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 			e.printStackTrace();
 			return false;
 		} finally {
-			if (dbImportDefinition.isDeactivateForeignKeyConstraints() && constraintWereDeactivated) {
-				signalItemStart("Reactivating foreign key constraints", null);
+			if (dbImportDefinition.isDeactivateForeignKeyConstraints() && constraintsWereDeactivated) {
+				parent.changeTitle(LangResources.get("reactivateForeignKeyConstraints"));
 				try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
 					DbUtilities.setForeignKeyConstraintStatus(dbImportDefinition.getDbVendor(), connection, true);
 					if (!connection.getAutoCommit()) {
 						connection.commit();
 					}
+				} catch (Exception e) {
+					System.err.println("Cannot reactivate foreign key constraints");
+					e.printStackTrace();
+				}
+			}
+			if (dbImportDefinition.isDeactivateTriggers() && triggersWereDeactivated) {
+				parent.changeTitle(LangResources.get("reactivateTriggers"));
+				try (Connection connection = getDatabaseConnection(dbImportDefinition)) {
+					DbUtilities.setTriggerStatus(dbImportDefinition.getDbVendor(), connection, true);
+					if (!connection.getAutoCommit()) {
+						connection.commit();
+					}
+				} catch (Exception e) {
+					System.err.println("Cannot reactivate triggers");
+					e.printStackTrace();
 				}
 			}
 		}
@@ -203,19 +233,20 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 	}
 
 	@Override
-	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDoParameter, final long itemsDoneParameter) {
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDoParameter, final long itemsDoneParameter, final String itemsUnitSignParameter) {
 		// Progress of subWorker must be display of subItem progress
 		subItemsToDo = itemsToDoParameter;
+		subItemsUnitSign = itemsUnitSignParameter;
 		subItemsDone = itemsDoneParameter;
 		signalItemProgress();
 	}
 
 	@Override
-	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDoneParameter) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDoneParameter, final String itemsUnitSignParameter, final String resultText) {
 		// Progress of subWorker must be display of subItem progress
 		subItemsDone = itemsDoneParameter;
 		signalItemProgress();
-		signalItemDone();
+		signalItemDone(resultText);
 	}
 
 	@Override

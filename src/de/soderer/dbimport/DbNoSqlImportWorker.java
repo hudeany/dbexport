@@ -30,7 +30,7 @@ import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbNoSqlImportWorker extends DbImportWorker {
-	public DbNoSqlImportWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final String tableName) throws Exception {
+	public DbNoSqlImportWorker(final WorkerParentSimple parent, final DbDefinition dbDefinition, final String tableName) {
 		super(parent, dbDefinition, tableName, null, null);
 
 		commitOnFullSuccessOnly = false;
@@ -258,7 +258,9 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 						final
 						Closeable itemToClose = setParameter(preparedInsertStatement, i++, simpleDataType, dataValue, formatInfo);
-						itemsToCloseAfterwards.add(itemToClose);
+						if (itemToClose != null) {
+							itemsToCloseAfterwards.add(itemToClose);
+						}
 					}
 
 					preparedInsertStatement.addBatch();
@@ -457,7 +459,9 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 								final String formatInfo = mappingToUse.get(unescapedDbColumnToUpdate).getSecond();
 
 								final Closeable itemToClose = setParameter(preparedUpdateStatement, i++, simpleDataType, dataValue, formatInfo);
-								updateItemsToCloseAfterwards.add(itemToClose);
+								if (itemToClose != null) {
+									updateItemsToCloseAfterwards.add(itemToClose);
+								}
 							}
 						}
 

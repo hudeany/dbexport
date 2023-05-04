@@ -9,13 +9,13 @@ import de.soderer.utilities.worker.WorkerSimple;
 public interface ApplicationUpdateParent extends CredentialsParent {
 	void showUpdateError(String errorText);
 
-	void showUpdateProgress(LocalDateTime start, long itemsToDo, long itemsDone);
+	void showUpdateProgress(LocalDateTime start, long itemsToDo, long itemsDone, String itemsUnitSign);
 
-	void showUpdateDone(LocalDateTime startTime, LocalDateTime endTime, long itemsDone);
+	void showUpdateDone(LocalDateTime startTime, LocalDateTime endTime, long itemsDone, String itemsUnitSign);
 
 	boolean askForUpdate(Version availableNewVersion) throws Exception;
 
 	void showUpdateDownloadStart(WorkerSimple<Boolean> worker);
 
-	void showUpdateDownloadEnd(LocalDateTime startTime, LocalDateTime endTime, long itemsDone);
+	void showUpdateDownloadEnd(LocalDateTime startTime, LocalDateTime endTime, long itemsDone, String itemsUnitSign);
 }

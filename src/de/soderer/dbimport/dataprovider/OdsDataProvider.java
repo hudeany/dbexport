@@ -223,7 +223,7 @@ public class OdsDataProvider extends DataProvider {
 	}
 
 	@Override
-	public int getItemsAmountToImport() throws Exception {
+	public long getItemsAmountToImport() throws Exception {
 		if (itemsAmount == null) {
 			if (xmlReader == null) {
 				openReader();
@@ -386,5 +386,11 @@ public class OdsDataProvider extends DataProvider {
 	@Override
 	public long getImportDataAmount() {
 		return new File(importFilePath).length();
+	}
+
+	@Override
+	public long getReadDataSize() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

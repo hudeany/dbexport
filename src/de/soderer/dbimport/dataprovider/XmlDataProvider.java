@@ -154,7 +154,7 @@ public class XmlDataProvider extends DataProvider {
 	}
 
 	@Override
-	public int getItemsAmountToImport() throws Exception {
+	public long getItemsAmountToImport() throws Exception {
 		if (itemsAmount == null) {
 			getAvailableDataPropertyNames();
 		}
@@ -296,11 +296,11 @@ public class XmlDataProvider extends DataProvider {
 
 			InputStream datainputstream = null;
 			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
 						datainputstream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
-						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
+						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {
 							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
 						} else if (filepathsFromZipArchiveFile.size() > 1) {
@@ -395,5 +395,11 @@ public class XmlDataProvider extends DataProvider {
 			close();
 			throw e;
 		}
+	}
+
+	@Override
+	public long getReadDataSize() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

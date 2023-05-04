@@ -80,7 +80,7 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 	}
 
 	@Override
-	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemsToDo, final long subItemsDone) {
+	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemsToDo, final long subItemsDone, final String itemsUnitSign) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			updateProgressBar(subItemProgressBar, itemStart, subItemsToDo, subItemsDone);
 			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsToDo)).replace("{2}", Long.toString(subItemsDone * 100 / subItemsToDo));
@@ -89,14 +89,14 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					receiveItemProgressSignal(itemStart, subItemsToDo, subItemsDone);
+					receiveItemProgressSignal(itemStart, subItemsToDo, subItemsDone, itemsUnitSign);
 				}
 			});
 		}
 	}
 
 	@Override
-	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
+	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone, final String itemsUnitSign, final String resultText) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			updateProgressBar(subItemProgressBar, itemStart, subItemsDone, subItemsDone);
 			final String labelText = subCommentStringFormat.replace("{0}", Long.toString(subItemsDone)).replace("{1}", Long.toString(subItemsDone)).replace("{2}", Long.toString(100));
@@ -105,7 +105,7 @@ public class DualProgressDialog<T extends WorkerDual<?>> extends ProgressDialog<
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					receiveItemDoneSignal(itemStart, itemEnd, subItemsDone);
+					receiveItemDoneSignal(itemStart, itemEnd, subItemsDone, itemsUnitSign, resultText);
 				}
 			});
 		}

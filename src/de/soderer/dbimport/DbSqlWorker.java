@@ -31,6 +31,7 @@ import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.worker.WorkerParentSimple;
 import de.soderer.utilities.zip.Zip4jUtilities;
+import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbSqlWorker extends DbImportWorker {
 	private SqlScriptReader sqlScriptReader = null;
@@ -206,11 +207,11 @@ public class DbSqlWorker extends DbImportWorker {
 
 			InputStream inputStream = null;
 			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
 						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
-						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
+						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {
 							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
 						} else if (filepathsFromZipArchiveFile.size() > 1) {

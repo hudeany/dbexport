@@ -17,7 +17,8 @@ import de.soderer.utilities.db.SimpleDataType;
 public abstract class DataProvider implements Closeable {
 	abstract public String getConfigurationLogString();
 	abstract public List<String> getAvailableDataPropertyNames() throws Exception;
-	abstract public int getItemsAmountToImport() throws Exception;
+	abstract public long getItemsAmountToImport() throws Exception;
+	abstract public long getReadDataSize();
 	abstract public Map<String, Object> getNextItemData() throws Exception;
 	abstract public Map<String, DbColumnType> scanDataPropertyTypes(Map<String, Tuple<String, String>> mapping) throws Exception;
 	abstract public File filterDataItems(List<Integer> indexList, String fileSuffix) throws Exception;
@@ -100,5 +101,10 @@ public abstract class DataProvider implements Closeable {
 				dataTypes.put(propertyKey, new DbColumnType("VARCHAR", Math.max(dataTypes.get(propertyKey) == null ? 0 : dataTypes.get(propertyKey).getCharacterByteSize(), currentValue.getBytes(StandardCharsets.UTF_8).length), -1, -1, true, false));
 			}
 		}
+	}
+
+	@SuppressWarnings("static-method")
+	public String getItemsUnitSign() throws Exception {
+		return null;
 	}
 }

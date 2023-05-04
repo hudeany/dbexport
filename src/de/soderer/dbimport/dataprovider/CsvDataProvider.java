@@ -44,7 +44,8 @@ public class CsvDataProvider extends DataProvider {
 	private CsvReader csvReader = null;
 	private List<String> columnNames = null;
 	private Map<String, DbColumnType> dataTypes = null;
-	private Integer itemsAmount = null;
+	private Long itemsAmount = null;
+	private String itemsUnitSign = null;
 
 	private final boolean isInlineData;
 	private final String importFilePathOrData;
@@ -52,7 +53,7 @@ public class CsvDataProvider extends DataProvider {
 
 	private final Charset encoding = StandardCharsets.UTF_8;
 
-	public CsvDataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword, final char separator, final Character stringQuote, final char escapeStringQuote, final boolean allowUnderfilledLines, final boolean removeSurplusEmptyTrailingColumns, final boolean noHeaders, final String nullValueText, final boolean trimData) throws Exception {
+	public CsvDataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword, final char separator, final Character stringQuote, final char escapeStringQuote, final boolean allowUnderfilledLines, final boolean removeSurplusEmptyTrailingColumns, final boolean noHeaders, final String nullValueText, final boolean trimData) {
 		this.isInlineData = isInlineData;
 		this.importFilePathOrData = importFilePathOrData;
 		this.zipPassword = zipPassword;
@@ -170,29 +171,48 @@ public class CsvDataProvider extends DataProvider {
 	}
 
 	@Override
-	public int getItemsAmountToImport() throws Exception {
+	public long getItemsAmountToImport() throws Exception {
 		if (itemsAmount == null) {
-			final CsvFormat csvFormat = new CsvFormat()
-					.setSeparator(separator)
-					.setStringQuote(stringQuote)
-					.setStringQuoteEscapeCharacter(escapeStringQuote)
-					.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines)
-					.setRemoveSurplusEmptyTrailingColumns(removeSurplusEmptyTrailingColumns);
+			final long dataSize;
+			if (isInlineData) {
+				dataSize = importFilePathOrData.length();
+			} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
+				dataSize = ZipUtilities.getDataSizeUncompressed(new File(importFilePathOrData));
+			} else {
+				dataSize = new File(importFilePathOrData).length();
+			}
 
-			try (CsvReader scanCsvReader = new CsvReader(getInputStream(), encoding, csvFormat)) {
-				if (noHeaders) {
-					itemsAmount = scanCsvReader.getCsvLineCount();
-				} else {
-					itemsAmount = scanCsvReader.getCsvLineCount() - 1;
+			if (dataSize < 1024 * 1024 * 1024) {
+				final CsvFormat csvFormat = new CsvFormat()
+						.setSeparator(separator)
+						.setStringQuote(stringQuote)
+						.setStringQuoteEscapeCharacter(escapeStringQuote)
+						.setFillMissingTrailingColumnsWithNull(allowUnderfilledLines)
+						.setRemoveSurplusEmptyTrailingColumns(removeSurplusEmptyTrailingColumns);
+
+				try (CsvReader scanCsvReader = new CsvReader(getInputStream(), encoding, csvFormat)) {
+					if (noHeaders) {
+						itemsAmount = Long.valueOf(scanCsvReader.getCsvLineCount());
+					} else {
+						itemsAmount = Long.valueOf(scanCsvReader.getCsvLineCount() - 1);
+					}
+				} catch (final CsvDataException e) {
+					throw new DbImportException(e.getMessage(), e);
+				} catch (final Exception e) {
+					throw e;
 				}
-			} catch (final CsvDataException e) {
-				throw new DbImportException(e.getMessage(), e);
-			} catch (final Exception e) {
-				throw e;
+			} else {
+				itemsAmount = dataSize;
+				itemsUnitSign = "B";
 			}
 		}
 
 		return itemsAmount;
+	}
+
+	@Override
+	public String getItemsUnitSign() throws Exception {
+		return itemsUnitSign;
 	}
 
 	@Override
@@ -281,7 +301,31 @@ public class CsvDataProvider extends DataProvider {
 
 	@Override
 	public long getImportDataAmount() {
-		return isInlineData ? importFilePathOrData.length() : new File(importFilePathOrData).length();
+		if (!isInlineData) {
+			if (!new File(importFilePathOrData).exists()) {
+				return 0;
+			} else if (new File(importFilePathOrData).isDirectory()) {
+				return 0;
+			} else if (new File(importFilePathOrData).length() == 0) {
+				return 0;
+			}
+
+			try {
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
+					if (zipPassword != null)  {
+						return Zip4jUtilities.getUncompressedSize(new File(importFilePathOrData), zipPassword);
+					} else {
+						return ZipUtilities.getDataSizeUncompressed(new File(importFilePathOrData));
+					}
+				} else {
+					return new File(importFilePathOrData).length();
+				}
+			} catch (@SuppressWarnings("unused") final IOException e) {
+				return 0;
+			}
+		} else {
+			return importFilePathOrData.length();
+		}
 	}
 
 	private InputStream getInputStream() throws Exception {
@@ -296,11 +340,11 @@ public class CsvDataProvider extends DataProvider {
 
 			InputStream inputStream = null;
 			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || Utilities.isZipArchiveFile(new File(importFilePathOrData))) {
+				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
 					if (zipPassword != null)  {
 						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
-						final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
+						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
 						if (filepathsFromZipArchiveFile.size() == 0) {
 							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
 						} else if (filepathsFromZipArchiveFile.size() > 1) {
@@ -357,6 +401,15 @@ public class CsvDataProvider extends DataProvider {
 		} catch (final Exception e) {
 			Utilities.closeQuietly(csvReader);
 			throw e;
+		}
+	}
+
+	@Override
+	public long getReadDataSize() {
+		if (csvReader != null) {
+			return csvReader.getReadDataSize();
+		} else {
+			return 0;
 		}
 	}
 }

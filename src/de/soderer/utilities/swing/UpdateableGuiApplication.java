@@ -65,16 +65,16 @@ public class UpdateableGuiApplication extends SecureDataGuiApplication implement
 	}
 
 	@Override
-	public void showUpdateProgress(final LocalDateTime itemStart, final long itemsToDo, final long itemsDone) {
+	public void showUpdateProgress(final LocalDateTime itemStart, final long itemsToDo, final long itemsDone, final String itemsUnitSign) {
 		if (updateProgressDialog != null) {
-			updateProgressDialog.receiveProgressSignal(itemStart, itemsToDo, itemsDone);
+			updateProgressDialog.receiveProgressSignal(itemStart, itemsToDo, itemsDone, itemsUnitSign);
 		}
 	}
 
 	@Override
-	public void showUpdateDone(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+	public void showUpdateDone(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String itemsUnitSign) {
 		if (updateProgressDialog != null) {
-			updateProgressDialog.receiveDoneSignal(startTime, endTime, itemsDone);
+			updateProgressDialog.receiveDoneSignal(startTime, endTime, itemsDone, itemsUnitSign, null);
 			updateProgressDialog = null;
 		}
 
@@ -111,9 +111,9 @@ public class UpdateableGuiApplication extends SecureDataGuiApplication implement
 	}
 
 	@Override
-	public void showUpdateDownloadEnd(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+	public void showUpdateDownloadEnd(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String itemsUnitSign) {
 		if (updateProgressDialog != null) {
-			updateProgressDialog.receiveDoneSignal(startTime, endTime, itemsDone);
+			updateProgressDialog.receiveDoneSignal(startTime, endTime, itemsDone, itemsUnitSign, null);
 			updateProgressDialog = null;
 		}
 	}

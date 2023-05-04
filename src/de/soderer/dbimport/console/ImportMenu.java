@@ -56,7 +56,7 @@ public class ImportMenu extends ConsoleMenu {
 			while (true) {
 				while (dbImportDefinition.getDbVendor() == null) {
 					try {
-						final String dbVendorString = askForSelection("Please choose DB vendor", Stream.of(DbVendor.values()).map(Enum::name).collect(Collectors.toList()));
+						final String dbVendorString = askForSelection("Please choose DB vendor", Stream.of(DbVendor.values()).map(x -> x.name()).collect(Collectors.toList()));
 						if (dbVendorString == null) {
 							getParentMenu().getMessages().add("Canceled by user");
 							return 0;
@@ -280,6 +280,8 @@ public class ImportMenu extends ConsoleMenu {
 				autoCompletionStrings.add("nonewindex");
 				System.out.println("  " + Utilities.rightPad("deactivatefk)", bulletSize) + " " + Utilities.rightPad("Deactive FKs during import:", nameSize) + dbImportDefinition.isDeactivateForeignKeyConstraints());
 				autoCompletionStrings.add("deactivatefk");
+				System.out.println("  " + Utilities.rightPad("deactivatetriggers)", bulletSize) + " " + Utilities.rightPad("Deactive Triggers during import:", nameSize) + dbImportDefinition.isDeactivateTriggers());
+				autoCompletionStrings.add("deactivatetriggers");
 				if (dbImportDefinition.getDataType() == DataType.CSV) {
 					System.out.println("  " + Utilities.rightPad("a)", bulletSize) + " " + Utilities.rightPad("Allow underfilled lines:", nameSize) + dbImportDefinition.isAllowUnderfilledLines());
 					autoCompletionStrings.add("a");
@@ -478,6 +480,8 @@ public class ImportMenu extends ConsoleMenu {
 					dbImportDefinition.setCreateNewIndexIfNeeded(!dbImportDefinition.isCreateNewIndexIfNeeded());
 				} else if ("deactivatefk".equalsIgnoreCase(choice)) {
 					dbImportDefinition.setDeactivateForeignKeyConstraints(!dbImportDefinition.isDeactivateForeignKeyConstraints());
+				} else if ("deactivatetriggers".equalsIgnoreCase(choice)) {
+					dbImportDefinition.setDeactivateTriggers(!dbImportDefinition.isDeactivateTriggers());
 				} else if ("a".equalsIgnoreCase(choice)) {
 					dbImportDefinition.setAllowUnderfilledLines(!dbImportDefinition.isAllowUnderfilledLines());
 				} else if ("r".equalsIgnoreCase(choice)) {

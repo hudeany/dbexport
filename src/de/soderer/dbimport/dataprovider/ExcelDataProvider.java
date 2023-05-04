@@ -191,7 +191,7 @@ public class ExcelDataProvider extends DataProvider {
 	}
 
 	@Override
-	public int getItemsAmountToImport() throws Exception {
+	public long getItemsAmountToImport() throws Exception {
 		if (itemsAmount == null) {
 			try {
 				openReader();
@@ -423,7 +423,7 @@ public class ExcelDataProvider extends DataProvider {
 								isXslx = false;
 							}
 						} else {
-							final List<String> filepathsFromZipArchiveFile = Utilities.getFilepathsFromZipArchiveFile(new File(importFilePathOrData));
+							final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
 							if (filepathsFromZipArchiveFile.size() == 0) {
 								throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
 							} else if (filepathsFromZipArchiveFile.size() > 1) {
@@ -538,5 +538,11 @@ public class ExcelDataProvider extends DataProvider {
 			close();
 			throw e;
 		}
+	}
+
+	@Override
+	public long getReadDataSize() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

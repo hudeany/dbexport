@@ -166,6 +166,8 @@ public class DbImportDefinition extends DbDefinition {
 	private boolean createNewIndexIfNeeded = true;
 
 	private boolean deactivateForeignKeyConstraints = false;
+	
+	private boolean deactivateTriggers = false;
 
 	private String dataPath = null;
 
@@ -441,6 +443,14 @@ public class DbImportDefinition extends DbDefinition {
 		this.deactivateForeignKeyConstraints = deactivateForeignKeyConstraints;
 	}
 
+	public boolean isDeactivateTriggers() {
+		return deactivateTriggers;
+	}
+
+	public void setDeactivateTriggers(boolean deactivateTriggers) {
+		this.deactivateTriggers = deactivateTriggers;
+	}
+
 	public String getDataPath() {
 		return dataPath;
 	}
@@ -648,6 +658,7 @@ public class DbImportDefinition extends DbDefinition {
 			worker.setCompleteCommit(isCompleteCommit());
 			worker.setCreateNewIndexIfNeeded(isCreateNewIndexIfNeeded());
 			worker.setDeactivateForeignKeyConstraints(isDeactivateForeignKeyConstraints());
+			worker.setDeactivateTriggers(isDeactivateTriggers());
 			worker.setAdditionalInsertValues(getAdditionalInsertValues());
 			worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
 			worker.setUpdateNullData(isUpdateNullData());
@@ -745,8 +756,11 @@ public class DbImportDefinition extends DbDefinition {
 		if (!isCreateNewIndexIfNeeded()) {
 			params += " " + "-nonewindex";
 		}
-		if (!isDeactivateForeignKeyConstraints()) {
+		if (isDeactivateForeignKeyConstraints()) {
 			params += " " + "-deactivatefk";
+		}
+		if (isDeactivateTriggers()) {
+			params += " " + "-deactivatetriggers";
 		}
 		if (getImportMode() != ImportMode.INSERT) {
 			params += " " + "-i " + getImportMode().name();

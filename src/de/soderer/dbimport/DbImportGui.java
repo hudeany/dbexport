@@ -187,6 +187,8 @@ public class DbImportGui extends UpdateableGuiApplication {
 	private final JCheckBox createNewIndexIfNeededBox;
 
 	private final JCheckBox deactivateForeignKeyConstraintsBox;
+	
+	private final JCheckBox deactivateTriggersBox;
 
 	private final JCheckBox updateWithNullDataBox;
 
@@ -284,7 +286,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		connectionCheckButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
-				try (Connection connection = DbUtilities.createConnection(dbImportDefinition, false)) {
+				try (Connection connection = DbUtilities.createConnection(getConfigurationAsDefinition(), false)) {
 					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
 				} catch (final Exception e) {
 					new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -603,7 +605,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 							new QuestionDialog(dbImportGui, DbImport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File does not exist: '" + structureFilePathField.getText() + "'").setBackgroundColor(SwingColor.LightRed).open();
 						} else {
 							try (FileInputStream jsonStructureDataInputStream = new FileInputStream(structureFilePathField.getText());
-									Connection connection = DbUtilities.createConnection(dbImportDefinition, true)) {
+									Connection connection = DbUtilities.createConnection(getConfigurationAsDefinition(), true)) {
 								final DbStructureWorker worker = new DbStructureWorker(
 										null,
 										getConfigurationAsDefinition(),
@@ -935,6 +937,10 @@ public class DbImportGui extends UpdateableGuiApplication {
 		deactivateForeignKeyConstraintsBox.setToolTipText(LangResources.get("deactivateForeignKeyConstraints_help"));
 		optionalParametersPanel.add(deactivateForeignKeyConstraintsBox);
 
+		deactivateTriggersBox = new JCheckBox(LangResources.get("deactivateTriggers"));
+		deactivateTriggersBox.setToolTipText(LangResources.get("deactivateTriggers_help"));
+		optionalParametersPanel.add(deactivateTriggersBox);
+
 		updateWithNullDataBox = new JCheckBox(LangResources.get("updateWithNullData"));
 		updateWithNullDataBox.setToolTipText(LangResources.get("updateWithNullData_help"));
 		optionalParametersPanel.add(updateWithNullDataBox);
@@ -1165,6 +1171,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dbImportDefinition.setCompleteCommit(onlyCommitOnFullSuccessBox.isSelected());
 		dbImportDefinition.setCreateNewIndexIfNeeded(createNewIndexIfNeededBox.isSelected());
 		dbImportDefinition.setDeactivateForeignKeyConstraints(deactivateForeignKeyConstraintsBox.isEnabled() && deactivateForeignKeyConstraintsBox.isSelected());
+		dbImportDefinition.setDeactivateTriggers(deactivateTriggersBox.isEnabled() && deactivateTriggersBox.isSelected());
 		dbImportDefinition.setAllowUnderfilledLines(allowUnderfilledLinesBox.isSelected());
 		dbImportDefinition.setRemoveSurplusEmptyTrailingColumns(removeSurplusEmptyTrailingColumnsBox.isSelected());
 		dbImportDefinition.setImportMode(ImportMode.getFromString(((String) importModeCombo.getSelectedItem())));
@@ -1303,6 +1310,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		onlyCommitOnFullSuccessBox.setSelected(dbImportDefinition.isCompleteCommit());
 		createNewIndexIfNeededBox.setSelected(dbImportDefinition.isCreateNewIndexIfNeeded());
 		deactivateForeignKeyConstraintsBox.setSelected(dbImportDefinition.isDeactivateForeignKeyConstraints());
+		deactivateTriggersBox.setSelected(dbImportDefinition.isDeactivateTriggers());
 		allowUnderfilledLinesBox.setSelected(dbImportDefinition.isAllowUnderfilledLines());
 		removeSurplusEmptyTrailingColumnsBox.setSelected(dbImportDefinition.isRemoveSurplusEmptyTrailingColumns());
 
@@ -1529,6 +1537,12 @@ public class DbImportGui extends UpdateableGuiApplication {
 		} else {
 			deactivateForeignKeyConstraintsBox.setEnabled(false);
 		}
+		
+		if (DbVendor.Oracle.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
+			deactivateTriggersBox.setEnabled(true);
+		} else {
+			deactivateTriggersBox.setEnabled(false);
+		}
 
 		if (additionalInsertValuesField.isEnabled()) {
 			additionalInsertValuesField.setEnabled(
@@ -1604,7 +1618,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		}
 	}
 
-	private void importFileOrData(final DbImportGui dbImportGui, final DbImportDefinition dbImportDefinition, final String tableNameToImport, final String filePathOrImportData) throws Exception {
+	private void importFileOrData(final DbImportGui dbImportGui, final DbImportDefinition dbImportDefinition, final String tableNameToImport, final String filePathOrImportData) {
 		try {
 			final DbImportWorker worker = dbImportDefinition.getConfiguredWorker(null, false, tableNameToImport, filePathOrImportData);
 			final ProgressDialog<DbImportWorker> progressDialog = new ProgressDialog<>(this, DbImport.APPLICATION_NAME, null, worker);
@@ -1641,7 +1655,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		}
 	}
 
-	private void multiImportFiles(final DbImportGui dbImportGui, final DbImportDefinition dbImportDefinition, final List<File> filesToImport, final String tableName) throws Exception {
+	private void multiImportFiles(final DbImportGui dbImportGui, final DbImportDefinition dbImportDefinition, final List<File> filesToImport, final String tableName) {
 		try {
 			final DbImportMultiWorker worker = new DbImportMultiWorker(dbImportDefinition, filesToImport, tableName);
 			final DualProgressDialog<DbImportMultiWorker> progressDialog = new DualProgressDialog<>(this, DbImport.APPLICATION_NAME, "{0} / {1}", worker);
