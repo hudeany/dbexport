@@ -224,7 +224,7 @@ public class ApplicationUpdateUtilities {
 				}
 
 				if (updateParent != null) {
-					updateParent.showUpdateDone(null, null, 0);
+					updateParent.showUpdateDone(null, null, 0, null);
 				}
 
 				final String restartCommand = createUpdateBatchFile(jarFilePath, downloadTempFile, restartAfterUpdate, restartParameter);
@@ -475,16 +475,16 @@ public class ApplicationUpdateUtilities {
 				}
 
 				@Override
-				public void receiveProgressSignal(final LocalDateTime startTime, final long itemsToDo, final long itemsDone) {
+				public void receiveProgressSignal(final LocalDateTime startTime, final long itemsToDo, final long itemsDone, final String itemsUnitSign) {
 					if (updateParent != null) {
-						updateParent.showUpdateProgress(startTime, itemsToDo, itemsDone);
+						updateParent.showUpdateProgress(startTime, itemsToDo, itemsDone, itemsUnitSign);
 					}
 				}
 
 				@Override
-				public void receiveDoneSignal(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+				public void receiveDoneSignal(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String itemsUnitSign, final String resultText) {
 					if (updateParent != null) {
-						updateParent.showUpdateDownloadEnd(startTime, endTime, itemsDone);
+						updateParent.showUpdateDownloadEnd(startTime, endTime, itemsDone, itemsUnitSign);
 					}
 				}
 
@@ -539,7 +539,7 @@ public class ApplicationUpdateUtilities {
 		}
 	}
 
-	public static boolean verifyJarSignature(final File jarFile, final Collection<? extends Certificate> trustedCertificates) throws Exception {
+	public static boolean verifyJarSignature(final File jarFile, final Collection<? extends Certificate> trustedCertificates) {
 		if (trustedCertificates == null || trustedCertificates.size() == 0) {
 			return false;
 		}

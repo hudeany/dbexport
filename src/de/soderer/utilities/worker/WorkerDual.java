@@ -8,6 +8,7 @@ public abstract class WorkerDual<T> extends WorkerSimple<T> {
 	protected LocalDateTime endTimeSub = null;
 	protected String currentItemName = null;
 	protected long subItemsToDo = -1;
+	protected String subItemsUnitSign = null;
 	protected long subItemsDone = -1;
 
 	public WorkerDual(final WorkerParentDual parent) {
@@ -30,7 +31,7 @@ public abstract class WorkerDual<T> extends WorkerSimple<T> {
 		if (parent != null && !cancel) {
 			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > progressDisplayDelayMilliseconds
 					|| overrideRefreshTime) {
-				((WorkerParentDual) parent).receiveItemProgressSignal(startTimeSub, subItemsToDo, subItemsDone);
+				((WorkerParentDual) parent).receiveItemProgressSignal(startTimeSub, subItemsToDo, subItemsDone, subItemsUnitSign);
 				lastProgressShow = LocalDateTime.now();
 			}
 		}
@@ -39,7 +40,15 @@ public abstract class WorkerDual<T> extends WorkerSimple<T> {
 	protected void signalItemDone() {
 		endTimeSub = LocalDateTime.now();
 		if (parent != null) {
-			((WorkerParentDual) parent).receiveItemDoneSignal(startTimeSub, endTimeSub, subItemsDone);
+			((WorkerParentDual) parent).receiveItemDoneSignal(startTimeSub, endTimeSub, subItemsDone, subItemsUnitSign, null);
+			currentItemName = null;
+		}
+	}
+
+	protected void signalItemDone(final String resultText) {
+		endTimeSub = LocalDateTime.now();
+		if (parent != null) {
+			((WorkerParentDual) parent).receiveItemDoneSignal(startTimeSub, endTimeSub, subItemsDone, subItemsUnitSign, resultText);
 			currentItemName = null;
 		}
 	}

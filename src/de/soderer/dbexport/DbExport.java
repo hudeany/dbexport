@@ -818,7 +818,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone, final String itemsUnitSign) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
@@ -841,11 +841,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 
 					ConsoleUtilities.moveCursorToSavedPosition();
 
-					System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, start, itemsToDo, itemsDone));
+					System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, start, itemsToDo, itemsDone, itemsUnitSign));
 
 					ConsoleUtilities.moveCursorToSavedPosition();
 				} else {
-					System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, start, itemsToDo, itemsDone) + "\r");
+					System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, start, itemsToDo, itemsDone, itemsUnitSign) + "\r");
 				}
 			} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
 				System.out.println();
@@ -873,7 +873,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @see de.soderer.utilities.WorkerParentDual#showItemProgress(java.util.Date, long, long)
 	 */
 	@Override
-	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone) {
+	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone, final String itemsUnitSign) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 				int currentTerminalWidth;
@@ -892,19 +892,19 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 
 				ConsoleUtilities.moveCursorToSavedPosition();
 
-				System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, itemStart, subItemToDo, subItemDone));
+				System.out.print(ConsoleUtilities.getConsoleProgressString(currentTerminalWidth - 1, itemStart, subItemToDo, subItemDone, itemsUnitSign));
 
 				ConsoleUtilities.moveCursorToSavedPosition();
 			} else if (ConsoleUtilities.getConsoleType() == ConsoleType.TEST) {
-				System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\n");
+				System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone, itemsUnitSign) + "\n");
 			} else {
-				System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone) + "\r");
+				System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, subItemToDo, subItemDone, itemsUnitSign) + "\r");
 			}
 		}
 	}
 
 	@Override
-	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone) {
+	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone, final String itemsUnitSign, final String resultText) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			int currentTerminalWidth;
 			try {
@@ -918,7 +918,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	}
 
 	@Override
-	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone) {
+	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone, final String itemsUnitSign, final String resultText) {
 		if (dbExportDefinitionToExecute.isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")

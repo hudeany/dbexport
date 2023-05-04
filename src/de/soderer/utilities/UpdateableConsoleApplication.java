@@ -73,22 +73,22 @@ public class UpdateableConsoleApplication implements ApplicationUpdateParent {
 	}
 
 	@Override
-	public void showUpdateProgress(final LocalDateTime itemStart, final long itemsToDo, final long itemsDone) {
+	public void showUpdateProgress(final LocalDateTime itemStart, final long itemsToDo, final long itemsDone, final String itemsUnitSign) {
 		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 			ConsoleUtilities.saveCurrentCursorPosition();
 
-			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone));
+			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone, itemsUnitSign));
 
 			ConsoleUtilities.moveCursorToSavedPosition();
 		} else if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
-			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone) + "\n");
+			System.out.print(ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone, itemsUnitSign) + "\n");
 		} else {
-			System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone) + "\r");
+			System.out.print("\r" + ConsoleUtilities.getConsoleProgressString(80 - 1, itemStart, itemsToDo, itemsDone, itemsUnitSign) + "\r");
 		}
 	}
 
 	@Override
-	public void showUpdateDone(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+	public void showUpdateDone(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String itemsUnitSign) {
 		System.out.println();
 		System.out.println(getI18NString("updateDone"));
 		System.out.println();
@@ -100,7 +100,7 @@ public class UpdateableConsoleApplication implements ApplicationUpdateParent {
 	}
 
 	@Override
-	public void showUpdateDownloadEnd(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone) {
+	public void showUpdateDownloadEnd(final LocalDateTime startTime, final LocalDateTime endTime, final long itemsDone, final String itemsUnitSign) {
 		// Do nothing
 	}
 

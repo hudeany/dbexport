@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.Thread.State;
-import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.LinkedList;
@@ -198,28 +197,30 @@ public class ConsoleUtilities {
 	 * @param itemsDone
 	 * @return
 	 */
-	public static String getConsoleProgressString(final int lineLength, final LocalDateTime start, final long itemsToDo, final long itemsDone) {
+	public static String getConsoleProgressString(final int lineLength, final LocalDateTime start, final long itemsToDo, final long itemsDone, final String itemUnitSign) {
 		final LocalDateTime now = LocalDateTime.now();
 		String itemsToDoString = "??";
 		String percentageString = " 0%";
 		String speedString = "???/s";
 		String etaString = "eta ???";
 		int percentageDone = 0;
-		if (itemsToDo > 0 && itemsDone > 0) {
-			itemsToDoString = NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsToDo);
-			percentageDone = (int) (itemsDone * 100 / itemsToDo);
-			percentageString = Utilities.leftPad(percentageDone + "%", 3);
-			long elapsedSeconds = Duration.between(start, now).toSeconds();
-			// Prevent division by zero, when start is fast
-			if (elapsedSeconds == 0) {
-				elapsedSeconds = 1;
+
+		if (itemsToDo > 0) {
+			itemsToDoString = Utilities.getHumanReadableNumber(itemsToDo, itemUnitSign, true, 5, true, Locale.ENGLISH);
+
+			if (itemsDone > 0) {
+				percentageDone = (int) (itemsDone * 100 / itemsToDo);
+				percentageString = Utilities.leftPad(percentageDone + "%", 3);
+				long elapsedSeconds = Duration.between(start, now).toSeconds();
+				// Prevent division by zero, when start is fast
+				if (elapsedSeconds == 0) {
+					elapsedSeconds = 1;
+				}
+				final int speed = (int) (itemsDone / elapsedSeconds);
+				speedString = Utilities.getHumanReadableNumber(speed, "", true, 5, true, Locale.ENGLISH) + (itemUnitSign == null ? "" : itemUnitSign) + "/s";
+				final LocalDateTime estimatedEnd = DateUtilities.calculateETA(start, itemsToDo, itemsDone);
+				etaString = "eta " + DateUtilities.getShortHumanReadableTimespan(Duration.between(now, estimatedEnd), false, true);
 			}
-			final int speed = (int) (itemsDone / elapsedSeconds);
-			speedString = Utilities.getHumanReadableNumber(speed, "", true, 5, true, Locale.ENGLISH) + "/s";
-			final LocalDateTime estimatedEnd = DateUtilities.calculateETA(start, itemsToDo, itemsDone);
-			etaString = "eta " + DateUtilities.getShortHumanReadableTimespan(Duration.between(now, estimatedEnd), false, true);
-		} else if (itemsToDo > 0) {
-			itemsToDoString = NumberFormat.getNumberInstance(Locale.getDefault()).format(itemsToDo);
 		}
 
 		final String leftPart = percentageString + " [";

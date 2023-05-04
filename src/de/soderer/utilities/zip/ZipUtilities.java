@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +28,14 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.Utilities;
 
 public class ZipUtilities {
+	public static boolean isZipArchiveFile(final File potentialZipFile) throws FileNotFoundException, IOException {
+		try (FileInputStream inputStream = new FileInputStream(potentialZipFile)) {
+			final byte[] magicBytes = new byte[4];
+			final int readBytes = inputStream.read(magicBytes);
+			return readBytes == 4 && magicBytes[0] == 0x50 && magicBytes[1] == 0x4B && magicBytes[2] == 0x03 && magicBytes[3] == 0x04;
+		}
+	}
+
 	/**
 	 * Zip a file or recursively all files and subdirectories of a directory. The
 	 * zipped file is placed in the same directory as the zipped file.
@@ -415,7 +424,6 @@ public class ZipUtilities {
 	 * @throws IOException
 	 * @throws ZipException
 	 */
-	@SuppressWarnings("resource")
 	public static ZipOutputStream openExistingZipFileForExtension(final File zipFile) throws IOException {
 		final File originalFileTemp = new File(
 				zipFile.getParentFile().getAbsolutePath() + "/" + String.valueOf(System.currentTimeMillis()));
@@ -495,7 +503,7 @@ public class ZipUtilities {
 		return returnMap;
 	}
 
-	public static String[] getZipFileEntries(final File file) throws ZipException, IOException {
+	public static List<String> getZipFileEntries(final File file) throws ZipException, IOException {
 		try (ZipFile zipFile = new ZipFile(file)) {
 			final Enumeration<? extends ZipEntry> entries = zipFile.entries();
 			final List<String> entryList = new ArrayList<>();
@@ -503,7 +511,7 @@ public class ZipUtilities {
 				final ZipEntry entry = entries.nextElement();
 				entryList.add(entry.getName());
 			}
-			return entryList.toArray(new String[0]);
+			return entryList;
 		}
 	}
 

@@ -80,6 +80,12 @@ public class MySQLDBValueConverter extends DefaultDBValueConverter {
 					value = buffer.toString();
 				}
 			}
+		} else if (columnTypeCode == Types.BIT) {
+			if (resultSet.wasNull()) {
+				value = null;
+			} else {
+				value = resultSet.getInt(columnIndex);
+			}
 		} else {
 			value = super.convert(metaData, resultSet, columnIndex, exportFilePath);
 		}

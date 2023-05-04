@@ -3294,7 +3294,7 @@ public class DbUtilities {
 		if (dbVendor == DbVendor.Oracle) {
 			final List<String> sqlListToExecute = new ArrayList<>();
 			try (Statement statement = connection.createStatement()) {
-				try (ResultSet result = statement.executeQuery("SELECT table_name, constraint_name FROM all_constraints WHERE constraint_type = 'R' AND UPPER(owner) NOT IN ('SYS', 'SYSTEM', 'CTXSYS', 'SITE_SYS', 'MDSYS')")) {
+				try (ResultSet result = statement.executeQuery("SELECT table_name, constraint_name FROM all_constraints WHERE constraint_type = 'R' AND status = '" + (activated ? "DISABLED" : "ENABLED") + "' AND UPPER(owner) NOT IN ('SYS', 'SYSTEM', 'CTXSYS', 'SITE_SYS', 'MDSYS')")) {
 					while (result.next()) {
 						final String tableName = result.getString("table_name");
 						final String constraintName = result.getString("constraint_name");
@@ -3335,6 +3335,44 @@ public class DbUtilities {
 			}
 		} else {
 			throw new Exception("ForeignKeyConstraintStatus change not available for dbvendor '" + dbVendor.name() + "'");
+		}
+	}
+
+	public static void setTriggerStatus(final DbVendor dbVendor, final Connection connection, final boolean activated) throws Exception {
+		if (dbVendor == DbVendor.Oracle) {
+			final List<String> sqlListToExecute = new ArrayList<>();
+			try (Statement statement = connection.createStatement()) {
+				try (ResultSet result = statement.executeQuery("SELECT trigger_name FROM user_triggers WHERE status = '" + (activated ? "DISABLED" : "ENABLED") + "'")) {
+					while (result.next()) {
+						final String triggerName = result.getString("trigger_name");
+
+						sqlListToExecute.add("ALTER TRIGGER " + triggerName + " " + (activated ? "ENABLE" : "DISABLE"));
+					}
+				}
+
+				for (final String sqlToExecute : sqlListToExecute) {
+					try {
+						statement.execute(sqlToExecute);
+					} catch (final SQLException e) {
+						e.printStackTrace();
+					}
+				}
+
+				if (activated) {
+					final List<String> notEnabledTriggers = new ArrayList<>();
+					try (ResultSet result = statement.executeQuery("SELECT trigger_name FROM user_triggers WHERE status = 'DISABLED'")) {
+						while (result.next()) {
+							final String triggerName = result.getString("trigger_name");
+							notEnabledTriggers.add(triggerName);
+						}
+					}
+					if (notEnabledTriggers.size() > 0) {
+						throw new Exception("Cannot activate following triggers:\n" + Utilities.join(notEnabledTriggers, ",\n"));
+					}
+				}
+			}
+		} else {
+			throw new Exception("TriggerStatus change not available for dbvendor '" + dbVendor.name() + "'");
 		}
 	}
 

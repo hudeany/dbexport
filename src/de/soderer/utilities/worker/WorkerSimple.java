@@ -13,6 +13,7 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 	private LocalDateTime startTime;
 	private LocalDateTime endTime;
 	protected long itemsToDo = -1;
+	protected String itemsUnitSign = null;
 	protected long itemsDone = -1;
 	protected LocalDateTime lastProgressShow = LocalDateTime.now();
 	protected long progressDisplayDelayMilliseconds = DEFAULT_PROGRESS_DELAY_MILLISECONDS;
@@ -49,7 +50,7 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 		if (parent != null && !cancel) {
 			if (Duration.between(lastProgressShow, LocalDateTime.now()).toMillis() > progressDisplayDelayMilliseconds
 					|| overrideRefreshTime) {
-				parent.receiveProgressSignal(startTime, itemsToDo, itemsDone);
+				parent.receiveProgressSignal(startTime, itemsToDo, itemsDone, itemsUnitSign);
 				lastProgressShow = LocalDateTime.now();
 			}
 		}
@@ -134,6 +135,14 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 		return itemsToDo;
 	}
 
+	public void setitemsUnitSign(final String itemsUnitSign) {
+		this.itemsUnitSign = itemsUnitSign;
+	}
+
+	public String getitemsUnitSign() {
+		return itemsUnitSign;
+	}
+
 	public long getItemsDone() {
 		return itemsDone;
 	}
@@ -171,9 +180,14 @@ public abstract class WorkerSimple<T> implements RunnableFuture<T> {
 			}
 			isDone = true;
 			if (parent != null) {
-				parent.receiveDoneSignal(startTime, endTime, itemsDone);
+				parent.receiveDoneSignal(startTime, endTime, itemsDone, itemsUnitSign, getResultText());
 			}
 		}
+	}
+
+	@SuppressWarnings("static-method")
+	protected String getResultText() {
+		return null;
 	}
 
 	public abstract T work() throws Exception;
