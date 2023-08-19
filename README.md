@@ -1,25 +1,25 @@
 # Java tool to import data in db from csv, json, xml, vcf, xls, xlsx, ods and kdbx files
 
 ## Supported file and datapy formats:
-Comma-Separated-Values (.csv)
-JSON (.json)
-XML (.xml)
-vCards (.vcf)
-Excel <2003 (.xls)
-Excel 2003+ (.xlsx)
-OpenDocumentSheet (.ods)
-KeePass (.kdbx)
+- Comma-Separated-Values (.csv)
+- JSON (.json)
+- XML (.xml)
+- vCards (.vcf)
+- Excel <2003 (.xls)
+- Excel 2003+ (.xlsx)
+- OpenDocumentSheet (.ods)
+- KeePass (.kdbx)
 
 ## Supported DB vendors:
-MySQL
-MariaDB
-Oracle
-PostgreSQL
-Firebird
-Sqlite
-Derby
-Hsql
-Cassandra
+- MySQL
+- MariaDB
+- Oracle
+- PostgreSQL
+- Firebird
+- Sqlite
+- Derby
+- Hsql
+- Cassandra
 
 ## Commandline usage
 	Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]
