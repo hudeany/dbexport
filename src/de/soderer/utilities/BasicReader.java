@@ -230,7 +230,7 @@ public class BasicReader implements Closeable {
 		if (closeableItem != null) {
 			try {
 				closeableItem.close();
-			} catch (@SuppressWarnings("unused") final IOException e) {
+			} catch (final IOException e) {
 				// Do nothing
 			}
 		}

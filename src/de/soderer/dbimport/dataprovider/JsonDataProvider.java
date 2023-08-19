@@ -1,10 +1,8 @@
 package de.soderer.dbimport.dataprovider;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -14,12 +12,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import de.soderer.dbimport.DbImportException;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbColumnType;
@@ -42,31 +41,17 @@ public class JsonDataProvider extends DataProvider {
 	private String dataPath = null;
 	private String schemaFilePath = null;
 
-	private final boolean isInlineData;
-	private final String importFilePathOrData;
-	private final char[] zipPassword;
-
 	private final Charset encoding = StandardCharsets.UTF_8;
 
 	public JsonDataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword, final String dataPath, final String schemaFilePath) {
-		this.isInlineData = isInlineData;
-		this.importFilePathOrData = importFilePathOrData;
-		this.zipPassword = zipPassword;
+		super(isInlineData, importFilePathOrData, zipPassword);
 		this.dataPath = dataPath;
 		this.schemaFilePath = schemaFilePath;
 	}
 
 	@Override
 	public String getConfigurationLogString() {
-		String dataPart;
-		if (isInlineData) {
-			dataPart = "Data: " + importFilePathOrData + "\n";
-		} else {
-			dataPart = "File: " + importFilePathOrData + "\n"
-					+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
-		}
-		return
-				dataPart
+		return super.getConfigurationLogString()
 				+ "Format: JSON" + "\n"
 				+ "Encoding: " + encoding + "\n";
 	}
@@ -189,6 +174,11 @@ public class JsonDataProvider extends DataProvider {
 	}
 
 	@Override
+	public String getItemsUnitSign() throws Exception {
+		return null;
+	}
+
+	@Override
 	public Map<String, Object> getNextItemData() throws Exception {
 		if (jsonReader == null) {
 			openReader();
@@ -216,104 +206,69 @@ public class JsonDataProvider extends DataProvider {
 	public void close() {
 		Utilities.closeQuietly(jsonReader);
 		jsonReader = null;
+		super.close();
 	}
 
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;
-		JsonWriter jsonWriter = null;
+		File tempFile = null;
 		try {
 			openReader();
 
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".json.zip");
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".json.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".json").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".json").getName()));
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tar.gz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tgz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".gz");
+				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".json");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".json");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 
-			jsonWriter = new JsonWriter(outputStream, encoding);
-			jsonWriter.openJsonArray();
+			try (JsonWriter jsonWriter = new JsonWriter(outputStream, encoding)) {
+				jsonWriter.openJsonArray();
 
-			Map<String, Object> item;
-			int itemIndex = 0;
-			while ((item = getNextItemData()) != null) {
-				itemIndex++;
-				if (indexList.contains(itemIndex)) {
-					final JsonObject filteredObject = new JsonObject();
-					for (final Entry<String, Object> entry : item.entrySet()) {
-						filteredObject.add(entry.getKey(), entry.getValue());
+				JsonNode nextJsonNode;
+				int itemIndex = 0;
+				while ((nextJsonNode = jsonReader.readNextJsonNode()) != null) {
+					final JsonObject nextJsonObject = (JsonObject) nextJsonNode.getValue();
+					itemIndex++;
+					if (indexList.contains(itemIndex)) {
+						jsonWriter.add(nextJsonObject);
 					}
-
-					jsonWriter.add(filteredObject);
 				}
+
+				jsonWriter.closeJsonArray();
 			}
 
-			jsonWriter.closeJsonArray();
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip") && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(filteredDataFile.getAbsolutePath(), zipPassword, false);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			}
 
 			return filteredDataFile;
 		} finally {
 			close();
-			Utilities.closeQuietly(jsonWriter);
 			Utilities.closeQuietly(outputStream);
-		}
-	}
-
-	@Override
-	public long getImportDataAmount() {
-		return isInlineData ? importFilePathOrData.length() : new File(importFilePathOrData).length();
-	}
-
-	private InputStream getInputStream() throws Exception {
-		if (!isInlineData) {
-			if (!new File(importFilePathOrData).exists()) {
-				throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).isDirectory()) {
-				throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).length() == 0) {
-				throw new DbImportException("Import file is empty: " + importFilePathOrData);
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
 			}
-
-			InputStream inputStream = null;
-			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-					if (zipPassword != null)  {
-						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
-					} else {
-						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
-						if (filepathsFromZipArchiveFile.size() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (filepathsFromZipArchiveFile.size() > 1) {
-							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						}
-
-						inputStream = new ZipInputStream(new FileInputStream(new File(importFilePathOrData)));
-						final ZipEntry zipEntry = ((ZipInputStream) inputStream).getNextEntry();
-						if (zipEntry == null) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (zipEntry.getSize() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + zipEntry.getName());
-						}
-					}
-				} else {
-					inputStream = new FileInputStream(new File(importFilePathOrData));
-				}
-				return inputStream;
-			} catch (final Exception e) {
-				if (inputStream != null) {
-					try {
-						inputStream.close();
-					} catch (@SuppressWarnings("unused") final IOException e1) {
-						// do nothing
-					}
-				}
-				throw e;
-			}
-		} else {
-			return new ByteArrayInputStream(importFilePathOrData.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 
@@ -356,14 +311,8 @@ public class JsonDataProvider extends DataProvider {
 				}
 			}
 		} catch (final Exception e) {
-			Utilities.closeQuietly(jsonReader);
+			close();
 			throw e;
 		}
-	}
-
-	@Override
-	public long getReadDataSize() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

@@ -2,16 +2,17 @@ package de.soderer.dbimport.dataprovider;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PushbackInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
@@ -25,7 +26,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import de.soderer.dbimport.DbImportException;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbColumnType;
@@ -39,7 +40,6 @@ public class ExcelDataProvider extends DataProvider {
 	private boolean noHeaders = false;
 	private boolean trimData = false;
 
-	private InputStream inputStream = null;
 	private String dataPath = null;
 	private HSSFWorkbook hssfWorkbook;
 	private HSSFSheet hssfSheet;
@@ -52,12 +52,8 @@ public class ExcelDataProvider extends DataProvider {
 	private Map<String, DbColumnType> dataTypes = null;
 	private Integer itemsAmount = null;
 
-	private final String importFilePathOrData;
-	private final char[] zipPassword;
-
-	public ExcelDataProvider(final String importFilePathOrData, final char[] zipPassword, final boolean allowUnderfilledLines, final boolean noHeaders, final String nullValueText, final boolean trimData, final String dataPath) throws Exception {
-		this.importFilePathOrData = importFilePathOrData;
-		this.zipPassword = zipPassword;
+	public ExcelDataProvider(final String importFilePath, final char[] zipPassword, final boolean allowUnderfilledLines, final boolean noHeaders, final String nullValueText, final boolean trimData, final String dataPath) throws Exception {
+		super(false, importFilePath, zipPassword);
 		this.allowUnderfilledLines = allowUnderfilledLines;
 		this.noHeaders = noHeaders;
 		this.nullValueText = nullValueText;
@@ -67,10 +63,7 @@ public class ExcelDataProvider extends DataProvider {
 
 	@Override
 	public String getConfigurationLogString() {
-		final String dataPart = "File: " + importFilePathOrData + "\n"
-				+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
-		return
-				dataPart
+		return super.getConfigurationLogString()
 				+ "Format: EXCEL" + "\n"
 				+ "AllowUnderfilledLines: " + allowUnderfilledLines + "\n"
 				+ "TrimData: " + trimData + "\n"
@@ -92,13 +85,13 @@ public class ExcelDataProvider extends DataProvider {
 					final List<String> values = new ArrayList<>();
 					if (hssfSheet != null) {
 						for (int i = hssfSheet.getRow(hssfSheet.getFirstRowNum()).getFirstCellNum(); i < hssfSheet.getRow(hssfSheet.getFirstRowNum()).getLastCellNum(); i++) {
-							final HSSFCell cell =  hssfSheet.getRow(currentRowNumber).getCell(i);
+							final HSSFCell cell = hssfSheet.getRow(currentRowNumber).getCell(i);
 							final String cellValue = cell == null ? null : cell.getStringCellValue();
 							values.add(trimData ? Utilities.trim(cellValue) : cellValue);
 						}
 					} else {
 						for (int i = xssfSheet.getRow(xssfSheet.getFirstRowNum()).getFirstCellNum(); i < xssfSheet.getRow(xssfSheet.getFirstRowNum()).getLastCellNum(); i++) {
-							final XSSFCell cell =  xssfSheet.getRow(currentRowNumber).getCell(i);
+							final XSSFCell cell = xssfSheet.getRow(currentRowNumber).getCell(i);
 							final String cellValue = cell == null ? null : cell.getStringCellValue();
 							values.add(trimData ? Utilities.trim(cellValue) : cellValue);
 						}
@@ -126,12 +119,6 @@ public class ExcelDataProvider extends DataProvider {
 	public List<String> getAvailableDataPropertyNames() throws Exception {
 		if (columnNames == null) {
 			try {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-				}
-
 				openReader();
 
 				columnNames = new ArrayList<>();
@@ -213,7 +200,16 @@ public class ExcelDataProvider extends DataProvider {
 	}
 
 	@Override
+	public String getItemsUnitSign() throws Exception {
+		return null;
+	}
+
+	@Override
 	public Map<String, Object> getNextItemData() throws Exception {
+		if (hssfWorkbook == null && xssfWorkbook == null) {
+			openReader();
+		}
+
 		if (hssfSheet != null) {
 			if (currentRowNumber > maxRowNumber) {
 				return null;
@@ -287,25 +283,49 @@ public class ExcelDataProvider extends DataProvider {
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
 		try {
 			openReader();
 
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
 				if (hssfSheet != null) {
-					filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xls.zip");
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xls.zip");
 					outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".xls").getName()));
+					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".xls").getName()));
 				} else {
-					filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xlsx.zip");
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xlsx.zip");
 					outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".xlsx").getName()));
+					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".xlsx").getName()));
 				}
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				if (hssfSheet != null) {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xls.tar.gz");
+				} else {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xlsx.tar.gz");
+				}
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				if (hssfSheet != null) {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xls.tgz");
+				} else {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xlsx.tgz");
+				}
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+				if (hssfSheet != null) {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xls.gz");
+				} else {
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xlsx.gz");
+				}
+				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
 				if (hssfSheet != null) {
-					filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xls");
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xls");
 				} else {
-					filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xlsx");
+					filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xlsx");
 				}
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
@@ -374,10 +394,22 @@ public class ExcelDataProvider extends DataProvider {
 				}
 			}
 
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip") && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(filteredDataFile.getAbsolutePath(), zipPassword, false);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			}
+
 			return filteredDataFile;
 		} finally {
 			close();
 			Utilities.closeQuietly(outputStream);
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
+			}
 		}
 	}
 
@@ -393,146 +425,84 @@ public class ExcelDataProvider extends DataProvider {
 			xssfWorkbook = null;
 			xssfSheet = null;
 		}
-		Utilities.closeQuietly(inputStream);
-	}
-
-	@Override
-	public long getImportDataAmount() {
-		return new File(importFilePathOrData).length();
+		super.close();
 	}
 
 	private void openReader() throws Exception {
 		try {
 			if (xssfSheet == null && hssfSheet == null) {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).length() == 0) {
-					throw new DbImportException("Import file is empty: " + importFilePathOrData);
-				}
+				final PushbackInputStream excelInputStream = new PushbackInputStream(getInputStream(), 8);
+				final boolean isXlsFormatFile = isXlsFile(excelInputStream);
 
-				boolean isXslx;
-				try {
-					if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
-						if (zipPassword != null) {
-							inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
-							if (importFilePathOrData.toLowerCase().endsWith("xlsx")) {
-								isXslx = true;
-							} else {
-								isXslx = false;
-							}
-						} else {
-							final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
-							if (filepathsFromZipArchiveFile.size() == 0) {
-								throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-							} else if (filepathsFromZipArchiveFile.size() > 1) {
-								throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-							}
-
-							inputStream = new ZipInputStream(new FileInputStream(new File(importFilePathOrData)));
-							final ZipEntry zipEntry = ((ZipInputStream) inputStream).getNextEntry();
-							if (zipEntry == null) {
-								throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-							} else if (zipEntry.getSize() == 0) {
-								throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + zipEntry.getName());
-							}
-
-							if (zipEntry.getName().toLowerCase().endsWith("xls")) {
-								isXslx = false;
-							} else if (zipEntry.getName().toLowerCase().endsWith("xlsx")) {
-								isXslx = true;
-							} else {
-								throw new Exception("Unknown file extension for excel files");
-							}
-						}
-					} else {
-						inputStream = new FileInputStream(new File(importFilePathOrData));
-						if (importFilePathOrData.toLowerCase().endsWith("xls")) {
-							isXslx = false;
-						} else if (importFilePathOrData.toLowerCase().endsWith("xlsx")) {
-							isXslx = true;
-						} else {
-							throw new Exception("Unknown file extension for excel files");
-						}
-					}
-				} catch (final Exception e) {
-					if (inputStream != null) {
-						try {
-							inputStream.close();
-						} catch (@SuppressWarnings("unused") final IOException e1) {
-							// do nothing
-						}
-					}
-					throw e;
-				}
-
-				if (isXslx) {
-					xssfWorkbook = new XSSFWorkbook(inputStream);
-					if (Utilities.isNotBlank(dataPath)) {
-						xssfSheet = xssfWorkbook.getSheet(dataPath);
-					} else {
-						xssfSheet = xssfWorkbook.getSheetAt(0);
-					}
-				} else {
-					hssfWorkbook = new HSSFWorkbook(inputStream);
+				if (isXlsFormatFile) {
+					hssfWorkbook = new HSSFWorkbook(excelInputStream);
 					if (Utilities.isNotBlank(dataPath)) {
 						hssfSheet = hssfWorkbook.getSheet(dataPath);
 					} else {
 						hssfSheet = hssfWorkbook.getSheetAt(0);
 					}
-				}
 
-				if (hssfSheet != null) {
-					currentRowNumber = hssfSheet.getFirstRowNum();
-					maxRowNumber = hssfSheet.getLastRowNum();
-					// Microsoft Excel shows ~1.046.000 available lines, but they are not used at all. So detect the last used line
-					for (int rowIndex = maxRowNumber; rowIndex >= currentRowNumber; rowIndex--) {
-						final HSSFRow row = hssfSheet.getRow(rowIndex);
-						if (row != null) {
-							boolean rowHasValue = false;
-							for (int columnIndex = row.getFirstCellNum(); columnIndex < row.getLastCellNum(); columnIndex++) {
-								if (row.getCell(columnIndex) != null) {
-									rowHasValue = true;
+					if (hssfSheet != null) {
+						currentRowNumber = hssfSheet.getFirstRowNum();
+						maxRowNumber = hssfSheet.getLastRowNum();
+						// Microsoft Excel shows ~1.046.000 available lines, but
+						// they are not used at all. So detect the last used line
+						for (int rowIndex = maxRowNumber; rowIndex >= currentRowNumber; rowIndex--) {
+							final HSSFRow row = hssfSheet.getRow(rowIndex);
+							if (row != null) {
+								boolean rowHasValue = false;
+								for (int columnIndex = row.getFirstCellNum(); columnIndex < row.getLastCellNum(); columnIndex++) {
+									if (row.getCell(columnIndex) != null) {
+										rowHasValue = true;
+										break;
+									}
+								}
+								if (rowHasValue) {
+									maxRowNumber = rowIndex;
 									break;
 								}
 							}
-							if (rowHasValue) {
-								maxRowNumber = rowIndex;
-								break;
-							}
 						}
+					} else {
+						throw new Exception("Cannot find data sheet");
 					}
 				} else {
-					currentRowNumber = xssfSheet.getFirstRowNum();
-					maxRowNumber = xssfSheet.getLastRowNum();
-					// Microsoft Excel shows ~1.046.000 available lines, but they are not used at all. So detect the last used line
-					for (int rowIndex = maxRowNumber; rowIndex >= currentRowNumber; rowIndex--) {
-						final XSSFRow row = xssfSheet.getRow(rowIndex);
-						if (row != null) {
-							boolean rowHasValue = false;
-							for (int columnIndex = row.getFirstCellNum(); columnIndex < row.getLastCellNum(); columnIndex++) {
-								if (row.getCell(columnIndex) != null) {
-									rowHasValue = true;
+					xssfWorkbook = new XSSFWorkbook(excelInputStream);
+					if (Utilities.isNotBlank(dataPath)) {
+						xssfSheet = xssfWorkbook.getSheet(dataPath);
+					} else {
+						xssfSheet = xssfWorkbook.getSheetAt(0);
+					}
+
+					if (xssfSheet != null) {
+						currentRowNumber = xssfSheet.getFirstRowNum();
+						maxRowNumber = xssfSheet.getLastRowNum();
+						// Microsoft Excel shows ~1.046.000 available lines, but
+						// they are not used at all. So detect the last used line
+						for (int rowIndex = maxRowNumber; rowIndex >= currentRowNumber; rowIndex--) {
+							final XSSFRow row = xssfSheet.getRow(rowIndex);
+							if (row != null) {
+								boolean rowHasValue = false;
+								for (int columnIndex = row.getFirstCellNum(); columnIndex < row.getLastCellNum(); columnIndex++) {
+									if (row.getCell(columnIndex) != null) {
+										rowHasValue = true;
+										break;
+									}
+								}
+								if (rowHasValue) {
+									maxRowNumber = rowIndex;
 									break;
 								}
 							}
-							if (rowHasValue) {
-								maxRowNumber = rowIndex;
-								break;
-							}
 						}
+					} else {
+						throw new Exception("Cannot find data sheet");
 					}
 				}
-			}
 
-			if (hssfSheet != null) {
-				currentRowNumber = hssfSheet.getFirstRowNum();
-			} else {
-				currentRowNumber = xssfSheet.getFirstRowNum();
-			}
-			if (!noHeaders) {
-				currentRowNumber++;
+				if (!noHeaders) {
+					currentRowNumber++;
+				}
 			}
 		} catch (final Exception e) {
 			close();
@@ -540,9 +510,28 @@ public class ExcelDataProvider extends DataProvider {
 		}
 	}
 
-	@Override
-	public long getReadDataSize() {
-		// TODO Auto-generated method stub
-		return 0;
+	/**
+	 * XLS = Excel 2003 format
+	 */
+	public static boolean isXlsFile(final File potentialXlsFile) throws FileNotFoundException, IOException {
+		try (FileInputStream inputStream = new FileInputStream(potentialXlsFile)) {
+			final byte[] magicBytes = new byte[8];
+			final int readBytes = inputStream.read(magicBytes);
+			return readBytes == 8 && Byte.toUnsignedInt(magicBytes[0]) == 0xD0 && Byte.toUnsignedInt(magicBytes[1]) == 0xCF && Byte.toUnsignedInt(magicBytes[2]) == 0x11
+					&& Byte.toUnsignedInt(magicBytes[3]) == 0xE0 && Byte.toUnsignedInt(magicBytes[4]) == 0xA1 && Byte.toUnsignedInt(magicBytes[5]) == 0xB1
+					&& Byte.toUnsignedInt(magicBytes[6]) == 0x1A && Byte.toUnsignedInt(magicBytes[7]) == 0xE1;
+		}
+	}
+
+	/**
+	 * XLS = Excel 2003 format
+	 */
+	public static boolean isXlsFile(final PushbackInputStream inputStream) throws FileNotFoundException, IOException {
+		final byte[] magicBytes = new byte[8];
+		final int readBytes = inputStream.read(magicBytes);
+		inputStream.unread(magicBytes, 0, readBytes);
+		return readBytes == 8 && Byte.toUnsignedInt(magicBytes[0]) == 0xD0 && Byte.toUnsignedInt(magicBytes[1]) == 0xCF && Byte.toUnsignedInt(magicBytes[2]) == 0x11
+				&& Byte.toUnsignedInt(magicBytes[3]) == 0xE0 && Byte.toUnsignedInt(magicBytes[4]) == 0xA1 && Byte.toUnsignedInt(magicBytes[5]) == 0xB1
+				&& Byte.toUnsignedInt(magicBytes[6]) == 0x1A && Byte.toUnsignedInt(magicBytes[7]) == 0xE1;
 	}
 }

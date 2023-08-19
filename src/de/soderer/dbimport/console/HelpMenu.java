@@ -21,7 +21,7 @@ public class HelpMenu extends ConsoleMenu {
 			System.out.println("DbImport (by Andreas Soderer, mail: dbimport@soderer.de)\n"
 					+ "VERSION: " + DbImport.VERSION.toString() + " (" + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, DbImport.VERSION_BUILDTIME) + ")" + "\n\n"
 					+ new String(IoUtilities.toByteArray(helpInputStream), StandardCharsets.UTF_8));
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			System.out.println("Help info is missing");
 		}
 		System.exit(0);

@@ -18,7 +18,9 @@ import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.MonthDay;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
@@ -303,7 +305,6 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 		this.logErroneousData = logErroneousData;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
 		signalUnlimitedProgress();
@@ -322,7 +323,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				if (dbDefinition.getDbVendor() == DbVendor.Derby || (dbDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbDefinition.getHostnameAndPort())) || dbDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						connection = DbUtilities.createConnection(dbDefinition, true);
-					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
+					} catch (final DbNotExistsException e) {
 						connection = DbUtilities.createNewDatabase(dbDefinition.getDbVendor(), dbDefinition.getDbName());
 					}
 				} else {
@@ -543,7 +544,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				}
 
 				connection.commit();
-				
+
 				itemsDone = itemsToDo;
 				signalProgress(true);
 
@@ -574,7 +575,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						parent.changeTitle(LangResources.get("reactivateForeignKeyConstraints"));
 						DbUtilities.setForeignKeyConstraintStatus(dbDefinition.getDbVendor(), connection, true);
 						connection.commit();
-					} catch (Exception e) {
+					} catch (final Exception e) {
 						System.err.println("Cannot reactivate foreign key constraints");
 						e.printStackTrace();
 					}
@@ -584,7 +585,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						parent.changeTitle(LangResources.get("reactivateTriggers"));
 						DbUtilities.setTriggerStatus(dbDefinition.getDbVendor(), connection, true);
 						connection.commit();
-					} catch (Exception e) {
+					} catch (final Exception e) {
 						System.err.println("Cannot reactivate triggers");
 						e.printStackTrace();
 					}
@@ -640,7 +641,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				+ "Import mode: " + importMode + "\n"
 				+ "Duplicate mode: " + duplicateMode + "\n"
 				+ "Key columns: " + Utilities.join(keyColumns, ", ") + "\n"
-				+ (createTableIfNotExists ? "New table was created: " + tableWasCreated + "\n" : "")
+				+ (createTableIfNotExists ? "Create table if not exists: " + createTableIfNotExists + "\n" : "")
 				+ (structureFilePath != null ? "Structure file: " + structureFilePath + "\n" : "")
 				+ "Mapping: \n" + TextUtilities.addLeadingTab(convertMappingToString(getMapping())) + "\n"
 				+ (Utilities.isNotBlank(additionalInsertValues) ? "Additional insert values: " + additionalInsertValues + "\n" : "")
@@ -877,8 +878,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 		} else {
 			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbTableColumnsListToInsert) + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
 		}
-		
-		@SuppressWarnings("resource")
+
 		PreparedStatement preparedStatement = null;
 		try {
 			preparedStatement = connection.prepareStatement(statementString);
@@ -1097,25 +1097,25 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						dateTimeFormatter.withZone(importDataZoneId);
 						final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 						localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-					} catch (@SuppressWarnings("unused") final DateTimeParseException e) {
+					} catch (final DateTimeParseException e) {
 						try {
 							final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateTimeFormatPattern(Locale.getDefault()));
 							dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 							dateTimeFormatter.withZone(importDataZoneId);
 							final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 							localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-						} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
+						} catch (final DateTimeParseException e1) {
 							try {
 								final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateFormatPattern(Locale.getDefault()));
 								dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 								localDateTimeValueForDb = LocalDate.parse(valueString.trim(), dateTimeFormatter).atStartOfDay();
-							} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
+							} catch (final DateTimeParseException e2) {
 								try {
 									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseIso8601DateTimeString(valueString, importDataZoneId).toLocalDateTime();
 									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-								} catch (@SuppressWarnings("unused") final DateTimeException e3) {
-									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString);
-									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
+								} catch (final DateTimeException e3) {
+									final ZonedDateTime zonedDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString, importDataZoneId);
+									localDateTimeValueForDb = zonedDateTimeValueFromData.withZoneSameInstant(databaseZoneId).toLocalDateTime();
 								}
 							}
 						}
@@ -1128,7 +1128,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			LocalDateTime localDateTimeValueForDb;
 			if (Utilities.isBlank(valueString)) {
 				preparedStatement.setNull(columnIndex, 0);
-			} else { 
+			} else {
 				if (Utilities.isNotBlank(dateFormatPattern)) {
 					try {
 						final LocalDateTime localDateTimeValueFromData = LocalDate.parse(valueString.trim(), getConfiguredDateFormatter()).atStartOfDay();
@@ -1139,7 +1139,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 							try {
 								final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), getConfiguredDateTimeFormatter());
 								localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-							} catch (@SuppressWarnings("unused") final Exception e1) {
+							} catch (final Exception e1) {
 								throw e;
 							}
 						} else {
@@ -1153,25 +1153,25 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						dateTimeFormatter.withZone(importDataZoneId);
 						final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 						localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-					} catch (@SuppressWarnings("unused") final DateTimeParseException e) {
+					} catch (final DateTimeParseException e) {
 						try {
 							final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateTimeFormatPattern(Locale.getDefault()));
 							dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 							dateTimeFormatter.withZone(importDataZoneId);
 							final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 							localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-						} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
+						} catch (final DateTimeParseException e1) {
 							try {
 								final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateFormatPattern(Locale.getDefault()));
 								dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 								localDateTimeValueForDb = LocalDate.parse(valueString.trim(), dateTimeFormatter).atStartOfDay();
-							} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
+							} catch (final DateTimeParseException e2) {
 								try {
 									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseIso8601DateTimeString(valueString, importDataZoneId).toLocalDateTime();
 									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-								} catch (@SuppressWarnings("unused") final DateTimeException e3) {
-									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString);
-									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
+								} catch (final DateTimeException e3) {
+									final ZonedDateTime zonedDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString, importDataZoneId);
+									localDateTimeValueForDb = zonedDateTimeValueFromData.withZoneSameInstant(databaseZoneId).toLocalDateTime();
 								}
 							}
 						}
@@ -1234,9 +1234,11 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			} else {
 				throw new Exception("Unknown data type field to insert without mapping format");
 			}
-		} else if (simpleDataType == SimpleDataType.Float && dataValue instanceof Float) {
+		} else if (simpleDataType == SimpleDataType.Float && dataValue instanceof Number) {
 			// Keep the right precision when inserting a float value to a double column
 			preparedStatement.setDouble(columnIndex, Double.parseDouble(dataValue.toString()));
+		} else if (simpleDataType == SimpleDataType.String && dataValue instanceof MonthDay) {
+			preparedStatement.setString(columnIndex, dataValue.toString());
 		} else {
 			preparedStatement.setObject(columnIndex, dataValue);
 		}
@@ -1296,7 +1298,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 		final StringBuilder returnValue = new StringBuilder();
 
 		if (mapping != null) {
-			List<Entry<String,Tuple<String,String>>> sortedListOfMappingEntries = mapping.entrySet().stream().sorted(Map.Entry.<String, Tuple<String, String>>comparingByKey()).collect(Collectors.toList());
+			final List<Entry<String,Tuple<String,String>>> sortedListOfMappingEntries = mapping.entrySet().stream().sorted(Map.Entry.<String, Tuple<String, String>>comparingByKey()).collect(Collectors.toList());
 			for (final Entry<String, Tuple<String, String>> entry : sortedListOfMappingEntries) {
 				returnValue.append(entry.getKey() + "=\"" + entry.getValue().getFirst() + "\"");
 				if (Utilities.isNotBlank(entry.getValue().getSecond())) {
@@ -1308,7 +1310,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 
 		return returnValue.toString().trim();
 	}
-	
+
 	@Override
 	public String getResultText() {
 		return getResultStatistics();

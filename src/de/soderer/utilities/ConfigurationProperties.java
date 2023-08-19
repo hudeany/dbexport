@@ -133,7 +133,7 @@ public class ConfigurationProperties {
 			} else {
 				return null;
 			}
-		} catch (@SuppressWarnings("unused") final DateTimeParseException e) {
+		} catch (final DateTimeParseException e) {
 			return null;
 		}
 	}
@@ -146,7 +146,7 @@ public class ConfigurationProperties {
 		if (properties.containsKey(name) && Utilities.isNotEmpty(properties.getProperty(name))) {
 			try {
 				return CsvReader.parseCsvLine(new CsvFormat().setSeparator(';').setStringQuote('"'), properties.getProperty(name));
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				return new ArrayList<>();
 			}
 		} else {
@@ -161,7 +161,7 @@ public class ConfigurationProperties {
 				final boolean removedValue = currentList.remove(value);
 				set(name, currentList);
 				return removedValue;
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				return false;
 			}
 		} else {

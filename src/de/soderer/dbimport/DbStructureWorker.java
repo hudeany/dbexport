@@ -14,8 +14,8 @@ import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbNotExistsException;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.json.JsonArray;
 import de.soderer.utilities.json.JsonNode;
 import de.soderer.utilities.json.JsonObject;
@@ -49,7 +49,7 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 			if (dbDefinition.getDbVendor() == DbVendor.Derby || (dbDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbDefinition.getHostnameAndPort())) || dbDefinition.getDbVendor() == DbVendor.SQLite) {
 				try {
 					connection = DbUtilities.createConnection(dbDefinition, true);
-				} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
+				} catch (final DbNotExistsException e) {
 					connection = DbUtilities.createNewDatabase(dbDefinition.getDbVendor(), dbDefinition.getDbName());
 				}
 			} else {

@@ -1,10 +1,7 @@
 package de.soderer.dbimport.dataprovider;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -16,21 +13,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
-import de.soderer.dbimport.DbImportException;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbColumnType;
@@ -42,7 +40,6 @@ public class XmlDataProvider extends DataProvider {
 	// Default optional parameters
 	private String nullValueText = null;
 
-	private InputStream inputStream = null;
 	private XMLStreamReader xmlReader = null;
 	private Integer itemsAmount = null;
 	private Map<String, DbColumnType> dataTypes = null;
@@ -52,16 +49,10 @@ public class XmlDataProvider extends DataProvider {
 	private String dataPath = null;
 	private String schemaFilePath = null;
 
-	private final boolean isInlineData;
-	private final String importFilePathOrData;
-	private final char[] zipPassword;
-
 	private final Charset encoding = StandardCharsets.UTF_8;
 
 	public XmlDataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword, final String nullValueText, final String dataPath, final String schemaFilePath) throws Exception {
-		this.isInlineData = isInlineData;
-		this.importFilePathOrData = importFilePathOrData;
-		this.zipPassword = zipPassword;
+		super(isInlineData, importFilePathOrData, zipPassword);
 		this.nullValueText = nullValueText;
 		this.dataPath = dataPath;
 		this.schemaFilePath = schemaFilePath;
@@ -69,15 +60,7 @@ public class XmlDataProvider extends DataProvider {
 
 	@Override
 	public String getConfigurationLogString() {
-		String dataPart;
-		if (isInlineData) {
-			dataPart = "Data: " + importFilePathOrData + "\n";
-		} else {
-			dataPart = "File: " + importFilePathOrData + "\n"
-					+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
-		}
-		return
-				dataPart
+		return super.getConfigurationLogString()
 				+ "Format: XML" + "\n"
 				+ "Encoding: " + encoding + "\n"
 				+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n";
@@ -86,14 +69,6 @@ public class XmlDataProvider extends DataProvider {
 	@Override
 	public Map<String, DbColumnType> scanDataPropertyTypes(final Map<String, Tuple<String, String>> mapping) throws Exception {
 		if (dataTypes == null) {
-			if (!isInlineData) {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-				}
-			}
-
 			openReader();
 
 			int itemCount = 0;
@@ -122,14 +97,6 @@ public class XmlDataProvider extends DataProvider {
 	@Override
 	public List<String> getAvailableDataPropertyNames() throws Exception {
 		if (dataPropertyNames == null) {
-			if (!isInlineData) {
-				if (!new File(importFilePathOrData).exists()) {
-					throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-				} else if (new File(importFilePathOrData).isDirectory()) {
-					throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-				}
-			}
-
 			openReader();
 
 			int itemCount = 0;
@@ -160,6 +127,11 @@ public class XmlDataProvider extends DataProvider {
 		}
 
 		return itemsAmount;
+	}
+
+	@Override
+	public String getItemsUnitSign() throws Exception {
+		return null;
 	}
 
 	@Override
@@ -218,25 +190,41 @@ public class XmlDataProvider extends DataProvider {
 	public void close() {
 		if (xmlReader != null) {
 			// Caution: XMLStreamReader.close() doesn't close the underlying stream
-			Utilities.closeQuietly(xmlReader, inputStream);
+			try {
+				xmlReader.close();
+			} catch (@SuppressWarnings("unused") final XMLStreamException e) {
+				// Do nothing
+			}
 			xmlReader = null;
-			inputStream = null;
 		}
+		super.close();
 	}
 
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
 		try {
 			openReader();
 
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xml.zip");
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xml.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".xml").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".xml").getName()));
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tar.gz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tgz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".gz");
+				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".xml");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".xml");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 
@@ -272,65 +260,22 @@ public class XmlDataProvider extends DataProvider {
 				}
 			}
 
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip") && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(filteredDataFile.getAbsolutePath(), zipPassword, false);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			}
+
 			return filteredDataFile;
 		} finally {
 			close();
 			Utilities.closeQuietly(outputStream);
-		}
-	}
-
-	@Override
-	public long getImportDataAmount() {
-		return isInlineData ? importFilePathOrData.length() : new File(importFilePathOrData).length();
-	}
-
-	private InputStream getInputStream() throws Exception {
-		if (!isInlineData) {
-			if (!new File(importFilePathOrData).exists()) {
-				throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).isDirectory()) {
-				throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).length() == 0) {
-				throw new DbImportException("Import file is empty: " + importFilePathOrData);
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
 			}
-
-			InputStream datainputstream = null;
-			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-					if (zipPassword != null)  {
-						datainputstream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
-					} else {
-						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
-						if (filepathsFromZipArchiveFile.size() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (filepathsFromZipArchiveFile.size() > 1) {
-							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						}
-
-						datainputstream = new ZipInputStream(new FileInputStream(new File(importFilePathOrData)));
-						final ZipEntry zipEntry = ((ZipInputStream) datainputstream).getNextEntry();
-						if (zipEntry == null) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (zipEntry.getSize() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + zipEntry.getName());
-						}
-					}
-				} else {
-					datainputstream = new FileInputStream(new File(importFilePathOrData));
-				}
-				return datainputstream;
-			} catch (final Exception e) {
-				if (datainputstream != null) {
-					try {
-						datainputstream.close();
-					} catch (@SuppressWarnings("unused") final IOException e1) {
-						// do nothing
-					}
-				}
-				throw e;
-			}
-		} else {
-			return new ByteArrayInputStream(importFilePathOrData.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 
@@ -359,8 +304,7 @@ public class XmlDataProvider extends DataProvider {
 			}
 
 			final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-			inputStream = getInputStream();
-			xmlReader = xmlInputFactory.createXMLStreamReader(inputStream);
+			xmlReader = xmlInputFactory.createXMLStreamReader(getInputStream());
 
 			if (Utilities.isNotEmpty(dataPath)) {
 				// Read xml path
@@ -395,11 +339,5 @@ public class XmlDataProvider extends DataProvider {
 			close();
 			throw e;
 		}
-	}
-
-	@Override
-	public long getReadDataSize() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

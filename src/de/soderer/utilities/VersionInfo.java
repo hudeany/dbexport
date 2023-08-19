@@ -20,7 +20,7 @@ public class VersionInfo {
 			} else {
 				return new String(IoUtilities.toByteArray(inputStream), StandardCharsets.UTF_8);
 			}
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return "VersionInfo not found";
 		}
 	}
@@ -28,7 +28,7 @@ public class VersionInfo {
 	private static String getVersionText() {
 		try (InputStream inputStream = VersionInfo.class.getClassLoader().getResourceAsStream("version.txt")) {
 			return new String(IoUtilities.toByteArray(inputStream), StandardCharsets.UTF_8);
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return "VersionInfo not found";
 		}
 	}

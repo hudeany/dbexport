@@ -20,10 +20,10 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.console.FilepathConsoleInput;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 
 public class ImportMenu extends ConsoleMenu {
 	private DbImportDefinition dbImportDefinition = new DbImportDefinition();
@@ -242,7 +242,7 @@ public class ImportMenu extends ConsoleMenu {
 				autoCompletionStrings.add("data");
 				System.out.println("  " + Utilities.rightPad("x)", bulletSize) + " " + Utilities.rightPad("Importformat:", nameSize) + dbImportDefinition.getDataType().name());
 				autoCompletionStrings.add("x");
-				if (dbImportDefinition.getDataType() == DataType.JSON || dbImportDefinition.getDataType() == DataType.XML || dbImportDefinition.getDataType() == DataType.EXCEL || dbImportDefinition.getDataType() == DataType.ODS) {
+				if (dbImportDefinition.getDataType() == DataType.JSON || dbImportDefinition.getDataType() == DataType.XML || dbImportDefinition.getDataType() == DataType.EXCEL || dbImportDefinition.getDataType() == DataType.ODS || dbImportDefinition.getDataType() == DataType.VCF) {
 					System.out.println("  " + Utilities.rightPad("dp)", bulletSize) + " " + Utilities.rightPad("Data path:", nameSize) + dbImportDefinition.getDataPath());
 					autoCompletionStrings.add("dp");
 				}
@@ -315,6 +315,10 @@ public class ImportMenu extends ConsoleMenu {
 				if (dbImportDefinition.getImportFilePathOrData().toLowerCase().endsWith(".zip")) {
 					System.out.println("  " + Utilities.rightPad("zippassword)", bulletSize) + " " + Utilities.rightPad("Zip file password:", nameSize) + (dbImportDefinition.getZipPassword() == null ? "<empty>" : "***"));
 					autoCompletionStrings.add("zippassword");
+				}
+				if (dbImportDefinition.getDataType() == DataType.KDBX) {
+					System.out.println("  " + Utilities.rightPad("kdbxpassword)", bulletSize) + " " + Utilities.rightPad("KDBX file password:", nameSize) + (dbImportDefinition.getKdbxPassword() == null ? "<empty>" : "***"));
+					autoCompletionStrings.add("kdbxpassword");
 				}
 				System.out.println("  " + Utilities.rightPad("dbtz)", bulletSize) + " " + Utilities.rightPad("DatabaseTimeZone:", nameSize) + dbImportDefinition.getDatabaseTimeZone());
 				autoCompletionStrings.add("dbtz");
@@ -437,7 +441,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setEncoding(Charset.forName(encodingString));
 								break;
-							} catch (@SuppressWarnings("unused") final Exception e) {
+							} catch (final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported encoding: " + encodingString, TextColor.Light_red));
 							}
 						}
@@ -449,7 +453,7 @@ public class ImportMenu extends ConsoleMenu {
 					separatorString = separatorString == null ? "" : separatorString;
 					try {
 						dbImportDefinition.setSeparator(separatorString.charAt(0));
-					} catch (@SuppressWarnings("unused") final Exception e) {
+					} catch (final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV separator character", TextColor.Light_red));
 					}
 				} else if ("q".equalsIgnoreCase(choice)) {
@@ -459,7 +463,7 @@ public class ImportMenu extends ConsoleMenu {
 					stringQuoteCharacterString = stringQuoteCharacterString == null ? "" : stringQuoteCharacterString;
 					try {
 						dbImportDefinition.setStringQuote(stringQuoteCharacterString.charAt(0));
-					} catch (@SuppressWarnings("unused") final Exception e) {
+					} catch (final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV string quote character", TextColor.Light_red));
 					}
 				} else if ("qe".equalsIgnoreCase(choice)) {
@@ -469,7 +473,7 @@ public class ImportMenu extends ConsoleMenu {
 					stringQuoteEscapeCharacterString = stringQuoteEscapeCharacterString == null ? "" : stringQuoteEscapeCharacterString;
 					try {
 						dbImportDefinition.setEscapeStringQuote(stringQuoteEscapeCharacterString.charAt(0));
-					} catch (@SuppressWarnings("unused") final Exception e) {
+					} catch (final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV string quote character", TextColor.Light_red));
 					}
 				} else if ("noheaders".equalsIgnoreCase(choice)) {
@@ -547,6 +551,11 @@ public class ImportMenu extends ConsoleMenu {
 					System.out.println("Please enter zip password");
 					final char[] zipPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
 					dbImportDefinition.setZipPassword(zipPasswordArray);
+				} else if ("kdbxpassword".equalsIgnoreCase(choice)) {
+					System.out.println();
+					System.out.println("Please enter KDBX password");
+					final char[] kdbxPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					dbImportDefinition.setKdbxPassword(kdbxPasswordArray);
 				} else if ("dbtz".equalsIgnoreCase(choice)) {
 					while (true) {
 						System.out.println();
@@ -560,7 +569,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setDatabaseTimeZone(TimeZone.getTimeZone(dbtzString).toString());
 								break;
-							} catch (@SuppressWarnings("unused") final Exception e) {
+							} catch (final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + dbtzString, TextColor.Light_red));
 							}
 						}
@@ -578,7 +587,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setImportDataTimeZone(TimeZone.getTimeZone(idtzString).toString());
 								break;
-							} catch (@SuppressWarnings("unused") final Exception e) {
+							} catch (final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + idtzString, TextColor.Light_red));
 							}
 						}

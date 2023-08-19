@@ -1,25 +1,20 @@
 package de.soderer.dbimport.dataprovider;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import de.soderer.dbimport.DbImportException;
-import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvDataException;
@@ -47,16 +42,10 @@ public class CsvDataProvider extends DataProvider {
 	private Long itemsAmount = null;
 	private String itemsUnitSign = null;
 
-	private final boolean isInlineData;
-	private final String importFilePathOrData;
-	private final char[] zipPassword;
-
 	private final Charset encoding = StandardCharsets.UTF_8;
 
 	public CsvDataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword, final char separator, final Character stringQuote, final char escapeStringQuote, final boolean allowUnderfilledLines, final boolean removeSurplusEmptyTrailingColumns, final boolean noHeaders, final String nullValueText, final boolean trimData) {
-		this.isInlineData = isInlineData;
-		this.importFilePathOrData = importFilePathOrData;
-		this.zipPassword = zipPassword;
+		super(isInlineData, importFilePathOrData, zipPassword);
 		this.separator = separator;
 		this.stringQuote = stringQuote;
 		this.escapeStringQuote = escapeStringQuote;
@@ -69,15 +58,7 @@ public class CsvDataProvider extends DataProvider {
 
 	@Override
 	public String getConfigurationLogString() {
-		String dataPart;
-		if (isInlineData) {
-			dataPart = "Data: " + importFilePathOrData + "\n";
-		} else {
-			dataPart = "File: " + importFilePathOrData + "\n"
-					+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
-		}
-		return
-				dataPart
+		return super.getConfigurationLogString()
 				+ "Format: CSV" + "\n"
 				+ "Encoding: " + encoding + "\n"
 				+ "Separator: " + separator + "\n"
@@ -173,16 +154,7 @@ public class CsvDataProvider extends DataProvider {
 	@Override
 	public long getItemsAmountToImport() throws Exception {
 		if (itemsAmount == null) {
-			final long dataSize;
-			if (isInlineData) {
-				dataSize = importFilePathOrData.length();
-			} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-				dataSize = ZipUtilities.getDataSizeUncompressed(new File(importFilePathOrData));
-			} else {
-				dataSize = new File(importFilePathOrData).length();
-			}
-
-			if (dataSize < 1024 * 1024 * 1024) {
+			if (getImportDataAmount() < 1024 * 1024 * 1024) {
 				final CsvFormat csvFormat = new CsvFormat()
 						.setSeparator(separator)
 						.setStringQuote(stringQuote)
@@ -202,7 +174,7 @@ public class CsvDataProvider extends DataProvider {
 					throw e;
 				}
 			} else {
-				itemsAmount = dataSize;
+				itemsAmount = getImportDataAmount();
 				itemsUnitSign = "B";
 			}
 		}
@@ -243,138 +215,62 @@ public class CsvDataProvider extends DataProvider {
 	}
 
 	@Override
-	public void close() {
-		Utilities.closeQuietly(csvReader);
-		csvReader = null;
-	}
-
-	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
 		try {
 			openReader();
 
 			File filteredDataFile;
-			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".csv.zip");
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".csv.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(importFilePathOrData + "." + fileSuffix + ".csv").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".csv").getName()));
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tar.gz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tgz");
+				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
+				outputStream = new FileOutputStream(tempFile);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".gz");
+				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
-				filteredDataFile = new File(importFilePathOrData + "." + fileSuffix + ".csv");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".csv");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 
 			try (CsvWriter csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setStringQuoteEscapeCharacter(escapeStringQuote))) {
-
 				csvWriter.writeValues(columnNames);
 
-				Map<String, Object> item;
+				List<String> values;
 				int itemIndex = 0;
-				while ((item = getNextItemData()) != null) {
+				while ((values = csvReader.readNextCsvLine()) != null) {
 					itemIndex++;
 					if (indexList.contains(itemIndex)) {
-						final List<String> values = new ArrayList<>();
-						for (final String columnName : columnNames) {
-							if (item.get(columnName) == null) {
-								values.add(nullValueText);
-							} else if (item.get(columnName) instanceof String) {
-								values.add((String) item.get(columnName));
-							} else if (item.get(columnName) instanceof Date) {
-								values.add(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, (Date) item.get(columnName)));
-							} else if (item.get(columnName) instanceof Number) {
-								values.add(item.get(columnName).toString());
-							} else {
-								values.add(item.get(columnName).toString());
-							}
-						}
 						csvWriter.writeValues(values);
 					}
 				}
-
-				return filteredDataFile;
 			}
+
+			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip") && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(filteredDataFile.getAbsolutePath(), zipPassword, false);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+				TarGzUtilities.compress(filteredDataFile, tempFile, new File(getImportFilePath()).getName() + "." + fileSuffix);
+			}
+
+			return filteredDataFile;
 		} finally {
 			close();
 			Utilities.closeQuietly(outputStream);
-		}
-	}
-
-	@Override
-	public long getImportDataAmount() {
-		if (!isInlineData) {
-			if (!new File(importFilePathOrData).exists()) {
-				return 0;
-			} else if (new File(importFilePathOrData).isDirectory()) {
-				return 0;
-			} else if (new File(importFilePathOrData).length() == 0) {
-				return 0;
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
 			}
-
-			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-					if (zipPassword != null)  {
-						return Zip4jUtilities.getUncompressedSize(new File(importFilePathOrData), zipPassword);
-					} else {
-						return ZipUtilities.getDataSizeUncompressed(new File(importFilePathOrData));
-					}
-				} else {
-					return new File(importFilePathOrData).length();
-				}
-			} catch (@SuppressWarnings("unused") final IOException e) {
-				return 0;
-			}
-		} else {
-			return importFilePathOrData.length();
-		}
-	}
-
-	private InputStream getInputStream() throws Exception {
-		if (!isInlineData) {
-			if (!new File(importFilePathOrData).exists()) {
-				throw new DbImportException("Import file does not exist: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).isDirectory()) {
-				throw new DbImportException("Import path is a directory: " + importFilePathOrData);
-			} else if (new File(importFilePathOrData).length() == 0) {
-				throw new DbImportException("Import file is empty: " + importFilePathOrData);
-			}
-
-			InputStream inputStream = null;
-			try {
-				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-					if (zipPassword != null)  {
-						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
-					} else {
-						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));
-						if (filepathsFromZipArchiveFile.size() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (filepathsFromZipArchiveFile.size() > 1) {
-							throw new DbImportException("Zipped import file contains more than one file: " + importFilePathOrData);
-						}
-
-						inputStream = new ZipInputStream(new FileInputStream(new File(importFilePathOrData)));
-						final ZipEntry zipEntry = ((ZipInputStream) inputStream).getNextEntry();
-						if (zipEntry == null) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData);
-						} else if (zipEntry.getSize() == 0) {
-							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + zipEntry.getName());
-						}
-					}
-				} else {
-					inputStream = new FileInputStream(new File(importFilePathOrData));
-				}
-				return inputStream;
-			} catch (final Exception e) {
-				if (inputStream != null) {
-					try {
-						inputStream.close();
-					} catch (@SuppressWarnings("unused") final IOException e1) {
-						// do nothing
-					}
-				}
-				throw e;
-			}
-		} else {
-			return new ByteArrayInputStream(importFilePathOrData.getBytes(StandardCharsets.UTF_8));
 		}
 	}
 
@@ -399,17 +295,15 @@ public class CsvDataProvider extends DataProvider {
 				csvReader.readNextCsvLine();
 			}
 		} catch (final Exception e) {
-			Utilities.closeQuietly(csvReader);
+			close();
 			throw e;
 		}
 	}
 
 	@Override
-	public long getReadDataSize() {
-		if (csvReader != null) {
-			return csvReader.getReadDataSize();
-		} else {
-			return 0;
-		}
+	public void close() {
+		Utilities.closeQuietly(csvReader);
+		csvReader = null;
+		super.close();
 	}
 }

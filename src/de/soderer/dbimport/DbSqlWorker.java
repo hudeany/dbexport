@@ -88,7 +88,6 @@ public class DbSqlWorker extends DbImportWorker {
 		sqlScriptReader = null;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
 		OutputStream logOutputStream = null;
@@ -234,7 +233,7 @@ public class DbSqlWorker extends DbImportWorker {
 				if (inputStream != null) {
 					try {
 						inputStream.close();
-					} catch (@SuppressWarnings("unused") final IOException e1) {
+					} catch (final IOException e1) {
 						// do nothing
 					}
 				}

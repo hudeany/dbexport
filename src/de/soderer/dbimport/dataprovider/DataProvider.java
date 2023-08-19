@@ -1,28 +1,56 @@
 package de.soderer.dbimport.dataprovider;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
+import de.soderer.utilities.CountingInputStream;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.InputStreamWithOtherItemsToClose;
 import de.soderer.utilities.NumberUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.db.SimpleDataType;
+import de.soderer.utilities.zip.Zip4jUtilities;
+import de.soderer.utilities.zip.ZipUtilities;
 
 public abstract class DataProvider implements Closeable {
-	abstract public String getConfigurationLogString();
 	abstract public List<String> getAvailableDataPropertyNames() throws Exception;
 	abstract public long getItemsAmountToImport() throws Exception;
-	abstract public long getReadDataSize();
+	abstract public String getItemsUnitSign() throws Exception;
 	abstract public Map<String, Object> getNextItemData() throws Exception;
 	abstract public Map<String, DbColumnType> scanDataPropertyTypes(Map<String, Tuple<String, String>> mapping) throws Exception;
 	abstract public File filterDataItems(List<Integer> indexList, String fileSuffix) throws Exception;
-	abstract public long getImportDataAmount();
+
+	private final boolean isInlineData;
+	private final String importInlineData;
+	private final File importFile;
+	protected char[] zipPassword;
+
+	private CountingInputStream inputStream = null;
+
+	public DataProvider(final boolean isInlineData, final String importFilePathOrData, final char[] zipPassword) {
+		this.isInlineData = isInlineData;
+		if (isInlineData) {
+			importInlineData = importFilePathOrData;
+			importFile = null;
+			this.zipPassword = null;
+		} else {
+			importFile = new File(importFilePathOrData);
+			this.zipPassword = zipPassword;
+			importInlineData = null;
+		}
+	}
 
 	static void detectNextDataType(final Map<String, Tuple<String, String>> mapping, final Map<String, DbColumnType> dataTypes, final String propertyKey, final String currentValue) {
 		String formatInfo = null;
@@ -103,8 +131,132 @@ public abstract class DataProvider implements Closeable {
 		}
 	}
 
-	@SuppressWarnings("static-method")
-	public String getItemsUnitSign() throws Exception {
-		return null;
+	protected InputStream getInputStream() throws Exception {
+		if (isInlineData) {
+			if (Utilities.isBlank(importInlineData)) {
+				throw new Exception("Import inline data is empty");
+			} else {
+				return new ByteArrayInputStream(importInlineData.getBytes(StandardCharsets.UTF_8));
+			}
+		} else {
+			if (!importFile.exists()) {
+				throw new Exception("Import file does not exist: " + importFile.getAbsolutePath());
+			} else if (importFile.isDirectory()) {
+				throw new Exception("Import path is a directory: " + importFile.getAbsolutePath());
+			} else if (importFile.length() == 0) {
+				throw new Exception("Import file is empty: " + importFile.getAbsolutePath());
+			} else {
+				try {
+					if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
+						if (ZipUtilities.getZipFileEntries(importFile).size() != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
+						} else {
+							if (zipPassword != null)  {
+								inputStream = new CountingInputStream(Zip4jUtilities.openPasswordSecuredZipFile(importFile.getAbsolutePath(), zipPassword));
+							} else {
+								inputStream = new CountingInputStream(ZipUtilities.openZipFile(importFile.getAbsolutePath()));
+							}
+						}
+					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+						if (TarGzUtilities.getFilesCount(importFile) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(importFile));
+						}
+					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+						if (TarGzUtilities.getFilesCount(importFile) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(importFile));
+						}
+					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+						inputStream = new CountingInputStream(new GZIPInputStream(new FileInputStream(importFile)));
+					} else {
+						inputStream = new CountingInputStream(new InputStreamWithOtherItemsToClose(new FileInputStream(importFile), importFile.getAbsolutePath()));
+					}
+					return inputStream;
+				} catch (final Exception e) {
+					if (inputStream != null) {
+						try {
+							inputStream.close();
+						} catch (@SuppressWarnings("unused") final IOException e1) {
+							// do nothing
+						}
+					}
+					throw e;
+				}
+			}
+		}
+	}
+
+	public String getConfigurationLogString() {
+		if (isInlineData) {
+			return "Inline data: true\n";
+		} else {
+			String configurationLogString =  "File: " + importFile.getAbsolutePath() + "\n";
+			if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
+				configurationLogString += "Zip: true\n";
+				if (zipPassword != null) {
+					configurationLogString += "ZipPassword: true\n";
+				}
+			}
+			return configurationLogString;
+		}
+	}
+
+	@Override
+	public void close() {
+		if (inputStream != null) {
+			try {
+				inputStream.close();
+			} catch (final Exception e) {
+				e.printStackTrace();
+			}
+			inputStream = null;
+		}
+	}
+
+	public String getImportFilePath() {
+		return importFile.getAbsolutePath();
+	}
+
+	/**
+	 * Raw import data size.<br/>
+	 * This means, the data might be compressed and this is the size of the <b>compressed</b> data.
+	 */
+	public long getImportDataSize() {
+		if (isInlineData) {
+			return importInlineData.getBytes(StandardCharsets.UTF_8).length;
+		} else {
+			return importFile.length();
+		}
+	}
+
+	/**
+	 * Real import data size.<br/>
+	 * This means, the data might be compressed and this is the size of the <b>uncompressed</b> data.
+	 */
+	public long getImportDataAmount() throws Exception {
+		if (isInlineData) {
+			return importInlineData.getBytes(StandardCharsets.UTF_8).length;
+		} else {
+			if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
+				if (zipPassword != null)  {
+					return Zip4jUtilities.getUncompressedSize(importFile, zipPassword);
+				} else {
+					return ZipUtilities.getDataSizeUncompressed(importFile);
+				}
+			} else {
+				return importFile.length();
+			}
+		}
+	}
+
+	public long getReadDataSize() {
+		if (inputStream != null) {
+			return inputStream.getByteCount();
+		} else {
+			return 0;
+		}
 	}
 }

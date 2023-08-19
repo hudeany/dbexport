@@ -386,7 +386,7 @@ public class FileUtilities {
 	public static boolean isValidFilePath(final String path) {
 		try {
 			Paths.get(path);
-		} catch (@SuppressWarnings("unused") InvalidPathException | NullPointerException ex) {
+		} catch (InvalidPathException | NullPointerException ex) {
 			return false;
 		}
 		return true;

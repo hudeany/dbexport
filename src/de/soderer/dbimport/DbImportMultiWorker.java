@@ -179,7 +179,7 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 					if (!connection.getAutoCommit()) {
 						connection.commit();
 					}
-				} catch (Exception e) {
+				} catch (final Exception e) {
 					System.err.println("Cannot reactivate foreign key constraints");
 					e.printStackTrace();
 				}
@@ -191,7 +191,7 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 					if (!connection.getAutoCommit()) {
 						connection.commit();
 					}
-				} catch (Exception e) {
+				} catch (final Exception e) {
 					System.err.println("Cannot reactivate triggers");
 					e.printStackTrace();
 				}
@@ -203,7 +203,7 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 		if (dbImportDefinitionParam.getDbVendor() == DbVendor.Derby || (dbImportDefinitionParam.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbImportDefinitionParam.getHostnameAndPort())) || dbImportDefinitionParam.getDbVendor() == DbVendor.SQLite) {
 			try {
 				return DbUtilities.createConnection(dbImportDefinitionParam, true);
-			} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
+			} catch (final DbNotExistsException e) {
 				return DbUtilities.createNewDatabase(dbImportDefinitionParam.getDbVendor(), dbImportDefinitionParam.getDbName());
 			}
 		} else {

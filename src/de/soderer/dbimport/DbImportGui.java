@@ -129,6 +129,9 @@ public class DbImportGui extends UpdateableGuiApplication {
 	/** The zipPassword field. */
 	private final JPasswordField zipPasswordField;
 
+	/** The kdbxPassword field. */
+	private final JPasswordField kdbxPasswordField;
+
 	private final JTextField dataPathField;
 
 	private final JTextField structureFilePathField;
@@ -187,7 +190,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 	private final JCheckBox createNewIndexIfNeededBox;
 
 	private final JCheckBox deactivateForeignKeyConstraintsBox;
-	
+
 	private final JCheckBox deactivateTriggersBox;
 
 	private final JCheckBox updateWithNullDataBox;
@@ -541,6 +544,23 @@ public class DbImportGui extends UpdateableGuiApplication {
 		});
 		zipPasswordPanel.add(zipPasswordField);
 		mandatoryParameterPanel.add(zipPasswordPanel);
+
+		// kdbxPassword panel
+		final JPanel kdbxPasswordPanel = new JPanel();
+		kdbxPasswordPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel kdbxPasswordLabel = new JLabel(LangResources.get("kdbxPassword"));
+		kdbxPasswordPanel.add(kdbxPasswordLabel);
+		kdbxPasswordField = new JPasswordField();
+		kdbxPasswordField.setToolTipText(LangResources.get("kdbxPassword_help"));
+		kdbxPasswordField.setPreferredSize(new Dimension(200, kdbxPasswordField.getPreferredSize().height));
+		kdbxPasswordField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(final KeyEvent event) {
+				checkButtonStatus();
+			}
+		});
+		kdbxPasswordPanel.add(kdbxPasswordField);
+		mandatoryParameterPanel.add(kdbxPasswordPanel);
 
 		// Data path panel
 		final JPanel dataPathPanel = new JPanel();
@@ -1190,6 +1210,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dbImportDefinition.setLogErroneousData(logErroneousDataBox.isSelected());
 		// null stands for no usage of zip password, but GUI field text is always not null, so use empty field as deactivation of zip password
 		dbImportDefinition.setZipPassword(Utilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
+		dbImportDefinition.setKdbxPassword(kdbxPasswordField.getPassword());
 		dbImportDefinition.setDatabaseTimeZone((String) databaseTimezoneCombo.getSelectedItem());
 		dbImportDefinition.setImportDataTimeZone((String) importDataTimezoneCombo.getSelectedItem());
 
@@ -1227,6 +1248,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		secureConnectionBox.setSelected(dbImportDefinition.isSecureConnection());
 		trustStoreFilePathField.setText(dbImportDefinition.getTrustStoreFile() == null ? "" : dbImportDefinition.getTrustStoreFile().getAbsolutePath());
 		zipPasswordField.setText(dbImportDefinition.getZipPassword() == null ? "" : new String(dbImportDefinition.getZipPassword()));
+		kdbxPasswordField.setText(dbImportDefinition.getKdbxPassword() == null ? "" : new String(dbImportDefinition.getKdbxPassword()));
 
 		tableNameField.setText(dbImportDefinition.getTableName());
 		importFilePathOrDataField.setText(dbImportDefinition.getImportFilePathOrData());
@@ -1401,132 +1423,215 @@ public class DbImportGui extends UpdateableGuiApplication {
 					&& Utilities.isNotBlank(passwordField.getPassword()) || DbVendor.Cassandra.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem()));
 		}
 
-		if (DataType.CSV.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(true);
-			stringQuoteCombo.setEnabled(true);
-			escapeStringQuoteCombo.setEnabled(true);
-			noHeadersBox.setEnabled(true);
-			nullValueStringCombo.setEnabled(true);
-			allowUnderfilledLinesBox.setEnabled(true);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(true);
-			tableNameField.setEnabled(true);
-			createTableBox.setEnabled(true);
-			updateWithNullDataBox.setEnabled(true);
-			trimDataBox.setEnabled(true);
-			importModeCombo.setEnabled(true);
-			duplicateModeCombo.setEnabled(true);
-			keyColumnsField.setEnabled(true);
-			mappingField.setEnabled(true);
-			additionalInsertValuesField.setEnabled(true);
-			additionalUpdateValuesField.setEnabled(true);
-			dataPathField.setEnabled(false);
-			schemaFilePathField.setEnabled(false);
-			schemaFileButton.setEnabled(false);
-		} else if (DataType.JSON.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			escapeStringQuoteCombo.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			nullValueStringCombo.setEnabled(false);
-			allowUnderfilledLinesBox.setEnabled(false);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
-			tableNameField.setEnabled(true);
-			createTableBox.setEnabled(true);
-			updateWithNullDataBox.setEnabled(true);
-			trimDataBox.setEnabled(true);
-			importModeCombo.setEnabled(true);
-			duplicateModeCombo.setEnabled(true);
-			keyColumnsField.setEnabled(true);
-			mappingField.setEnabled(true);
-			additionalInsertValuesField.setEnabled(true);
-			additionalUpdateValuesField.setEnabled(true);
-			dataPathField.setEnabled(true);
-			schemaFilePathField.setEnabled(true);
-			schemaFileButton.setEnabled(true);
-		} else if (DataType.XML.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			escapeStringQuoteCombo.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			nullValueStringCombo.setEnabled(true);
-			allowUnderfilledLinesBox.setEnabled(false);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
-			tableNameField.setEnabled(true);
-			createTableBox.setEnabled(true);
-			updateWithNullDataBox.setEnabled(true);
-			trimDataBox.setEnabled(true);
-			importModeCombo.setEnabled(true);
-			duplicateModeCombo.setEnabled(true);
-			keyColumnsField.setEnabled(true);
-			mappingField.setEnabled(true);
-			additionalInsertValuesField.setEnabled(true);
-			additionalUpdateValuesField.setEnabled(true);
-			dataPathField.setEnabled(true);
-			schemaFilePathField.setEnabled(true);
-			schemaFileButton.setEnabled(true);
-		} else if (DataType.SQL.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			escapeStringQuoteCombo.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			nullValueStringCombo.setEnabled(false);
-			allowUnderfilledLinesBox.setEnabled(false);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
-			tableNameField.setEnabled(false);
-			createTableBox.setEnabled(false);
-			updateWithNullDataBox.setEnabled(false);
-			trimDataBox.setEnabled(false);
-			importModeCombo.setEnabled(false);
-			duplicateModeCombo.setEnabled(false);
-			keyColumnsField.setEnabled(false);
-			mappingField.setEnabled(false);
-			additionalInsertValuesField.setEnabled(false);
-			additionalUpdateValuesField.setEnabled(false);
-			dataPathField.setEnabled(false);
-			schemaFilePathField.setEnabled(false);
-			schemaFileButton.setEnabled(false);
-		} else if (DataType.EXCEL.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			escapeStringQuoteCombo.setEnabled(false);
-			noHeadersBox.setEnabled(true);
-			nullValueStringCombo.setEnabled(true);
-			allowUnderfilledLinesBox.setEnabled(true);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
-			tableNameField.setEnabled(true);
-			createTableBox.setEnabled(true);
-			updateWithNullDataBox.setEnabled(true);
-			trimDataBox.setEnabled(true);
-			importModeCombo.setEnabled(true);
-			duplicateModeCombo.setEnabled(true);
-			keyColumnsField.setEnabled(true);
-			mappingField.setEnabled(true);
-			additionalInsertValuesField.setEnabled(true);
-			additionalUpdateValuesField.setEnabled(true);
-			dataPathField.setEnabled(true);
-			schemaFilePathField.setEnabled(false);
-			schemaFileButton.setEnabled(true);
-		} else if (DataType.ODS.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			escapeStringQuoteCombo.setEnabled(false);
-			noHeadersBox.setEnabled(true);
-			nullValueStringCombo.setEnabled(true);
-			allowUnderfilledLinesBox.setEnabled(true);
-			removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
-			tableNameField.setEnabled(true);
-			createTableBox.setEnabled(true);
-			updateWithNullDataBox.setEnabled(true);
-			trimDataBox.setEnabled(true);
-			importModeCombo.setEnabled(true);
-			duplicateModeCombo.setEnabled(true);
-			keyColumnsField.setEnabled(true);
-			mappingField.setEnabled(true);
-			additionalInsertValuesField.setEnabled(true);
-			additionalUpdateValuesField.setEnabled(true);
-			dataPathField.setEnabled(true);
-			schemaFilePathField.setEnabled(false);
-			schemaFileButton.setEnabled(true);
+		switch (DataType.getFromString((String) dataTypeCombo.getSelectedItem())) {
+			case CSV:
+				separatorCombo.setEnabled(true);
+				stringQuoteCombo.setEnabled(true);
+				escapeStringQuoteCombo.setEnabled(true);
+				noHeadersBox.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				allowUnderfilledLinesBox.setEnabled(true);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(true);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(false);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case EXCEL:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				allowUnderfilledLinesBox.setEnabled(true);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case JSON:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				allowUnderfilledLinesBox.setEnabled(false);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(true);
+				schemaFileButton.setEnabled(true);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case KDBX:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				allowUnderfilledLinesBox.setEnabled(false);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(false);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(true);
+				break;
+			case ODS:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				allowUnderfilledLinesBox.setEnabled(true);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case SQL:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				allowUnderfilledLinesBox.setEnabled(false);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(false);
+				createTableBox.setEnabled(false);
+				updateWithNullDataBox.setEnabled(false);
+				trimDataBox.setEnabled(false);
+				importModeCombo.setEnabled(false);
+				duplicateModeCombo.setEnabled(false);
+				keyColumnsField.setEnabled(false);
+				mappingField.setEnabled(false);
+				additionalInsertValuesField.setEnabled(false);
+				additionalUpdateValuesField.setEnabled(false);
+				dataPathField.setEnabled(false);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case VCF:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				allowUnderfilledLinesBox.setEnabled(false);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(false);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			case XML:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				escapeStringQuoteCombo.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				nullValueStringCombo.setEnabled(true);
+				allowUnderfilledLinesBox.setEnabled(false);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(false);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(true);
+				schemaFilePathField.setEnabled(true);
+				schemaFileButton.setEnabled(true);
+				kdbxPasswordField.setEnabled(false);
+				break;
+			default:
+				// default CSV
+				separatorCombo.setEnabled(true);
+				stringQuoteCombo.setEnabled(true);
+				escapeStringQuoteCombo.setEnabled(true);
+				noHeadersBox.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				allowUnderfilledLinesBox.setEnabled(true);
+				removeSurplusEmptyTrailingColumnsBox.setEnabled(true);
+				tableNameField.setEnabled(true);
+				createTableBox.setEnabled(true);
+				updateWithNullDataBox.setEnabled(true);
+				trimDataBox.setEnabled(true);
+				importModeCombo.setEnabled(true);
+				duplicateModeCombo.setEnabled(true);
+				keyColumnsField.setEnabled(true);
+				mappingField.setEnabled(true);
+				additionalInsertValuesField.setEnabled(true);
+				additionalUpdateValuesField.setEnabled(true);
+				dataPathField.setEnabled(false);
+				schemaFilePathField.setEnabled(false);
+				schemaFileButton.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				break;
 		}
 		mappingField.setBackground(mappingField.isEnabled() ? Color.WHITE : Color.LIGHT_GRAY);
 
@@ -1537,7 +1642,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		} else {
 			deactivateForeignKeyConstraintsBox.setEnabled(false);
 		}
-		
+
 		if (DbVendor.Oracle.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
 			deactivateTriggersBox.setEnabled(true);
 		} else {

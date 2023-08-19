@@ -1,4 +1,4 @@
-Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname, username -table tablename -import importfilepathOrData [password]
+Usage: java -jar DbImport.jar [optional parameters] dbtype hostname[:port] dbname username -table tablename -import importfilepathOrData [password]
 
 Mandatory parameters for db import
 	dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
@@ -8,13 +8,13 @@ Mandatory parameters for db import
 	password: Is asked interactivly, if not given as parameter (Not needed for sqlite and derby)
 	
 	-table tablename: Table to import to (* for name by filename)
-	-import importfilepathOrData: File to import (?, * as wildcards, automapping only), maybe zipped (.zip)
+	-import importfilepathOrData: File to import (?, * as wildcards, automapping only), maybe zipped (.zip, .tar.gz, .tgz, .gz)
 								or data as text (See optional parameter '-data')
 
 Optional parameters for db import
 	-data: Declare importfilepathOrData explicitly as inline data (No filepath)
-	-x importDataFormat: Data import format, default format is CSV
-		importDataFormat: CSV | JSON | XML | SQL | EXCEL | ODS
+	-x importDataFormat: Data import format, default format is detected by file extension or, if it cannot be detected, default is CSV
+		importDataFormat: CSV | JSON | XML | SQL | EXCEL | ODS | VCF | KDBX
 	-dp <datapath>: Optional datapath within the XML-Data (XPath), JSON-Data or EXCEL/ODS-Data (Sheetname)
 	-sp <schemaFilePath>: Optional path to schema file for XML (XSD) or JSON
 	-m: Column mappings (Separated by semicolon or linebreak): When not configured a simple mapping by column names is used (Automapping)
@@ -33,6 +33,7 @@ Optional parameters for db import
 	-c: Complete commit only (Takes more time and makes rollback on any error)
 	-nonewindex: Do not create new indexes on destination table, even if they are helpful (By default new indexes are created, which saves time)
 	-deactivatefk: Deactivate foreign key constraints during import
+	-deactivatetriggers: Deactivate triggers during import
 	-a: Allow underfilled lines (for CSV)
 	-r: Allow lines with surplus empty trailing columns (for CSV)
 	-t: Trim data values
@@ -56,10 +57,14 @@ Optional parameters for db import
 	-insvalues 'valuelist': Value list semicolon separated: Sometimes values not included in the data file are needed for inserts. E.g.: id=test_seq.NEXTVAL;flag='abc'
 	-updvalues 'valuelist': Value list semicolon separated: Sometimes values not included in the data file are needed for updates. E.g.: create=current_timestamp;flag='abc'
 	-create: Scan data and create suitable table, if not exists. Also creates sqlite, derby and hsql db if needed
+	-structure <structureFilePath>: Optional path to db structure JSON file to be used with "-create" parameter
 	-logerrors: Log error data items in file
-	-zippassword '<password>'
+	-zippassword '<zippassword>' (Only for .zip files)
+	-kdbxpassword '<kdbxpassword>' (Only for .kdbx files)
 	-dbtz '<databaseTimeZone>' (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-idtz '<importDataTimeZone>' (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
+	-dateFormat: set fallback date format, especially for multiple file imports, can be overridden by mapping formats, use Java format characters (YMdhmsS) 
+	-dateTimeFormat: set fallback date time format, especially for multiple file imports, can be overridden by mapping formats, use Java format characters (YMdhmsS)
 	-secure: Use TLS/SSL for secure communication with database
 	-truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted DB connections of some DB vendors
 	-truststorepassword '<password>': Optional password for TrustStore

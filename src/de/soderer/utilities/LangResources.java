@@ -51,7 +51,7 @@ public class LangResources {
 		if (propertyResourceBundle == null) {
 			try {
 				propertyResourceBundle = (PropertyResourceBundle) ResourceBundle.getBundle("LanguageProperties");
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				// Do nothing
 			}
 		}

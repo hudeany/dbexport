@@ -43,6 +43,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -106,7 +107,7 @@ public class Utilities {
 				gzipOutputStream.write(clearData);
 			}
 			return encoded.toByteArray();
-		} catch (@SuppressWarnings("unused") final IOException e) {
+		} catch (final IOException e) {
 			return null;
 		}
 	}
@@ -124,7 +125,7 @@ public class Utilities {
 				IoUtilities.copy(gzipInputStream, decoded);
 			}
 			return decoded.toByteArray();
-		} catch (@SuppressWarnings("unused") final IOException e) {
+		} catch (final IOException e) {
 			return null;
 		}
 	}
@@ -627,7 +628,7 @@ public class Utilities {
 					} else {
 						propertiesMap.put("os.distribution.version", "Unknown");
 					}
-				} catch (@SuppressWarnings("unused") final Exception e) {
+				} catch (final Exception e) {
 					propertiesMap.put("os.distribution.name", "Unknown");
 					propertiesMap.put("os.distribution.version", "Unknown");
 				}
@@ -1001,7 +1002,7 @@ public class Utilities {
 		if (closeable != null) {
 			try {
 				closeable.close();
-			} catch (@SuppressWarnings("unused") final IOException e) {
+			} catch (final IOException e) {
 				// Do nothing
 			}
 		}
@@ -1015,14 +1016,14 @@ public class Utilities {
 		if (closeable != null) {
 			try {
 				closeable.close();
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				// Do nothing
 			}
 		}
 		if (inputStream != null) {
 			try {
 				inputStream.close();
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				// Do nothing
 			}
 		}
@@ -1183,7 +1184,7 @@ public class Utilities {
 	public static String leftPad(final String value, final int minimumLength) {
 		try {
 			return String.format("%1$" + minimumLength + "s", value);
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return value;
 		}
 	}
@@ -1198,7 +1199,7 @@ public class Utilities {
 	public static String rightPad(final String value, final int minimumLength) {
 		try {
 			return String.format("%1$-" + minimumLength + "s", value);
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return value;
 		}
 	}
@@ -1769,7 +1770,7 @@ public class Utilities {
 		final KeyStore readKeyStore = KeyStore.getInstance("PKCS12");
 		try (FileInputStream inputStream = new FileInputStream(keyStoreFileWithNullPassword)) {
 			readKeyStore.load(inputStream, "".toCharArray());
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			// KeyStore password is not blank, so do not fix anything
 			return;
 		}
@@ -1809,5 +1810,9 @@ public class Utilities {
 		} else {
 			return comment;
 		}
+	}
+
+	public static String joinNotBlank(final List<String> listOfStrings, final String glue) {
+		return join(listOfStrings.stream().filter(x -> isNotBlank(x)).collect(Collectors.toList()), glue);
 	}
 }

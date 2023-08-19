@@ -1,27 +1,29 @@
 package de.soderer.dbimport.dataprovider;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 
-import de.soderer.dbimport.DbImportException;
+import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbColumnType;
-import de.soderer.utilities.zip.ZipUtilities;
 
 public class OdsDataProvider extends DataProvider {
-	private final String importFilePath;
-
-	private FileInputStream inputStream = null;
+	private String sheetname = null;
+	private InputStream contentXmlZipInputStream = null;
 	private XMLStreamReader xmlReader = null;
 
 	private String nullValueText = null;
@@ -35,23 +37,23 @@ public class OdsDataProvider extends DataProvider {
 	private List<String> columnNames = null;
 	private int currentRowNumber;
 
-	public OdsDataProvider(final String importFilePath, final boolean allowUnderfilledLines, final boolean noHeaders, final String nullValueText, final boolean trimData) throws Exception {
-		this.importFilePath = importFilePath;
+	public OdsDataProvider(final String importFilePath, final char[] zipPassword, final boolean allowUnderfilledLines, final boolean noHeaders, final String nullValueText, final boolean trimData, final String sheetname) {
+		super(false, importFilePath, zipPassword);
 		this.allowUnderfilledLines = allowUnderfilledLines;
 		this.noHeaders = noHeaders;
 		this.nullValueText = nullValueText;
 		this.trimData = trimData;
+		this.sheetname = sheetname;
 	}
 
 	@Override
 	public String getConfigurationLogString() {
-		final String dataPart = "File: " + importFilePath + "\n";
-		return
-				dataPart
+		return super.getConfigurationLogString()
 				+ "Format: ODS" + "\n"
 				+ "AllowUnderfilledLines: " + allowUnderfilledLines + "\n"
 				+ "NoHeaders: " + noHeaders + "\n"
 				+ "TrimData: " + trimData + "\n"
+				+ (Utilities.isNotBlank(sheetname) ? "Sheetname: " + sheetname + "\n" : "")
 				+ "Null value text: " + (nullValueText == null ? "none" : "\"" + nullValueText + "\"") + "\n";
 	}
 
@@ -66,18 +68,25 @@ public class OdsDataProvider extends DataProvider {
 
 				if (!noHeaders) {
 					// Read headers from file
-					columnNames = readNextRow();
+					columnNames = readNextRow().stream().map(x -> x.toString()).collect(Collectors.toList());
+
+					// Remove empty trailing headernames
+					while (columnNames.size() > 0 && Utilities.isBlank(columnNames.get(columnNames.size() - 1))) {
+						columnNames.remove(columnNames.get(columnNames.size() - 1));
+					}
 				}
 
 				dataTypes = new HashMap<>();
 
 				// Scan all data for maximum
-				List<String> values;
+				List<Object> values;
 				while ((values = readNextRow()) != null) {
 					for (int i = 0; i < values.size(); i++) {
 						final String columnName = (columnNames == null || columnNames.size() <= i ? "column_" + Integer.toString(i + 1) : columnNames.get(i));
-						final String currentValue = values.get(i);
-						detectNextDataType(mapping, dataTypes, columnName, currentValue);
+						final Object currentValue = values.get(i);
+						if (currentValue != null && currentValue instanceof String) {
+							detectNextDataType(mapping, dataTypes, columnName, (String) currentValue);
+						}
 					}
 				}
 			} catch (final Exception e) {
@@ -94,12 +103,6 @@ public class OdsDataProvider extends DataProvider {
 	public List<String> getAvailableDataPropertyNames() throws Exception {
 		if (columnNames == null) {
 			try {
-				if (!new File(importFilePath).exists()) {
-					throw new DbImportException("Import file does not exist: " + importFilePath);
-				} else if (new File(importFilePath).isDirectory()) {
-					throw new DbImportException("Import path is a directory: " + importFilePath);
-				}
-
 				if (xmlReader == null) {
 					openReader();
 				}
@@ -110,7 +113,7 @@ public class OdsDataProvider extends DataProvider {
 					final List<String> returnList = new ArrayList<>();
 					if (allowUnderfilledLines) {
 						// Scan all data for maximum
-						List<String> values;
+						List<Object> values;
 						int maxColumns = 0;
 						while ((values = readNextRow()) != null) {
 							maxColumns = Math.max(maxColumns, values.size());
@@ -121,7 +124,7 @@ public class OdsDataProvider extends DataProvider {
 						columnNames = returnList;
 					} else {
 						// Only take first data as example for all other data
-						final List<String> values = readNextRow();
+						final List<Object> values = readNextRow();
 						for (int i = 0; i < values.size(); i++) {
 							returnList.add("column_" + Integer.toString(i + 1));
 						}
@@ -129,7 +132,12 @@ public class OdsDataProvider extends DataProvider {
 					}
 				} else {
 					// Read headers from file
-					columnNames = readNextRow();
+					columnNames = readNextRow().stream().map(x -> x.toString()).collect(Collectors.toList());
+
+					// Remove empty trailing headernames
+					while (columnNames.size() > 0 && Utilities.isBlank(columnNames.get(columnNames.size() - 1))) {
+						columnNames.remove(columnNames.get(columnNames.size() - 1));
+					}
 				}
 			} catch (final Exception e) {
 				throw e;
@@ -141,9 +149,9 @@ public class OdsDataProvider extends DataProvider {
 		return columnNames;
 	}
 
-	private List<String> readNextRow() throws Exception {
-		List<String> returnList = null;
-		while (xmlReader.next() > 0) {
+	private List<Object> readNextRow() throws Exception {
+		List<Object> returnList = null;
+		while (xmlReader.hasNext() && xmlReader.next() > 0) {
 			if (xmlReader.isStartElement() && xmlReader.getLocalName().equals("table-row")) {
 				currentRowNumber++;
 				returnList = new ArrayList<>();
@@ -162,9 +170,12 @@ public class OdsDataProvider extends DataProvider {
 						} else if (xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "value-type") != null && !"string".equalsIgnoreCase(xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "value-type"))) {
 							final String dataType = xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "value-type");
 							if ("float".equalsIgnoreCase(dataType)) {
-								returnList.add(xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "value"));
+								final String floatValue = xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "value");
+								returnList.add(Double.parseDouble(floatValue));
 							} else if ("date".equalsIgnoreCase(dataType)) {
-								returnList.add(xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "date-value"));
+								final String dateAttributeValue = xmlReader.getAttributeValue("urn:oasis:names:tc:opendocument:xmlns:office:1.0", "date-value");
+								final ZonedDateTime dateValue = DateUtilities.parseIso8601DateTimeString(dateAttributeValue);
+								returnList.add(dateValue);
 							} else {
 								throw new Exception("Unsupported datatype: " + dataType);
 							}
@@ -250,6 +261,11 @@ public class OdsDataProvider extends DataProvider {
 		return itemsAmount;
 	}
 
+	@Override
+	public String getItemsUnitSign() throws Exception {
+		return null;
+	}
+
 	public static String readElementBody(final XMLStreamReader xmlStreamReader) throws Exception {
 		final StringBuilder buffer = new StringBuilder();
 		int depth = 0;
@@ -290,23 +306,47 @@ public class OdsDataProvider extends DataProvider {
 			throw new Exception("Reader was already opened before");
 		}
 
+		@SuppressWarnings("resource")
+		ZipInputStream zipInputStream = null;
 		try {
-			final File tempContentFile = File.createTempFile("importTempFile", ".xml");
-			tempContentFile.delete();
-			ZipUtilities.unzipFile(new File(importFilePath), tempContentFile, null, "content.xml");
+			zipInputStream = new ZipInputStream(getInputStream());
+			ZipEntry nextEntry;
+			while ((nextEntry = zipInputStream.getNextEntry()) != null) {
+				if (nextEntry.getName().equals("content.xml")) {
+					contentXmlZipInputStream = zipInputStream;
+					break;
+				}
+			}
+
+			if (contentXmlZipInputStream == null) {
+				throw new Exception("Cannot find ods data");
+			}
 
 			final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-			inputStream = new FileInputStream(tempContentFile);
-			xmlReader = xmlInputFactory.createXMLStreamReader(inputStream);
+
+			xmlReader = xmlInputFactory.createXMLStreamReader(contentXmlZipInputStream);
 
 			final String dataPath = "document-content/body/spreadsheet/table";
 			final Stack<String> currentPath = new Stack<>();
+			String currentSheetname = null;
 			xmlReader.next();
 			currentPath.push(xmlReader.getLocalName());
-			while (currentPath.size() > 0 && !Utilities.join(currentPath, "/").equals(dataPath)) {
+			while (currentPath.size() > 0 && !Utilities.join(currentPath, "/").equals(dataPath) && !(sheetname == null || sheetname.equals(currentSheetname))) {
 				xmlReader.next();
 				if (xmlReader.isStartElement()) {
 					currentPath.push(xmlReader.getLocalName());
+
+					if ("table".equals(xmlReader.getLocalName())) {
+						currentSheetname = null;
+						for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
+							if (xmlReader.getAttributeLocalName(i).equals("name")) {
+								currentSheetname = xmlReader.getAttributeValue(i);
+								break;
+							}
+						}
+					} else {
+						currentSheetname = null;
+					}
 				} else if (xmlReader.isEndElement()) {
 					currentPath.pop();
 				}
@@ -317,6 +357,9 @@ public class OdsDataProvider extends DataProvider {
 
 			currentRowNumber = 0;
 		} catch (final Exception e) {
+			if (zipInputStream != null) {
+				zipInputStream.close();
+			}
 			close();
 			throw e;
 		}
@@ -337,7 +380,7 @@ public class OdsDataProvider extends DataProvider {
 			readNextRow();
 		}
 
-		final List<String> values = readNextRow();
+		final List<Object> values = readNextRow();
 		if (values != null) {
 			final Map<String, Object> returnMap = new HashMap<>();
 			for (int i = 0; i < getAvailableDataPropertyNames().size(); i++) {
@@ -360,13 +403,13 @@ public class OdsDataProvider extends DataProvider {
 
 	@Override
 	public void close() {
-		if (inputStream != null) {
+		if (contentXmlZipInputStream != null) {
 			try {
-				inputStream.close();
+				contentXmlZipInputStream.close();
 			} catch (final Exception e) {
 				e.printStackTrace();
 			}
-			inputStream = null;
+			contentXmlZipInputStream = null;
 		}
 		if (xmlReader != null) {
 			try {
@@ -376,21 +419,11 @@ public class OdsDataProvider extends DataProvider {
 			}
 			xmlReader = null;
 		}
+		super.close();
 	}
 
 	@Override
 	public File filterDataItems(final List<Integer> indexList, final String fileSuffix) throws Exception {
 		throw new Exception("filterDataItems method is not supported by OdsDataProvider");
-	}
-
-	@Override
-	public long getImportDataAmount() {
-		return new File(importFilePath).length();
-	}
-
-	@Override
-	public long getReadDataSize() {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

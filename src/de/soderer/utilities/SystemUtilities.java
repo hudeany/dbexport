@@ -136,7 +136,7 @@ public class SystemUtilities {
 	public static boolean isUnlimitedKeyStrengthAllowed() {
 		try {
 			return Cipher.getMaxAllowedKeyLength("AES") == Integer.MAX_VALUE;
-		} catch (@SuppressWarnings("unused") final NoSuchAlgorithmException e) {
+		} catch (final NoSuchAlgorithmException e) {
 			return false;
 		}
 	}

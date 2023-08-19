@@ -13,7 +13,9 @@ import de.soderer.dbimport.dataprovider.CsvDataProvider;
 import de.soderer.dbimport.dataprovider.DataProvider;
 import de.soderer.dbimport.dataprovider.ExcelDataProvider;
 import de.soderer.dbimport.dataprovider.JsonDataProvider;
+import de.soderer.dbimport.dataprovider.KdbxDataProvider;
 import de.soderer.dbimport.dataprovider.OdsDataProvider;
+import de.soderer.dbimport.dataprovider.VcfDataProvider;
 import de.soderer.dbimport.dataprovider.XmlDataProvider;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
@@ -32,7 +34,9 @@ public class DbImportDefinition extends DbDefinition {
 		XML,
 		SQL,
 		EXCEL,
-		ODS;
+		ODS,
+		VCF,
+		KDBX;
 
 		/**
 		 * Gets the string representation of data type.
@@ -43,13 +47,13 @@ public class DbImportDefinition extends DbDefinition {
 		 * @throws Exception
 		 *             the exception
 		 */
-		public static DataType getFromString(final String dataTypeString) throws Exception {
+		public static DataType getFromString(final String dataTypeString) {
 			for (final DataType dataType : DataType.values()) {
 				if (dataType.toString().equalsIgnoreCase(dataTypeString)) {
 					return dataType;
 				}
 			}
-			throw new Exception("Invalid data type: " + dataTypeString);
+			throw new RuntimeException("Invalid data type: " + dataTypeString);
 		}
 	}
 
@@ -166,7 +170,7 @@ public class DbImportDefinition extends DbDefinition {
 	private boolean createNewIndexIfNeeded = true;
 
 	private boolean deactivateForeignKeyConstraints = false;
-	
+
 	private boolean deactivateTriggers = false;
 
 	private String dataPath = null;
@@ -174,6 +178,8 @@ public class DbImportDefinition extends DbDefinition {
 	private String schemaFilePath = null;
 
 	private char[] zipPassword = null;
+
+	private char[] kdbxPassword = null;
 
 	private String databaseTimeZone = TimeZone.getDefault().getID();
 
@@ -229,7 +235,7 @@ public class DbImportDefinition extends DbDefinition {
 				try {
 					Paths.get(importFilePathOrData);
 					isInlineData = false;
-				} catch (@SuppressWarnings("unused") final Exception e) {
+				} catch (final Exception e) {
 					isInlineData = true;
 				}
 				if (!isInlineData) {
@@ -447,7 +453,7 @@ public class DbImportDefinition extends DbDefinition {
 		return deactivateTriggers;
 	}
 
-	public void setDeactivateTriggers(boolean deactivateTriggers) {
+	public void setDeactivateTriggers(final boolean deactivateTriggers) {
 		this.deactivateTriggers = deactivateTriggers;
 	}
 
@@ -473,6 +479,14 @@ public class DbImportDefinition extends DbDefinition {
 
 	public char[] getZipPassword() {
 		return zipPassword;
+	}
+
+	public void setKdbxPassword(final char[] kdbxPassword) {
+		this.kdbxPassword = kdbxPassword;
+	}
+
+	public char[] getKdbxPassword() {
+		return kdbxPassword;
 	}
 
 	public void setDatabaseTimeZone(final String databaseTimeZone) {
@@ -519,6 +533,27 @@ public class DbImportDefinition extends DbDefinition {
 		if (importFilePathOrData == null) {
 			throw new DbImportException("ImportFilePath or data is missing");
 		} else if (!isInlineData) {
+			if (getDataType() == null) {
+				if (getImportFilePathOrData().toLowerCase().endsWith(".csv") || getImportFilePathOrData().toLowerCase().endsWith(".csv.zip")) {
+					setDataType(DataType.CSV);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".json") || getImportFilePathOrData().toLowerCase().endsWith(".json.zip")) {
+					setDataType(DataType.JSON);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xls") || getImportFilePathOrData().toLowerCase().endsWith(".xls.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx") || getImportFilePathOrData().toLowerCase().endsWith(".xlsx.zip")) {
+					setDataType(DataType.EXCEL);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".ods") || getImportFilePathOrData().toLowerCase().endsWith(".ods.zip")) {
+					setDataType(DataType.ODS);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xml") || getImportFilePathOrData().toLowerCase().endsWith(".xml.zip")) {
+					setDataType(DataType.XML);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".sql") || getImportFilePathOrData().toLowerCase().endsWith(".sql.zip")) {
+					setDataType(DataType.SQL);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".vcf") || getImportFilePathOrData().toLowerCase().endsWith(".vcf.zip")) {
+					setDataType(DataType.VCF);
+				} else {
+					setDataType(DataType.CSV);
+				}
+			}
+
 			if (getImportFilePathOrData().contains("?") || getImportFilePathOrData().contains("*")) {
 				final int lastSeparator = Math.max(getImportFilePathOrData().lastIndexOf("/"), getImportFilePathOrData().lastIndexOf("\\"));
 				String directoryPath = getImportFilePathOrData().substring(0, lastSeparator);
@@ -544,7 +579,7 @@ public class DbImportDefinition extends DbDefinition {
 			}
 		}
 
-		if (noHeaders && dataType != DataType.CSV && dataType != DataType.EXCEL && dataType != DataType.ODS) {
+		if (noHeaders && dataType != DataType.CSV && dataType != DataType.EXCEL && dataType != DataType.ODS && dataType != DataType.VCF) {
 			throw new DbImportException("NoHeaders is not supported for data format " + dataType);
 		}
 
@@ -571,62 +606,30 @@ public class DbImportDefinition extends DbDefinition {
 	 * @return
 	 * @throws Exception
 	 */
-	@SuppressWarnings("resource")
 	public DbImportWorker getConfiguredWorker(final WorkerParentSimple parent, final boolean analyseDataOnly, final String tableNameForImport, final String importFileOrData) throws Exception {
 		DbImportWorker worker;
-		if (getDataType() == DataType.SQL) {
-			worker = new DbSqlWorker(parent,
+		if (getDbVendor() == DbVendor.Cassandra) {
+			worker = new DbNoSqlImportWorker(parent,
+					this,
+					tableNameForImport);
+		} else {
+			worker = new DbImportWorker(parent,
 					this,
 					tableNameForImport,
-					isInlineData(),
-					importFileOrData,
-					getZipPassword());
-		} else {
-			if (getDbVendor() == DbVendor.Cassandra) {
-				worker = new DbNoSqlImportWorker(parent,
-						this,
-						tableNameForImport);
-			} else {
-				worker = new DbImportWorker(parent,
+					getDateFormat(),
+					getDateTimeFormat());
+		}
+
+		final DataProvider dataProvider;
+		switch (getDataType()) {
+			case SQL:
+				return new DbSqlWorker(parent,
 						this,
 						tableNameForImport,
-						getDateFormat(),
-						getDateTimeFormat());
-			}
-
-			final DataProvider dataProvider;
-			if (getDataType() == DataType.JSON) {
-				dataProvider = new JsonDataProvider(
 						isInlineData(),
 						importFileOrData,
-						getZipPassword(),
-						getDataPath(),
-						getSchemaFilePath());
-			} else if (getDataType() == DataType.XML) {
-				dataProvider = new XmlDataProvider(
-						isInlineData(),
-						importFileOrData,
-						getZipPassword(),
-						getNullValueString(),
-						getDataPath(),
-						getSchemaFilePath());
-			} else if (getDataType() == DataType.EXCEL) {
-				dataProvider = new ExcelDataProvider(
-						importFileOrData,
-						getZipPassword(),
-						isAllowUnderfilledLines(),
-						isNoHeaders(),
-						getNullValueString(),
-						isTrimData(),
-						getDataPath());
-			} else if (getDataType() == DataType.ODS) {
-				dataProvider = new OdsDataProvider(
-						importFileOrData,
-						isAllowUnderfilledLines(),
-						isNoHeaders(),
-						getNullValueString(),
-						isTrimData());
-			} else {
+						getZipPassword());
+			case CSV:
 				dataProvider = new CsvDataProvider(
 						isInlineData(),
 						importFileOrData,
@@ -639,35 +642,98 @@ public class DbImportDefinition extends DbDefinition {
 						isNoHeaders(),
 						getNullValueString(),
 						isTrimData());
-			}
-			worker.setDataProvider(dataProvider);
-
-			worker.setAnalyseDataOnly(analyseDataOnly);
-			if (isLog() && !isInlineData) {
-				final File logDir = new File(new File(importFileOrData).getParentFile(), "importlogs");
-				if (!logDir.exists()) {
-					logDir.mkdir();
-				}
-				worker.setLogFile(new File(logDir, new File(importFileOrData).getName() + "." + DateUtilities.formatDate(DateUtilities.YYYYMMDDHHMMSS, LocalDateTime.now()) + ".import.log"));
-			}
-			worker.setTextFileEncoding(getEncoding());
-			worker.setMapping(getMapping());
-			worker.setImportMode(getImportMode());
-			worker.setDuplicateMode(getDuplicateMode());
-			worker.setKeycolumns(getKeycolumns());
-			worker.setCompleteCommit(isCompleteCommit());
-			worker.setCreateNewIndexIfNeeded(isCreateNewIndexIfNeeded());
-			worker.setDeactivateForeignKeyConstraints(isDeactivateForeignKeyConstraints());
-			worker.setDeactivateTriggers(isDeactivateTriggers());
-			worker.setAdditionalInsertValues(getAdditionalInsertValues());
-			worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
-			worker.setUpdateNullData(isUpdateNullData());
-			worker.setCreateTableIfNotExists(isCreateTable());
-			worker.setStructureFilePath(getStructureFilePath());
-			worker.setLogErroneousData(isLogErroneousData());
-			worker.setDatabaseTimeZone(databaseTimeZone);
-			worker.setImportDataTimeZone(importDataTimeZone);
+				break;
+			case EXCEL:
+				dataProvider = new ExcelDataProvider(
+						importFileOrData,
+						getZipPassword(),
+						isAllowUnderfilledLines(),
+						isNoHeaders(),
+						getNullValueString(),
+						isTrimData(),
+						getDataPath());
+				break;
+			case JSON:
+				dataProvider = new JsonDataProvider(
+						isInlineData(),
+						importFileOrData,
+						getZipPassword(),
+						getDataPath(),
+						getSchemaFilePath());
+				break;
+			case KDBX:
+				dataProvider = new KdbxDataProvider(
+						importFileOrData,
+						getKdbxPassword());
+				break;
+			case ODS:
+				dataProvider = new OdsDataProvider(
+						importFileOrData,
+						getZipPassword(),
+						isAllowUnderfilledLines(),
+						isNoHeaders(),
+						getNullValueString(),
+						isTrimData(),
+						null);
+				break;
+			case VCF:
+				dataProvider = new VcfDataProvider(
+						isInlineData(),
+						importFileOrData,
+						getZipPassword());
+				break;
+			case XML:
+				dataProvider = new XmlDataProvider(
+						isInlineData(),
+						importFileOrData,
+						getZipPassword(),
+						getNullValueString(),
+						getDataPath(),
+						getSchemaFilePath());
+				break;
+			default:
+				// default CSV
+				dataProvider = new CsvDataProvider(
+						isInlineData(),
+						importFileOrData,
+						getZipPassword(),
+						getSeparator(),
+						getStringQuote(),
+						getEscapeStringQuote(),
+						isAllowUnderfilledLines(),
+						isRemoveSurplusEmptyTrailingColumns(),
+						isNoHeaders(),
+						getNullValueString(),
+						isTrimData());
+				break;
 		}
+		worker.setDataProvider(dataProvider);
+
+		worker.setAnalyseDataOnly(analyseDataOnly);
+		if (isLog() && !isInlineData) {
+			final File logDir = new File(new File(importFileOrData).getParentFile(), "importlogs");
+			if (!logDir.exists()) {
+				logDir.mkdir();
+			}
+			worker.setLogFile(new File(logDir, new File(importFileOrData).getName() + "." + DateUtilities.formatDate(DateUtilities.YYYYMMDDHHMMSS, LocalDateTime.now()) + ".import.log"));
+		}
+		worker.setTextFileEncoding(getEncoding());
+		worker.setMapping(getMapping());
+		worker.setImportMode(getImportMode());
+		worker.setDuplicateMode(getDuplicateMode());
+		worker.setKeycolumns(getKeycolumns());
+		worker.setCompleteCommit(isCompleteCommit());
+		worker.setCreateNewIndexIfNeeded(isCreateNewIndexIfNeeded());
+		worker.setDeactivateForeignKeyConstraints(isDeactivateForeignKeyConstraints());
+		worker.setDeactivateTriggers(isDeactivateTriggers());
+		worker.setAdditionalInsertValues(getAdditionalInsertValues());
+		worker.setAdditionalUpdateValues(getAdditionalUpdateValues());
+		worker.setUpdateNullData(isUpdateNullData());
+		worker.setCreateTableIfNotExists(isCreateTable());
+		worker.setStructureFilePath(getStructureFilePath());
+		worker.setLogErroneousData(isLogErroneousData());
+		worker.setDatabaseTimeZone(databaseTimeZone);
+		worker.setImportDataTimeZone(importDataTimeZone);
 
 		return worker;
 	}

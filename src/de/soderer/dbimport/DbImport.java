@@ -94,7 +94,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			return "DbImport (by Andreas Soderer, mail: dbimport@soderer.de)\n"
 					+ "VERSION: " + VERSION.toString() + " (" + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, VERSION_BUILDTIME) + ")" + "\n\n"
 					+ new String(IoUtilities.toByteArray(helpInputStream), StandardCharsets.UTF_8);
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return "Help info is missing";
 		}
 	}
@@ -136,7 +136,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			if (versionInfoLines.size() >= 4) {
 				TRUSTED_UPDATE_CA_CERTIFICATE = versionInfoLines.get(3);
 			}
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			// Without the version.txt file we may not go on
 			System.err.println("Invalid version.txt");
 			return 1;
@@ -940,7 +940,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 
 			// Only show errors. Other statistics are kept in log file if verbose was set
 			if (worker.getNotImportedItems().size() > 0) {
-				String errorText = "Not imported items (Number of Errors): " + worker.getNotImportedItems().size() + "\n";
+				String errorText = "Amount of not imported items: " + worker.getNotImportedItems().size() + "\n";
 				if (worker.getNotImportedItems().size() > 0) {
 					final List<String> errorList = new ArrayList<>();
 					for (int i = 0; i < Math.min(10, worker.getNotImportedItems().size()); i++) {
@@ -1014,14 +1014,13 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 		for (int i = 1; i <= connectionTestDefinition.getIterations() || connectionTestDefinition.getIterations() == 0; i++) {
 			connectionCheckCount++;
 			System.out.println("Connection test " + i + (connectionTestDefinition.getIterations() > 0 ? " / " + connectionTestDefinition.getIterations() : ""));
-			@SuppressWarnings("resource")
 			Connection testConnection = null;
 			try {
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating db connection");
 				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
-					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
+					} catch (final DbNotExistsException e) {
 						testConnection = DbUtilities.createNewDatabase(connectionTestDefinition.getDbVendor(), connectionTestDefinition.getDbName());
 					}
 				} else {
@@ -1080,7 +1079,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 				try {
 					System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Sleeping for " + connectionTestDefinition.getSleepTime() + " seconds");
 					Thread.sleep(connectionTestDefinition.getSleepTime() * 1000);
-				} catch (@SuppressWarnings("unused") final InterruptedException e) {
+				} catch (final InterruptedException e) {
 					// do nothing
 				}
 			}
@@ -1119,7 +1118,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			int currentTerminalWidth;
 			try {
 				currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				currentTerminalWidth = 80;
 			}
 			if ("*".equals(dbImportDefinitionToExecute.getTableName())) {
@@ -1135,7 +1134,7 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			if (Utilities.isNotBlank(resultText)) {
 				System.out.println("Result: \n" + resultText);
 			}
-			
+
 			System.out.println();
 			System.out.println();
 		}
@@ -1226,12 +1225,12 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
-	private void printProgressBar(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone, String itemsUnitSign) {
+	private void printProgressBar(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone, final String itemsUnitSign) {
 		if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 			int currentTerminalWidth;
 			try {
 				currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
-			} catch (@SuppressWarnings("unused") final Exception e) {
+			} catch (final Exception e) {
 				currentTerminalWidth = 80;
 			}
 
@@ -1266,11 +1265,11 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 			} else {
 				System.out.println("End (" + NumberFormat.getNumberInstance(Locale.ENGLISH).format(subItemsDone) + " data items done in " + DateUtilities.getHumanReadableTimespanEnglish(Duration.between(itemStart, itemEnd), true) + ")");
 			}
-			
+
 			if (Utilities.isNotBlank(resultText)) {
 				System.out.println("Result: \n" + resultText);
 			}
-			
+
 			System.out.println();
 		}
 	}
