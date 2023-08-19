@@ -12,7 +12,7 @@
 
 ## Supported file compressions:
 - Uncompressed
-- Zip (.zip, optionally with password)
+- Zip (.zip, optionally with password using aes or zipcrypto)
 - Tar (.tar)
 - TarGz (.tar.gz)
 - GZip (.gz)
