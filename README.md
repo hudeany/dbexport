@@ -1,4 +1,4 @@
-# Java tool to import data in db from csv, json, xml, vcf, xls, xlsx, ods and kdbx files
+# Java tool to import data in db from files
 
 ## Supported file formats and datatypes:
 - Comma-Separated-Values (.csv)
