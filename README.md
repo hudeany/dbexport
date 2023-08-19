@@ -9,7 +9,7 @@
 - Excel 2003+ (.xlsx)
 - OpenDocumentSheet (.ods)
 - KeePass (.kdbx)
-- 
+
 ## Supported file compressions:
 - Zip (.zip, optionally with password)
 - Tar (.tar)
