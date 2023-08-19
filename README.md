@@ -1,6 +1,6 @@
 # Java tool to import data in db from csv, json, xml, vcf, xls, xlsx, ods and kdbx files
 
-## Supported file and datapy formats:
+## Supported file formats and datatypes:
 - Comma-Separated-Values (.csv)
 - JSON (.json)
 - XML (.xml)
