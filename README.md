@@ -1,4 +1,4 @@
-# Java tool to import data in db from files
+# Java tool to import data in database from files
 
 ## Supported file formats and datatypes:
 - Comma-Separated-Values (.csv)
