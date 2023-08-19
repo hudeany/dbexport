@@ -5,8 +5,8 @@
 - JSON (.json)
 - XML (.xml)
 - vCards (.vcf)
-- Excel <2003 (.xls)
-- Excel 2003+ (.xlsx)
+- Excel old (< 2007) (.xls)
+- Excel new (2007+) (.xlsx)
 - OpenDocumentSheet (.ods)
 - KeePass (.kdbx)
 
