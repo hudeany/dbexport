@@ -10,7 +10,9 @@ import java.util.TimeZone;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.dbexport.worker.DbCsvExportWorker;
 import de.soderer.dbexport.worker.DbJsonExportWorker;
+import de.soderer.dbexport.worker.DbKdbxExportWorker;
 import de.soderer.dbexport.worker.DbSqlExportWorker;
+import de.soderer.dbexport.worker.DbVcfExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbDefinition;
@@ -30,8 +32,10 @@ public class DbExportDefinition extends DbDefinition {
 	public enum DataType {
 		CSV,
 		JSON,
+		VCF,
 		XML,
-		SQL;
+		SQL,
+		KDBX;
 
 		/**
 		 * Gets the string representation of export type.
@@ -42,13 +46,13 @@ public class DbExportDefinition extends DbDefinition {
 		 * @throws Exception
 		 *             the exception
 		 */
-		public static DataType getFromString(final String dataTypeString) throws Exception {
+		public static DataType getFromString(final String dataTypeString) {
 			for (final DataType dataType : DataType.values()) {
 				if (dataType.toString().equalsIgnoreCase(dataTypeString)) {
 					return dataType;
 				}
 			}
-			throw new Exception("Invalid export format: " + dataTypeString);
+			throw new RuntimeException("Invalid export format: " + dataTypeString);
 		}
 	}
 
@@ -77,8 +81,11 @@ public class DbExportDefinition extends DbDefinition {
 	/** The zip. */
 	private boolean zip = false;
 
-	/** The zippassword */
+	/** The zip password */
 	private char[] zipPassword = null;
+
+	/** The kdbx password */
+	private char[] kdbxPassword = null;
 
 	private boolean useZipCrypto = false;
 
@@ -190,10 +197,10 @@ public class DbExportDefinition extends DbDefinition {
 	/**
 	 * Sets the zip password.
 	 *
-	 * @param zipPpassword
+	 * @param zip password
 	 */
-	public void setZipPassword(final char[] zipPpassword) {
-		zipPassword = zipPpassword;
+	public void setZipPassword(final char[] zipPassword) {
+		this.zipPassword = zipPassword;
 	}
 
 	/**
@@ -204,6 +211,15 @@ public class DbExportDefinition extends DbDefinition {
 	 */
 	public void setUseZipCrypto(final boolean useZipCrypto) {
 		this.useZipCrypto = useZipCrypto;
+	}
+
+	/**
+	 * Sets the kdbx password.
+	 *
+	 * @param kdbx password
+	 */
+	public void setKdbxPassword(final char[] kdbxPassword) {
+		this.kdbxPassword = kdbxPassword;
 	}
 
 	public String getDatabaseTimeZone() {
@@ -388,9 +404,9 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Checks if is log.
+	 * Checks if is sql statement or file pattern.
 	 *
-	 * @return true, if is log
+	 * @return true, if is sql statement or file pattern
 	 */
 	public boolean isStatementFile() {
 		return statementFile;
@@ -430,6 +446,15 @@ public class DbExportDefinition extends DbDefinition {
 	 */
 	public boolean isUseZipCrypto() {
 		return useZipCrypto;
+	}
+
+	/**
+	 * Get the optional kdbx password.
+	 *
+	 * @return kdbx password.
+	 */
+	public char[] getKdbxPassword() {
+		return kdbxPassword;
 	}
 
 	/**
@@ -583,6 +608,10 @@ public class DbExportDefinition extends DbDefinition {
 			throw new DbExportException("ZipPassword is set without zipping output");
 		}
 
+		if (dataType == DataType.KDBX && kdbxPassword != null) {
+			throw new DbExportException("KDBX data type is set without kdbx password");
+		}
+
 		if (alwaysQuote && dataType != DataType.CSV) {
 			throw new DbExportException("AlwaysQuote is not supported for export format " + dataType);
 		}
@@ -699,55 +728,94 @@ public class DbExportDefinition extends DbDefinition {
 	 */
 	public AbstractDbExportWorker getConfiguredWorker(final WorkerParentDual parent) {
 		AbstractDbExportWorker worker;
-		if (getDataType() == DataType.JSON) {
-			worker = new DbJsonExportWorker(parent,
-					this,
-					isStatementFile(),
-					getSqlStatementOrTablelist(),
-					getOutputpath());
-			((DbJsonExportWorker) worker).setBeautify(isBeautify());
-			((DbJsonExportWorker) worker).setIndentation(getIndentation());
-		} else if (getDataType() == DataType.XML) {
-			worker = new DbXmlExportWorker(parent,
-					this,
-					isStatementFile(),
-					getSqlStatementOrTablelist(),
-					getOutputpath());
-			((DbXmlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-			((DbXmlExportWorker) worker).setDateFormat(getDateFormat());
-			((DbXmlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-			((DbXmlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
-			((DbXmlExportWorker) worker).setBeautify(isBeautify());
-			((DbXmlExportWorker) worker).setIndentation(getIndentation());
-			((DbXmlExportWorker) worker).setNullValueText(getNullValueString());
-		} else if (getDataType() == DataType.SQL) {
-			worker = new DbSqlExportWorker(parent,
-					this,
-					isStatementFile(),
-					getSqlStatementOrTablelist(),
-					getOutputpath());
-			((DbSqlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-			((DbSqlExportWorker) worker).setDateFormat(getDateFormat());
-			((DbSqlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-			((DbSqlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
-			((DbSqlExportWorker) worker).setBeautify(isBeautify());
-		} else {
-			worker = new DbCsvExportWorker(parent,
-					this,
-					isStatementFile(),
-					getSqlStatementOrTablelist(),
-					getOutputpath());
-			((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-			((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
-			((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-			((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
-			((DbCsvExportWorker) worker).setSeparator(getSeparator());
-			((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
-			((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
-			((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
-			((DbCsvExportWorker) worker).setBeautify(isBeautify());
-			((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
-			((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
+		switch (getDataType()) {
+			case CSV:
+				worker = new DbCsvExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
+				((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
+				((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
+				((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				((DbCsvExportWorker) worker).setSeparator(getSeparator());
+				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
+				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
+				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
+				((DbCsvExportWorker) worker).setBeautify(isBeautify());
+				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
+				((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
+				break;
+			case JSON:
+				worker = new DbJsonExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				((DbJsonExportWorker) worker).setBeautify(isBeautify());
+				((DbJsonExportWorker) worker).setIndentation(getIndentation());
+				break;
+			case SQL:
+				worker = new DbSqlExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				((DbSqlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
+				((DbSqlExportWorker) worker).setDateFormat(getDateFormat());
+				((DbSqlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
+				((DbSqlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				((DbSqlExportWorker) worker).setBeautify(isBeautify());
+				break;
+			case VCF:
+				worker = new DbVcfExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				break;
+			case XML:
+				worker = new DbXmlExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				((DbXmlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
+				((DbXmlExportWorker) worker).setDateFormat(getDateFormat());
+				((DbXmlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
+				((DbXmlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				((DbXmlExportWorker) worker).setBeautify(isBeautify());
+				((DbXmlExportWorker) worker).setIndentation(getIndentation());
+				((DbXmlExportWorker) worker).setNullValueText(getNullValueString());
+				break;
+			case KDBX:
+				worker = new DbKdbxExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath(),
+						getKdbxPassword());
+				break;
+			default:
+				// default CSV
+				worker = new DbCsvExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
+				((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
+				((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
+				((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				((DbCsvExportWorker) worker).setSeparator(getSeparator());
+				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
+				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
+				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
+				((DbCsvExportWorker) worker).setBeautify(isBeautify());
+				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
+				((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
+				break;
 		}
 		worker.setLog(isLog());
 		worker.setZip(isZip());
@@ -798,6 +866,9 @@ public class DbExportDefinition extends DbDefinition {
 		}
 		if (getZipPassword() != null) {
 			params += " " + "-zippassword" + " '" + new String(getZipPassword()).replace("'", "\\'") + "'";
+		}
+		if (getKdbxPassword() != null) {
+			params += " " + "-kdbxpassword" + " '" + new String(getKdbxPassword()).replace("'", "\\'") + "'";
 		}
 		if (isUseZipCrypto()) {
 			params += " " + "-useZipCrypto";

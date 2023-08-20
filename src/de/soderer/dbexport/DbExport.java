@@ -268,6 +268,18 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 							dbExportDefinition.setZipPassword(zipPassword.toCharArray());
 						}
 						wasAllowedParam = true;
+					} else if ("-kdbxpassword".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing value for parameter kdbxpassword");
+						} else {
+							String kdbxPassword = arguments[i];
+							if ((kdbxPassword.startsWith("\"") && kdbxPassword.endsWith("\"")) || (kdbxPassword.startsWith("'") && kdbxPassword.endsWith("'"))) {
+								kdbxPassword = kdbxPassword.substring(1, kdbxPassword.length() - 1);
+							}
+							dbExportDefinition.setKdbxPassword(kdbxPassword.toCharArray());
+						}
+						wasAllowedParam = true;
 					} else if ("-useZipCrypto".equalsIgnoreCase(arguments[i])) {
 						dbExportDefinition.setUseZipCrypto(true);
 						wasAllowedParam = true;

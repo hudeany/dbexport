@@ -116,6 +116,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The zipPassword field. */
 	private final JPasswordField zipPasswordField;
 
+	/** The kdbxPassword field. */
+	private final JPasswordField kdbxPasswordField;
+
 	/** The separator combo. */
 	private final JComboBox<String> separatorCombo;
 
@@ -487,6 +490,23 @@ public class DbExportGui extends UpdateableGuiApplication {
 		zipPasswordPanel.add(zipPasswordField);
 		mandatoryParameterPanel.add(zipPasswordPanel);
 
+		// kdbxPassword panel
+		final JPanel kdbxPasswordPanel = new JPanel();
+		kdbxPasswordPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel kdbxPasswordLabel = new JLabel(LangResources.get("kdbxPassword"));
+		kdbxPasswordPanel.add(kdbxPasswordLabel);
+		kdbxPasswordField = new JPasswordField();
+		kdbxPasswordField.setToolTipText(LangResources.get("kdbxPassword_help"));
+		kdbxPasswordField.setPreferredSize(new Dimension(200, kdbxPasswordField.getPreferredSize().height));
+		kdbxPasswordField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(final KeyEvent event) {
+				checkButtonStatus();
+			}
+		});
+		kdbxPasswordPanel.add(kdbxPasswordField);
+		mandatoryParameterPanel.add(kdbxPasswordPanel);
+
 		// Encoding Pane
 		final JPanel encodingPanel = new JPanel();
 		encodingPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -857,6 +877,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setZip(zipBox.isSelected());
 		// null stands for no usage of zip password, but GUI field text is always not null, so use empty field as deactivation of zip password
 		dbExportDefinition.setZipPassword(Utilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
+		dbExportDefinition.setKdbxPassword(Utilities.isEmpty(kdbxPasswordField.getPassword()) ? null : kdbxPasswordField.getPassword());
 		dbExportDefinition.setAlwaysQuote(alwaysQuoteBox.isEnabled() ? alwaysQuoteBox.isSelected() : false);
 		dbExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 		dbExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
@@ -930,6 +951,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		fileLogBox.setSelected(dbExportDefinition.isLog());
 		zipBox.setSelected(dbExportDefinition.isZip());
 		zipPasswordField.setText(dbExportDefinition.getZipPassword() == null ? "" : new String(dbExportDefinition.getZipPassword()));
+		kdbxPasswordField.setText(dbExportDefinition.getKdbxPassword() == null ? "" : new String(dbExportDefinition.getKdbxPassword()));
 		alwaysQuoteBox.setSelected(dbExportDefinition.isAlwaysQuote());
 		blobfilesBox.setSelected(dbExportDefinition.isCreateBlobFiles());
 		clobfilesBox.setSelected(dbExportDefinition.isCreateClobFiles());
@@ -1075,44 +1097,78 @@ public class DbExportGui extends UpdateableGuiApplication {
 					&& Utilities.isNotBlank(passwordField.getPassword()) || DbVendor.Cassandra.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem()));
 		}
 
-		if (DataType.CSV.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(true);
-			stringQuoteCombo.setEnabled(true);
-			alwaysQuoteBox.setEnabled(true);
-			noHeadersBox.setEnabled(true);
-			beautifyBox.setEnabled(true);
-			indentationCombo.setEnabled(false);
-			nullValueStringCombo.setEnabled(true);
-		} else if (DataType.JSON.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			alwaysQuoteBox.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			beautifyBox.setEnabled(true);
-			indentationCombo.setEnabled(true);
-			nullValueStringCombo.setEnabled(false);
-		} else if (DataType.XML.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			alwaysQuoteBox.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			beautifyBox.setEnabled(true);
-			indentationCombo.setEnabled(true);
-			nullValueStringCombo.setEnabled(true);
-		} else if (DataType.SQL.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
-			separatorCombo.setEnabled(false);
-			stringQuoteCombo.setEnabled(false);
-			alwaysQuoteBox.setEnabled(false);
-			noHeadersBox.setEnabled(false);
-			beautifyBox.setEnabled(false);
-			indentationCombo.setEnabled(false);
-			nullValueStringCombo.setEnabled(false);
+		switch (DataType.getFromString((String) dataTypeCombo.getSelectedItem())) {
+			case JSON:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(true);
+				indentationCombo.setEnabled(true);
+				nullValueStringCombo.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(false);
+				break;
+			case XML:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(true);
+				indentationCombo.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(true);
+				break;
+			case KDBX:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(true);
+				indentationCombo.setEnabled(true);
+				nullValueStringCombo.setEnabled(true);
+				kdbxPasswordField.setEnabled(true);
+				localeCombo.setEnabled(true);
+				break;
+			case SQL:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(false);
+				indentationCombo.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(true);
+				break;
+			case VCF:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(false);
+				indentationCombo.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(true);
+				break;
+			case CSV:
+			default:
+				separatorCombo.setEnabled(true);
+				stringQuoteCombo.setEnabled(true);
+				alwaysQuoteBox.setEnabled(true);
+				noHeadersBox.setEnabled(true);
+				beautifyBox.setEnabled(true);
+				indentationCombo.setEnabled(false);
+				nullValueStringCombo.setEnabled(true);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(true);
+				break;
 		}
 
-		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem()) || DataType.JSON.toString().equalsIgnoreCase((String) dataTypeCombo.getSelectedItem())) {
+		if (DbVendor.SQLite.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())) {
 			localeCombo.setEnabled(false);
-		} else {
-			localeCombo.setEnabled(true);
 		}
 	}
 

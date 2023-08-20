@@ -17,9 +17,9 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 
 public class ExportMenu extends ConsoleMenu {
 	private DbExportDefinition dbExportDefinition = new DbExportDefinition();
@@ -266,6 +266,10 @@ public class ExportMenu extends ConsoleMenu {
 					System.out.println("  " + Utilities.rightPad("i)", bulletSize) + " " + Utilities.rightPad("Indentation string:", nameSize) + dbExportDefinition.getIndentation());
 					autoCompletionStrings.add("i");
 				}
+				if (dbExportDefinition.getDataType() == DataType.KDBX) {
+					System.out.println("  " + Utilities.rightPad("kdbxpassword)", bulletSize) + " " + Utilities.rightPad("KDBX file password:", nameSize) + (dbExportDefinition.getKdbxPassword() == null ? "<empty>" : "***"));
+					autoCompletionStrings.add("Kdbxpassword");
+				}
 				if (dbExportDefinition.getDbVendor() != DbVendor.SQLite) {
 					System.out.println("  " + Utilities.rightPad("f)", bulletSize) + " " + Utilities.rightPad("Number and datetime format locale:", nameSize) + dbExportDefinition.getDateFormatLocale());
 					autoCompletionStrings.add("f");
@@ -360,6 +364,11 @@ public class ExportMenu extends ConsoleMenu {
 					System.out.println("Please enter zip password");
 					final char[] zipPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
 					dbExportDefinition.setZipPassword(zipPasswordArray);
+				} else if ("kdbxpassword".equalsIgnoreCase(choice)) {
+					System.out.println();
+					System.out.println("Please enter KDBX password");
+					final char[] kdbxPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					dbExportDefinition.setKdbxPassword(kdbxPasswordArray);
 				} else if ("zipcrypto".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setUseZipCrypto(!dbExportDefinition.isUseZipCrypto());
 				} else if ("e".equalsIgnoreCase(choice)) {

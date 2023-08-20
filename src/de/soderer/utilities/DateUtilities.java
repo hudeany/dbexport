@@ -783,27 +783,51 @@ public class DateUtilities {
 		return false;
 	}
 
-	public static LocalDateTime parseUnknownDateFormat(final String value) throws Exception {
-		try {
-			return parseLocalDateTime(DD_MM_YYYY_HH_MM_SS, value);
-		} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
+	public static ZonedDateTime parseUnknownDateFormat(final String value) throws Exception {
+		return parseUnknownDateFormat(value, ZoneId.systemDefault());
+	}
+
+	public static ZonedDateTime parseUnknownDateFormat(final String value, final ZoneId timeZone) throws Exception {
+		if (value == null) {
+			return null;
+		} else if (value.contains("-")) {
 			try {
-				return parseLocalDateTime(DD_MM_YYYY_HH_MM, value);
-			} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
+				return DateUtilities.parseIso8601DateTimeString(value);
+			} catch (@SuppressWarnings("unused") final Exception e1) {
 				try {
-					return parseLocalDateTime(DD_MM_YYYY, value);
-				} catch (@SuppressWarnings("unused") final DateTimeParseException e3) {
+					return parseLocalDateTime(YYYY_MM_DD_HH_MM, value).atZone(timeZone);
+				} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
+					throw new Exception("Unknown date format");
+				}
+			}
+		} else if (value.contains(".")) {
+			try {
+				return parseLocalDateTime(DD_MM_YYYY_HH_MM_SS, value).atZone(timeZone);
+			} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
+				try {
+					return parseLocalDateTime(DD_MM_YYYY_HH_MM, value).atZone(timeZone);
+				} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
 					try {
-						return parseLocalDateTime(YYYY_MM_DD_HH_MM, value);
-					} catch (@SuppressWarnings("unused") final DateTimeParseException e4) {
+						return parseLocalDateTime(DD_MM_YYYY, value).atZone(timeZone);
+					} catch (@SuppressWarnings("unused") final DateTimeParseException e3) {
+						throw new Exception("Unknown date format");
+					}
+				}
+			}
+		} else {
+			try {
+				return parseLocalDateTime("yyyyMMdd'T'HHmmssX", value).atZone(timeZone);
+			} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
+				try {
+					return parseLocalDateTime(YYYYMMDDHHMMSS, value).atZone(timeZone);
+				} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
+					try {
+						return parseLocalDateTime(DDMMYYYY, value).atZone(timeZone);
+					} catch (@SuppressWarnings("unused") final DateTimeParseException e3) {
 						try {
-							return parseLocalDateTime(YYYYMMDDHHMMSS, value);
-						} catch (@SuppressWarnings("unused") final DateTimeParseException e5) {
-							try {
-								return parseLocalDateTime(DDMMYYYY, value);
-							} catch (@SuppressWarnings("unused") final DateTimeParseException e6) {
-								throw new Exception("Unknown date format");
-							}
+							return parseLocalDateTime("yyyyMMdd", value).atZone(timeZone);
+						} catch (@SuppressWarnings("unused") final DateTimeParseException e4) {
+							throw new Exception("Unknown date format");
 						}
 					}
 				}
