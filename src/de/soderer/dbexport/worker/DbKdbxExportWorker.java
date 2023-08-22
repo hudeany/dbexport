@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.kdbx.KdbxDatabase;
 import de.soderer.utilities.kdbx.KdbxWriter;
@@ -20,7 +21,6 @@ public class DbKdbxExportWorker extends AbstractDbExportWorker {
 	private KdbxWriter kdbxWriter = null;
 	private KdbxDatabase kdbxDatabase = null;
 	private KdbxEntry kdbxEntry = null;
-	private final String nextEntryPath = null;
 
 	public DbKdbxExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath, final char[] kdbxPassword) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
@@ -33,15 +33,29 @@ public class DbKdbxExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	public String getConfigurationLogString(final String fileName, final String sqlStatement) {
-		return
-				"File: " + fileName + "\n"
-				+ "Format: " + getFileExtension().toUpperCase() + "\n"
-				+ "Zip: " + zip + "\n"
-				+ "Encoding: " + encoding + "\n"
+		String configurationLogString = "File: " + fileName + "\n"
+				+ "Format: " + getFileExtension().toUpperCase() + "\n";
+
+		if (compression == FileCompressionType.ZIP) {
+			configurationLogString += "Compression: zip\n";
+			if (zipPassword != null) {
+				configurationLogString += "ZipPassword: true\n";
+			}
+		} else if (compression == FileCompressionType.TARGZ) {
+			configurationLogString += "Compression: targz\n";
+		} else if (compression == FileCompressionType.TGZ) {
+			configurationLogString += "Compression: tgz\n";
+		} else if (compression == FileCompressionType.GZ) {
+			configurationLogString += "Compression: gz\n";
+		}
+
+		configurationLogString += "Encoding: " + encoding + "\n"
 				+ "SqlStatement: " + sqlStatement + "\n"
 				+ "OutputFormatLocale: " + dateFormatLocale.getLanguage() + "\n"
 				+ "CreateBlobFiles: " + createBlobFiles + "\n"
 				+ "CreateClobFiles: " + createClobFiles;
+
+		return configurationLogString;
 	}
 
 	@Override

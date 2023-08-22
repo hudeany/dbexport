@@ -25,6 +25,7 @@ import de.soderer.dbexport.console.HelpMenu;
 import de.soderer.dbexport.console.UpdateMenu;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.NumberUtilities;
@@ -254,7 +255,17 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						dbExportDefinition.setVerbose(true);
 						wasAllowedParam = true;
 					} else if ("-z".equalsIgnoreCase(arguments[i])) {
-						dbExportDefinition.setZip(true);
+						dbExportDefinition.setCompression(FileCompressionType.ZIP);
+						wasAllowedParam = true;
+					} else if ("-compress".equalsIgnoreCase(arguments[i])) {
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter for compress type");
+						} else if (Utilities.isBlank(arguments[i])) {
+							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for compress type");
+						} else {
+							dbExportDefinition.setCompression(FileCompressionType.getFromString(arguments[i]));
+						}
 						wasAllowedParam = true;
 					} else if ("-zippassword".equalsIgnoreCase(arguments[i])) {
 						i++;
@@ -705,7 +716,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			if (dbExportDefinition.isVerbose()) {
 				System.out.println(LangResources.get("exportedlines") + ": " + worker.getOverallExportedLines());
 				System.out.println(LangResources.get("exporteddataamount") + ": " + worker.getOverallExportedDataAmountRaw());
-				if (dbExportDefinition.isZip()) {
+				if (dbExportDefinition.getCompression() != null) {
 					System.out.println(LangResources.get("exporteddataamountcompressed") + ": " + worker.getOverallExportedDataAmountCompressed());
 				}
 				System.out.println(LangResources.get("exportSpeed") + ": " + Utilities.getHumanReadableSpeed(worker.getStartTime(), worker.getEndTime(), worker.getOverallExportedDataAmountRaw() * 8, "Bit", true, Locale.getDefault()));

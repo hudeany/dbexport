@@ -1,17 +1,16 @@
 package de.soderer.dbexport.converter;
 
-import java.io.File;
-import java.io.OutputStream;
+import java.io.ByteArrayInputStream;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.Base64;
 
-import de.soderer.utilities.Utilities;
+import de.soderer.utilities.FileCompressionType;
 
 public class CassandraDBValueConverter extends DefaultDBValueConverter {
-	public CassandraDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
-		super(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
+	public CassandraDBValueConverter(final FileCompressionType compression, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
+		super(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
 	}
 
 	@Override
@@ -23,20 +22,7 @@ public class CassandraDBValueConverter extends DefaultDBValueConverter {
 			if (resultSet.wasNull()) {
 				value = null;
 			} else if (createBlobFiles) {
-				final File blobOutputFile = new File(getLobFilePath(exportFilePath, "blob"));
-				try {
-					OutputStream output = null;
-					try {
-						output = openLobOutputStream(blobOutputFile);
-						output.write(data);
-					} finally {
-						checkAndCloseZipEntry(output, blobOutputFile);
-						Utilities.closeQuietly(output);
-					}
-					value = blobOutputFile;
-				} catch (final Exception e) {
-					throw new Exception("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-				}
+				value = writeLobFile(exportFilePath, "blob", new ByteArrayInputStream(data));
 			} else {
 				value = Base64.getEncoder().encodeToString(data);
 			}

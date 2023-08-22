@@ -1,19 +1,17 @@
 package de.soderer.dbexport.converter;
 
-import java.io.File;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.Base64;
 
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
-import de.soderer.utilities.Utilities;
 
 public class PostgreSQLDBValueConverter extends DefaultDBValueConverter {
-	public PostgreSQLDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
-		super(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
+	public PostgreSQLDBValueConverter(final FileCompressionType compressionType, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
+		super(compressionType, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
 	}
 
 	@Override
@@ -26,30 +24,15 @@ public class PostgreSQLDBValueConverter extends DefaultDBValueConverter {
 			if (resultSet.wasNull()) {
 				value = null;
 			} else {
-				InputStream blobStream = null;
-				try {
-					blobStream = resultSet.getBinaryStream(columnIndex);
-					if (createBlobFiles) {
-						final File blobOutputFile = new File(getLobFilePath(exportFilePath, "blob"));
-						try (InputStream input = blobStream) {
-							OutputStream output = null;
-							try {
-								output = openLobOutputStream(blobOutputFile);
-								IoUtilities.copy(input, output);
-							} finally {
-								checkAndCloseZipEntry(output, blobOutputFile);
-								Utilities.closeQuietly(output);
-							}
-							value = blobOutputFile;
-						} catch (final Exception e) {
-							throw new Exception("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
-						}
-					} else {
-						final byte[] data = IoUtilities.toByteArray(blobStream);
+				if (createBlobFiles) {
+					try (InputStream dataStream = resultSet.getBinaryStream(columnIndex)) {
+						value = writeLobFile(exportFilePath, "blob", dataStream);
+					}
+				} else {
+					try (InputStream dataStream = resultSet.getBinaryStream(columnIndex)) {
+						final byte[] data = IoUtilities.toByteArray(dataStream);
 						value = Base64.getEncoder().encodeToString(data);
 					}
-				} finally {
-					Utilities.closeQuietly(blobStream);
 				}
 			}
 		} else {

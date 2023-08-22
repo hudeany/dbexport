@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
 import de.soderer.dbexport.DbExportDefinition.DataType;
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
@@ -237,9 +238,10 @@ public class ExportMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("v)", bulletSize) + " " + Utilities.rightPad("Verbose terminal output:", nameSize) + dbExportDefinition.isVerbose());
 				autoCompletionStrings.add("v");
 				if (!"console".equalsIgnoreCase(dbExportDefinition.getOutputpath())) {
-					System.out.println("  " + Utilities.rightPad("z)", bulletSize) + " " + Utilities.rightPad("Output as zipfile (Not for console output):", nameSize) + dbExportDefinition.isZip());
-					autoCompletionStrings.add("z");
-					if (dbExportDefinition.isZip()) {
+					System.out.println("  " + Utilities.rightPad("compression)", bulletSize) + " " + Utilities.rightPad("Output compression (zip, targz, tgz, gz, none) (Not for console output):", nameSize)
+					+ (dbExportDefinition.getCompression() != null ? dbExportDefinition.getCompression().name() : "None"));
+					autoCompletionStrings.add("compression");
+					if (dbExportDefinition.getCompression() == FileCompressionType.ZIP) {
 						System.out.println("  " + Utilities.rightPad("zippassword)", bulletSize) + " " + Utilities.rightPad("Zip file password:", nameSize) + (dbExportDefinition.getZipPassword() == null ? "<empty>" : "***"));
 						autoCompletionStrings.add("zippassword");
 						if (dbExportDefinition.getZipPassword() != null) {
@@ -357,8 +359,17 @@ public class ExportMenu extends ConsoleMenu {
 					dbExportDefinition.setLog(!dbExportDefinition.isLog());
 				} else if ("v".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setVerbose(!dbExportDefinition.isVerbose());
-				} else if ("z".equalsIgnoreCase(choice)) {
-					dbExportDefinition.setZip(!dbExportDefinition.isZip());
+				} else if ("compression".equalsIgnoreCase(choice)) {
+					System.out.println();
+					System.out.println("Please enter compression type (zip, targz, tgz, gz, none");
+					final String compressionValueString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					FileCompressionType compressionType;
+					try {
+						compressionType = FileCompressionType.getFromString(compressionValueString);
+					} catch (@SuppressWarnings("unused") final Exception e) {
+						compressionType = null;
+					}
+					dbExportDefinition.setCompression(compressionType);
 				} else if ("zippassword".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter zip password");

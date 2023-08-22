@@ -1,8 +1,6 @@
 package de.soderer.dbexport.converter;
 
-import java.io.File;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
@@ -12,11 +10,13 @@ import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.Base64;
 
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
+import de.soderer.utilities.ReaderInputStream;
 
 public class MariaDBValueConverter extends DefaultDBValueConverter {
-	public MariaDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
-		super(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
+	public MariaDBValueConverter(final FileCompressionType compressionType, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
+		super(compressionType, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
 	}
 
 	@Override
@@ -29,16 +29,8 @@ public class MariaDBValueConverter extends DefaultDBValueConverter {
 			if (resultSet.wasNull() || blob == null || blob.length() <= 0) {
 				value = null;
 			} else if (createBlobFiles) {
-				final File blobOutputFile = new File(getLobFilePath(exportFilePath, "blob"));
-				try {
-					try (OutputStream outputStream = openLobOutputStream(blobOutputFile);
-							InputStream dataStream = blob.getBinaryStream()) {
-						IoUtilities.copy(dataStream, outputStream);
-						checkAndCloseZipEntry(outputStream, blobOutputFile);
-					}
-					value = blobOutputFile;
-				} catch (final Exception e) {
-					throw new Exception("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
+				try (InputStream dataStream = blob.getBinaryStream()) {
+					value = writeLobFile(exportFilePath, "blob", dataStream);
 				}
 			} else {
 				try (InputStream dataStream = blob.getBinaryStream()) {
@@ -52,22 +44,9 @@ public class MariaDBValueConverter extends DefaultDBValueConverter {
 			if (resultSet.wasNull() || clob == null || clob.length() <= 0) {
 				value = null;
 			} else if (createClobFiles) {
-				final File blobOutputFile = new File(getLobFilePath(exportFilePath, "clob"));
-				try {
-					try (OutputStream outputStream = openLobOutputStream(blobOutputFile);
-							Reader reader = clob.getCharacterStream()) {
-						int readChars;
-						final char[] cbuf = new char[1024];
-						while ((readChars = reader.read(cbuf)) >= 0) {
-							final StringBuilder buffer = new StringBuilder();
-							buffer.append(cbuf, 0, readChars);
-							outputStream.write(buffer.toString().getBytes(StandardCharsets.UTF_8));
-						}
-						checkAndCloseZipEntry(outputStream, blobOutputFile);
-					}
-					value = blobOutputFile;
-				} catch (final Exception e) {
-					throw new Exception("Error creating clob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
+				try (Reader reader = clob.getCharacterStream();
+						InputStream dataStream = new ReaderInputStream(reader, StandardCharsets.UTF_8)) {
+					value = writeLobFile(exportFilePath, "clob", dataStream);
 				}
 			} else {
 				try (Reader reader = clob.getCharacterStream()) {

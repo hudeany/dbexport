@@ -2,7 +2,9 @@ package de.soderer.dbexport.worker;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +28,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -40,6 +44,9 @@ import de.soderer.dbexport.converter.OracleDBValueConverter;
 import de.soderer.dbexport.converter.PostgreSQLDBValueConverter;
 import de.soderer.dbexport.converter.SQLiteDBValueConverter;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.FileCompressionType;
+import de.soderer.utilities.IoUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.collection.CaseInsensitiveMap;
 import de.soderer.utilities.collection.CaseInsensitiveSet;
@@ -49,8 +56,8 @@ import de.soderer.utilities.db.DatabaseIndex;
 import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.json.JsonArray;
 import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonWriter;
@@ -69,7 +76,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	// Default optional parameters
 	protected boolean log = false;
-	protected boolean zip = false;
+	protected FileCompressionType compression = null;
 	protected char[] zipPassword = null;
 	protected boolean useZipCrypto = false;
 	protected Charset encoding = StandardCharsets.UTF_8;
@@ -110,8 +117,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.log = log;
 	}
 
-	public void setZip(final boolean zip) {
-		this.zip = zip;
+	public void setCompression(final FileCompressionType compression) {
+		this.compression = compression;
 	}
 
 	public void setZipPassword(final char[] zipPassword) {
@@ -222,34 +229,34 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		switch (dbDefinition.getDbVendor()) {
 			case Oracle:
-				dbValueConverter = new OracleDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new OracleDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case SQLite:
-				dbValueConverter = new SQLiteDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new SQLiteDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case MySQL:
-				dbValueConverter = new MySQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new MySQLDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case MariaDB:
-				dbValueConverter = new MariaDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new MariaDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case PostgreSQL:
-				dbValueConverter = new PostgreSQLDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new PostgreSQLDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case Firebird:
-				dbValueConverter = new FirebirdDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new FirebirdDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case Cassandra:
-				dbValueConverter = new CassandraDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new CassandraDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case Derby:
-				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new DefaultDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case HSQL:
-				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new DefaultDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			case MsSQL:
-				dbValueConverter = new DefaultDBValueConverter(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
+				dbValueConverter = new DefaultDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			default:
 				throw new Exception("Unsupported db vendor: null");
@@ -385,6 +392,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
 
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
@@ -393,13 +401,37 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
 			} else {
-				if (zip) {
+				if (compression == FileCompressionType.ZIP) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith(".json")) {
 							outputFilePath = outputFilePath + ".json";
 						}
 
 						outputFilePath = outputFilePath + ".zip";
+					}
+				} else if (compression == FileCompressionType.TARGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".tar.gz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".tar.gz";
+					}
+				} else if (compression == FileCompressionType.TGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".tgz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".tgz";
+					}
+				} else if (compression == FileCompressionType.GZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".gz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".gz";
 					}
 				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
 					outputFilePath = outputFilePath + ".json";
@@ -409,7 +441,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					throw new DbExportException("Outputfile already exists: " + outputFilePath);
 				}
 
-				if (zip) {
+				if (compression == FileCompressionType.ZIP) {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
@@ -419,6 +451,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
 					((ZipOutputStream) outputStream).putNextEntry(entry);
+				} else if (compression == FileCompressionType.TARGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.TGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.GZ) {
+					outputStream = new FileOutputStream(new File(outputFilePath));
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
@@ -439,11 +479,19 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				jsonWriter.closeJsonObject();
 			}
+
+			if (compression == FileCompressionType.ZIP && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			} else if (compression == FileCompressionType.TARGZ) {
+				TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			} else if (compression == FileCompressionType.TGZ) {
+				TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
-
-			if (zip && zipPassword != null) {
-				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
 			}
 		}
 	}
@@ -561,6 +609,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	private void exportDbStructure(final Connection connection, final String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
+
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
 				outputStream = System.out;
@@ -568,13 +618,38 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
 			} else {
-				if (zip) {
+
+				if (compression == FileCompressionType.ZIP) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith(".json")) {
 							outputFilePath = outputFilePath + ".json";
 						}
 
 						outputFilePath = outputFilePath + ".zip";
+					}
+				} else if (compression == FileCompressionType.TARGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".tar.gz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".tar.gz";
+					}
+				} else if (compression == FileCompressionType.TGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".tgz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".tgz";
+					}
+				} else if (compression == FileCompressionType.GZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".gz")) {
+						if (!outputFilePath.toLowerCase().endsWith(".json")) {
+							outputFilePath = outputFilePath + ".json";
+						}
+
+						outputFilePath = outputFilePath + ".gz";
 					}
 				} else if (!outputFilePath.toLowerCase().endsWith(".json")) {
 					outputFilePath = outputFilePath + ".json";
@@ -584,7 +659,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					throw new DbExportException("Outputfile already exists: " + outputFilePath);
 				}
 
-				if (zip) {
+				if (compression == FileCompressionType.ZIP) {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
@@ -594,10 +669,19 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
 					((ZipOutputStream) outputStream).putNextEntry(entry);
+				} else if (compression == FileCompressionType.TARGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.TGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.GZ) {
+					outputStream = new FileOutputStream(new File(outputFilePath));
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
 			}
+
 			try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
 				jsonWriter.openJsonObject();
 
@@ -626,17 +710,26 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				jsonWriter.closeJsonObject();
 			}
+
+			if (compression == FileCompressionType.ZIP && zipPassword != null) {
+				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			} else if (compression == FileCompressionType.TARGZ) {
+				TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			} else if (compression == FileCompressionType.TGZ) {
+				TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			}
 		} finally {
 			Utilities.closeQuietly(outputStream);
-
-			if (zip && zipPassword != null) {
-				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+				tempFile = null;
 			}
 		}
 	}
 
 	private void export(final Connection connection, final String sqlStatement, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
+		File tempFile = null;
 		OutputStream logOutputStream = null;
 		boolean errorOccurred = false;
 		boolean fileWasCreated = false;
@@ -647,13 +740,37 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
 			} else {
-				if (zip) {
+				if (compression == FileCompressionType.ZIP) {
 					if (!outputFilePath.toLowerCase().endsWith(".zip")) {
 						if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
 							outputFilePath = outputFilePath + "." + getFileExtension();
 						}
 
 						outputFilePath = outputFilePath + ".zip";
+					}
+				} else if (compression == FileCompressionType.TARGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".targ.gz")) {
+						if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
+							outputFilePath = outputFilePath + "." + getFileExtension();
+						}
+
+						outputFilePath = outputFilePath + ".targ.gz";
+					}
+				} else if (compression == FileCompressionType.TGZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".tgz")) {
+						if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
+							outputFilePath = outputFilePath + "." + getFileExtension();
+						}
+
+						outputFilePath = outputFilePath + ".tgz";
+					}
+				} else if (compression == FileCompressionType.GZ) {
+					if (!outputFilePath.toLowerCase().endsWith(".gz")) {
+						if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
+							outputFilePath = outputFilePath + "." + getFileExtension();
+						}
+
+						outputFilePath = outputFilePath + ".gz";
 					}
 				} else if (!outputFilePath.toLowerCase().endsWith("." + getFileExtension())) {
 					outputFilePath = outputFilePath + "." + getFileExtension();
@@ -678,7 +795,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					logToFile(logOutputStream, "Start: " + DateUtilities.formatDate(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), startTimeSub));
 				}
 
-				if (zip) {
+				if (compression == FileCompressionType.ZIP) {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = outputFilePath.substring(0, outputFilePath.length() - 4);
 					entryFileName = entryFileName.substring(entryFileName.lastIndexOf(File.separatorChar) + 1);
@@ -688,9 +805,18 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
 					((ZipOutputStream) outputStream).putNextEntry(entry);
+				} else if (compression == FileCompressionType.TARGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), null);
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.TGZ) {
+					tempFile = File.createTempFile(new File(outputFilePath).getName(), null);
+					outputStream = new FileOutputStream(tempFile);
+				} else if (compression == FileCompressionType.GZ) {
+					outputStream = new GZIPOutputStream(new FileOutputStream(outputFilePath));
 				} else {
 					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
+
 				fileWasCreated = true;
 			}
 
@@ -779,8 +905,19 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 								value = DateUtilities.changeDateTimeZone((ZonedDateTime) value, ZoneId.of(exportDataTimeZone));
 								writeDateTimeColumn(columnName, (ZonedDateTime) value);
 							} else if (value != null && value instanceof File) {
-								if (zip) {
+								if (compression == FileCompressionType.ZIP) {
 									overallExportedDataAmountRaw += ZipUtilities.getDataSizeUncompressed((File) value);
+									overallExportedDataAmountCompressed += ((File) value).length();
+								} else if (compression == FileCompressionType.TARGZ) {
+									overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize((File) value);
+									overallExportedDataAmountCompressed += ((File) value).length();
+								} else if (compression == FileCompressionType.TGZ) {
+									overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize((File) value);
+									overallExportedDataAmountCompressed += ((File) value).length();
+								} else if (compression == FileCompressionType.GZ) {
+									try (InputStream gzStream = new GZIPInputStream(new FileInputStream((File) value))) {
+										overallExportedDataAmountRaw += IoUtilities.getStreamSize(gzStream);
+									}
 									overallExportedDataAmountCompressed += ((File) value).length();
 								} else {
 									overallExportedDataAmountRaw += ((File) value).length();
@@ -880,18 +1017,22 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			}
 		}
 
-		if (new File(outputFilePath).exists()) {
-			if (zip && zipPassword != null) {
+		if (compression == FileCompressionType.ZIP) {
+			if (zipPassword != null) {
 				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
-			}
-
-			final File exportedFile = new File(outputFilePath);
-			if (zip) {
-				overallExportedDataAmountRaw += Zip4jUtilities.getUncompressedSize(exportedFile, zipPassword);
-				overallExportedDataAmountCompressed += (exportedFile).length();
+				overallExportedDataAmountRaw += Zip4jUtilities.getUncompressedSize(new File(outputFilePath), zipPassword);
 			} else {
-				overallExportedDataAmountRaw += (exportedFile).length();
+				overallExportedDataAmountRaw += ZipUtilities.getDataSizeUncompressed(new File(outputFilePath));
 			}
+			overallExportedDataAmountCompressed += new File(outputFilePath).length();
+		} else if (compression == FileCompressionType.TARGZ) {
+			TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize(new File(outputFilePath));
+			overallExportedDataAmountCompressed += new File(outputFilePath).length();
+		} else if (compression == FileCompressionType.TGZ) {
+			TarGzUtilities.compress(new File(outputFilePath), tempFile, new File(outputFilePath).getName());
+			overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize(new File(outputFilePath));
+			overallExportedDataAmountCompressed += new File(outputFilePath).length();
 		}
 	}
 

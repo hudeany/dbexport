@@ -4,11 +4,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.db.DbUtilities;
 
 public class OracleDBValueConverter extends DefaultDBValueConverter {
-	public OracleDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
-		super(zip, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
+	public OracleDBValueConverter(final FileCompressionType compressionType, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
+		super(compressionType, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, fileExtension);
 	}
 
 	@Override

@@ -1,9 +1,7 @@
 package de.soderer.dbexport.converter;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -13,18 +11,21 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
-import java.time.ZonedDateTime;
 import java.util.Base64;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
+import de.soderer.utilities.ReaderInputStream;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DefaultDBValueConverter {
-	protected boolean zip;
+	protected FileCompressionType compressionType;
 	protected char[] zipPassword;
 	protected boolean useZipCrypto = false;
 	protected boolean createBlobFiles;
@@ -32,8 +33,8 @@ public class DefaultDBValueConverter {
 	protected String outputFilePath;
 	protected String fileExtension;
 
-	public DefaultDBValueConverter(final boolean zip, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
-		this.zip = zip;
+	public DefaultDBValueConverter(final FileCompressionType compressionType, final char[] zipPassword, final boolean useZipCrypto, final boolean createBlobFiles, final boolean createClobFiles, final String fileExtension) {
+		this.compressionType = compressionType;
 		this.zipPassword = zipPassword;
 		this.useZipCrypto = useZipCrypto;
 		this.createBlobFiles = createBlobFiles;
@@ -49,19 +50,8 @@ public class DefaultDBValueConverter {
 			if (resultSet.wasNull()) {
 				value = null;
 			} else if (createBlobFiles) {
-				final File blobOutputFile = new File(getLobFilePath(exportFilePath, "blob"));
-				try (InputStream input = blob.getBinaryStream()) {
-					OutputStream output = null;
-					try {
-						output = openLobOutputStream(blobOutputFile);
-						IoUtilities.copy(input, output);
-					} finally {
-						checkAndCloseZipEntry(output, blobOutputFile);
-						Utilities.closeQuietly(output);
-					}
-					value = blobOutputFile;
-				} catch (final Exception e) {
-					throw new Exception("Error creating blob file '" + blobOutputFile.getAbsolutePath() + "': " + e.getMessage());
+				try (InputStream dataStream = blob.getBinaryStream()) {
+					value = writeLobFile(exportFilePath, "blob", dataStream);
 				}
 			} else {
 				try (InputStream input = blob.getBinaryStream()) {
@@ -74,19 +64,9 @@ public class DefaultDBValueConverter {
 			if (resultSet.wasNull()) {
 				value = null;
 			} else if (createClobFiles) {
-				final File clobOutputFile = new File(getLobFilePath(exportFilePath, "clob"));
-				try (Reader input = clob.getCharacterStream()) {
-					OutputStream output = null;
-					try {
-						output = openLobOutputStream(clobOutputFile);
-						IoUtilities.copy(input, output, StandardCharsets.UTF_8);
-					} finally {
-						checkAndCloseZipEntry(output, clobOutputFile);
-						Utilities.closeQuietly(output);
-					}
-					value = clobOutputFile;
-				} catch (final Exception e) {
-					throw new Exception("Error creating clob file '" + clobOutputFile.getAbsolutePath() + "': " + e.getMessage());
+				try (Reader reader = clob.getCharacterStream();
+						InputStream dataStream = new ReaderInputStream(reader, StandardCharsets.UTF_8)) {
+					value = writeLobFile(exportFilePath, "clob", dataStream);
 				}
 			} else {
 				try (Reader input = clob.getCharacterStream()) {
@@ -107,47 +87,63 @@ public class DefaultDBValueConverter {
 		return value;
 	}
 
-	protected String getLobFilePath(final String exportFilePath, final String lobType) throws Exception {
+	protected File writeLobFile(final String exportFilePath, final String lobType, final InputStream dataStream) throws Exception {
 		String lobOutputFilePathPrefix = exportFilePath;
-		if (lobOutputFilePathPrefix.endsWith(".zip")) {
-			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 4);
+		if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.ZIP.getDefaultFileExtension().length());
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.TARGZ.getDefaultFileExtension().length());
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.TGZ.getDefaultFileExtension().length());
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.GZ.getDefaultFileExtension().length());
 		}
 		if (lobOutputFilePathPrefix.endsWith("." + fileExtension)) {
 			lobOutputFilePathPrefix = lobOutputFilePathPrefix.substring(0, lobOutputFilePathPrefix.length() - (fileExtension.length() + 1));
 		}
-		return File.createTempFile(new File(lobOutputFilePathPrefix).getName() + "_", "." + lobType + (zip ? ".zip" : ""), new File(exportFilePath).getParentFile()).getAbsolutePath();
-	}
+		final File lobOutputFile = File.createTempFile(new File(lobOutputFilePathPrefix).getName() + "_", "." + lobType + (compressionType != null ? "." + compressionType.getDefaultFileExtension() : ""), new File(exportFilePath).getParentFile());
 
-	protected OutputStream openLobOutputStream(final File lobOutputFile) throws IOException, FileNotFoundException {
-		if (zip) {
-			final OutputStream outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(lobOutputFile));
-			final String entryFileName = lobOutputFile.getName().substring(0, lobOutputFile.getName().lastIndexOf("."));
-			final ZipEntry entry = new ZipEntry(entryFileName);
-			entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
-			((ZipOutputStream) outputStream).putNextEntry(entry);
-			return outputStream;
-		} else {
-			return new FileOutputStream(lobOutputFile);
-		}
-	}
-
-	protected void checkAndCloseZipEntry(final OutputStream outputStream, final File lobOutputFile) throws Exception {
-		if (outputStream instanceof ZipOutputStream) {
+		try {
+			OutputStream outputStream = null;
+			File tempFile = null;
 			try {
+				if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+					outputStream = ZipUtilities.openNewZipOutputStream(lobOutputFile, null);
+					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(lobOutputFile.getName()));
+				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
+					tempFile = File.createTempFile(lobOutputFile.getAbsolutePath(), null);
+					outputStream = new FileOutputStream(tempFile);
+				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
+					tempFile = File.createTempFile(lobOutputFile.getAbsolutePath(), null);
+					outputStream = new FileOutputStream(tempFile);
+				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.GZ.getDefaultFileExtension())) {
+					outputStream = new GZIPOutputStream(new FileOutputStream(lobOutputFile));
+				} else {
+					outputStream = new FileOutputStream(lobOutputFile);
+				}
+
+				IoUtilities.copy(dataStream, outputStream);
+
 				outputStream.close();
-			} catch (final Exception e) {
-				e.printStackTrace();
-			}
 
-			try {
-				((ZipOutputStream) outputStream).closeEntry();
-			} catch (final Exception e) {
-				e.printStackTrace();
-			}
+				if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+					Zip4jUtilities.createPasswordSecuredZipFile(lobOutputFile.getAbsolutePath(), zipPassword, false);
+				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
+					TarGzUtilities.compress(lobOutputFile, tempFile, lobOutputFile.getName());
+				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
+					TarGzUtilities.compress(lobOutputFile, tempFile, lobOutputFile.getName());
+				}
 
-			if (zip && zipPassword != null) {
-				Zip4jUtilities.createPasswordSecuredZipFile(lobOutputFile.getAbsolutePath(), zipPassword, useZipCrypto);
+				return lobOutputFile;
+			} finally {
+				Utilities.closeQuietly(outputStream);
+				if (tempFile != null && tempFile.exists()) {
+					tempFile.delete();
+					tempFile = null;
+				}
 			}
+		} catch (final Exception e) {
+			throw new Exception("Error creating blob file '" + lobOutputFile.getAbsolutePath() + "': " + e.getMessage());
 		}
 	}
 }

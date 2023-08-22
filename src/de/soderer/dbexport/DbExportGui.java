@@ -43,6 +43,7 @@ import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.ExceptionUtilities;
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.NetworkUtilities;
@@ -143,8 +144,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The statement field. */
 	private final JTextArea statementField;
 
-	/** The zip box. */
-	private final JCheckBox zipBox;
+	/** The compressionType combo. */
+	private final JComboBox<String> compressionTypeCombo;
 
 	/** The useZipCrypto box. */
 	private final JCheckBox useZipCryptoBox;
@@ -473,6 +474,28 @@ public class DbExportGui extends UpdateableGuiApplication {
 		outputpathPanel.add(outputpathField);
 		mandatoryParameterPanel.add(outputpathPanel);
 
+		// CompressionType Pane
+		final JPanel compressionTypePanel = new JPanel();
+		compressionTypePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+		final JLabel compressionTypeLabel = new JLabel(LangResources.get("compression"));
+		compressionTypePanel.add(compressionTypeLabel);
+		compressionTypeCombo = new JComboBox<>();
+		compressionTypeCombo.setToolTipText(LangResources.get("compression_help"));
+		compressionTypeCombo.setPreferredSize(new Dimension(200, compressionTypeCombo.getPreferredSize().height));
+		compressionTypeCombo.addItem(LangResources.get("None"));
+		compressionTypeCombo.addItem("Zip");
+		compressionTypeCombo.addItem("TarGz");
+		compressionTypeCombo.addItem("Tgz");
+		compressionTypeCombo.addItem("Gz");
+		compressionTypeCombo.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(final KeyEvent event) {
+				checkButtonStatus();
+			}
+		});
+		compressionTypePanel.add(compressionTypeCombo);
+		mandatoryParameterPanel.add(compressionTypePanel);
+
 		// zipPassword panel
 		final JPanel zipPasswordPanel = new JPanel();
 		zipPasswordPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -708,10 +731,6 @@ public class DbExportGui extends UpdateableGuiApplication {
 		fileLogBox.setToolTipText(LangResources.get("filelog_help"));
 		optionalParametersPanel.add(fileLogBox);
 
-		zipBox = new JCheckBox(LangResources.get("zip"));
-		zipBox.setToolTipText(LangResources.get("zip_help"));
-		optionalParametersPanel.add(zipBox);
-
 		useZipCryptoBox = new JCheckBox(LangResources.get("useZipCrypto"));
 		useZipCryptoBox.setToolTipText(LangResources.get("useZipCrypto_help"));
 		optionalParametersPanel.add(useZipCryptoBox);
@@ -874,7 +893,13 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setDataType((String) dataTypeCombo.getSelectedItem());
 
 		dbExportDefinition.setLog(fileLogBox.isSelected());
-		dbExportDefinition.setZip(zipBox.isSelected());
+		FileCompressionType fileCompressionType;
+		try {
+			fileCompressionType = FileCompressionType.getFromString((String) compressionTypeCombo.getSelectedItem());
+		} catch (@SuppressWarnings("unused") final Exception e) {
+			fileCompressionType = null;
+		}
+		dbExportDefinition.setCompression(fileCompressionType);
 		// null stands for no usage of zip password, but GUI field text is always not null, so use empty field as deactivation of zip password
 		dbExportDefinition.setZipPassword(Utilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
 		dbExportDefinition.setKdbxPassword(Utilities.isEmpty(kdbxPasswordField.getPassword()) ? null : kdbxPasswordField.getPassword());
@@ -949,7 +974,21 @@ public class DbExportGui extends UpdateableGuiApplication {
 		}
 
 		fileLogBox.setSelected(dbExportDefinition.isLog());
-		zipBox.setSelected(dbExportDefinition.isZip());
+
+		boolean compressionTypeFound = false;
+		if (dbExportDefinition.getCompression() != null) {
+			for (int i = 0; i < compressionTypeCombo.getItemCount(); i++) {
+				if (compressionTypeCombo.getItemAt(i).equalsIgnoreCase(dbExportDefinition.getCompression().name())) {
+					compressionTypeCombo.setSelectedIndex(i);
+					compressionTypeFound = true;
+					break;
+				}
+			}
+		}
+		if (!compressionTypeFound) {
+			compressionTypeCombo.setSelectedIndex(0);
+		}
+
 		zipPasswordField.setText(dbExportDefinition.getZipPassword() == null ? "" : new String(dbExportDefinition.getZipPassword()));
 		kdbxPasswordField.setText(dbExportDefinition.getKdbxPassword() == null ? "" : new String(dbExportDefinition.getKdbxPassword()));
 		alwaysQuoteBox.setSelected(dbExportDefinition.isAlwaysQuote());
@@ -1229,7 +1268,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME, resultText).open();
 				} else {
 					resultText += "\n" + LangResources.get("exporteddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getOverallExportedDataAmountRaw(), "Byte", false, 5, false, Locale.getDefault());
-					if (dbExportDefinition.isZip()) {
+					if (dbExportDefinition.getCompression() != null
+							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".zip")
+							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tar.gz")
+							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tgz")
+							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".gz")) {
 						resultText += "\n" + LangResources.get("exporteddataamountcompressed") + ": " + Utilities.getHumanReadableNumber(worker.getOverallExportedDataAmountCompressed(), "Byte", false, 5, false, Locale.getDefault());
 					}
 					resultText += "\n" + LangResources.get("exportSpeed") + ": " + Utilities.getHumanReadableSpeed(worker.getStartTime(), worker.getEndTime(), worker.getOverallExportedDataAmountRaw() * 8, "Bit", true, Locale.getDefault());

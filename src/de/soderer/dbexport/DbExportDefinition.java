@@ -14,6 +14,7 @@ import de.soderer.dbexport.worker.DbKdbxExportWorker;
 import de.soderer.dbexport.worker.DbSqlExportWorker;
 import de.soderer.dbexport.worker.DbVcfExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
+import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
@@ -37,15 +38,6 @@ public class DbExportDefinition extends DbDefinition {
 		SQL,
 		KDBX;
 
-		/**
-		 * Gets the string representation of export type.
-		 *
-		 * @param dataType
-		 *            the data type
-		 * @return the from string
-		 * @throws Exception
-		 *             the exception
-		 */
 		public static DataType getFromString(final String dataTypeString) {
 			for (final DataType dataType : DataType.values()) {
 				if (dataType.toString().equalsIgnoreCase(dataTypeString)) {
@@ -78,8 +70,8 @@ public class DbExportDefinition extends DbDefinition {
 	/** The verbose. */
 	private boolean verbose = false;
 
-	/** The zip. */
-	private boolean zip = false;
+	/** The compression. */
+	private FileCompressionType compression = null;
 
 	/** The zip password */
 	private char[] zipPassword = null;
@@ -185,13 +177,13 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Sets the zip.
+	 * Sets the compression type.
 	 *
-	 * @param zip
-	 *            the new zip
+	 * @param compression
+	 *            the new compression type
 	 */
-	public void setZip(final boolean zip) {
-		this.zip = zip;
+	public void setCompression(final FileCompressionType compression) {
+		this.compression = compression;
 	}
 
 	/**
@@ -422,12 +414,12 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Checks if is zip.
+	 * Get CompressionType
 	 *
-	 * @return true, if is zip
+	 * @return CompressionType
 	 */
-	public boolean isZip() {
-		return zip;
+	public FileCompressionType getCompression() {
+		return compression;
 	}
 
 	/**
@@ -578,12 +570,12 @@ public class DbExportDefinition extends DbDefinition {
 		if (outputpath == null) {
 			throw new DbExportException("Outputpath is missing");
 		} else if ("console".equalsIgnoreCase(outputpath)) {
-			if (zip) {
-				throw new DbExportException("Zipping not allowed for console output");
+			if (compression != null) {
+				throw new DbExportException("Compression not allowed for console output");
 			}
 		} else if ("gui".equalsIgnoreCase(outputpath)) {
-			if (zip) {
-				throw new DbExportException("Zipping not allowed for gui output");
+			if (compression != null) {
+				throw new DbExportException("Compression not allowed for gui output");
 			} else if (GraphicsEnvironment.isHeadless()) {
 				throw new DbExportException("GUI output only works on non-headless systems");
 			}
@@ -604,8 +596,8 @@ public class DbExportDefinition extends DbDefinition {
 			}
 		}
 
-		if (!zip && zipPassword != null) {
-			throw new DbExportException("ZipPassword is set without zipping output");
+		if (compression != FileCompressionType.ZIP && zipPassword != null) {
+			throw new DbExportException("ZipPassword is set without zip compression");
 		}
 
 		if (dataType == DataType.KDBX && kdbxPassword != null) {
@@ -818,7 +810,7 @@ public class DbExportDefinition extends DbDefinition {
 				break;
 		}
 		worker.setLog(isLog());
-		worker.setZip(isZip());
+		worker.setCompression(getCompression());
 		worker.setZipPassword(getZipPassword());
 		worker.setUseZipCrypto(isUseZipCrypto());
 		worker.setEncoding(getEncoding());
@@ -861,8 +853,8 @@ public class DbExportDefinition extends DbDefinition {
 		if (isVerbose()) {
 			params += " " + "-v";
 		}
-		if (isZip()) {
-			params += " " + "-z";
+		if (getCompression() != null) {
+			params += " " + "-compression " + getCompression().name();
 		}
 		if (getZipPassword() != null) {
 			params += " " + "-zippassword" + " '" + new String(getZipPassword()).replace("'", "\\'") + "'";
