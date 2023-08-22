@@ -305,6 +305,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 		this.logErroneousData = logErroneousData;
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
 		signalUnlimitedProgress();
@@ -323,7 +324,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				if (dbDefinition.getDbVendor() == DbVendor.Derby || (dbDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbDefinition.getHostnameAndPort())) || dbDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						connection = DbUtilities.createConnection(dbDefinition, true);
-					} catch (final DbNotExistsException e) {
+					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
 						connection = DbUtilities.createNewDatabase(dbDefinition.getDbVendor(), dbDefinition.getDbName());
 					}
 				} else {
@@ -879,6 +880,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 			statementString = "INSERT INTO " + tableNameToUse + " (" + additionalInsertValuesSqlColumns + DbUtilities.joinColumnVendorEscaped(dbDefinition.getDbVendor(), dbTableColumnsListToInsert) + ", " + itemIndexColumn + ") VALUES (" + additionalInsertValuesSqlValues + Utilities.repeat("?", dbTableColumnsListToInsert.size(), ", ") + ", ?)";
 		}
 
+		@SuppressWarnings("resource")
 		PreparedStatement preparedStatement = null;
 		try {
 			preparedStatement = connection.prepareStatement(statementString);
@@ -1097,23 +1099,23 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						dateTimeFormatter.withZone(importDataZoneId);
 						final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 						localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-					} catch (final DateTimeParseException e) {
+					} catch (@SuppressWarnings("unused") final DateTimeParseException e) {
 						try {
 							final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateTimeFormatPattern(Locale.getDefault()));
 							dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 							dateTimeFormatter.withZone(importDataZoneId);
 							final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 							localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-						} catch (final DateTimeParseException e1) {
+						} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
 							try {
 								final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateFormatPattern(Locale.getDefault()));
 								dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 								localDateTimeValueForDb = LocalDate.parse(valueString.trim(), dateTimeFormatter).atStartOfDay();
-							} catch (final DateTimeParseException e2) {
+							} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
 								try {
 									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseIso8601DateTimeString(valueString, importDataZoneId).toLocalDateTime();
 									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-								} catch (final DateTimeException e3) {
+								} catch (@SuppressWarnings("unused") final DateTimeException e3) {
 									final ZonedDateTime zonedDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString, importDataZoneId);
 									localDateTimeValueForDb = zonedDateTimeValueFromData.withZoneSameInstant(databaseZoneId).toLocalDateTime();
 								}
@@ -1139,7 +1141,7 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 							try {
 								final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), getConfiguredDateTimeFormatter());
 								localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-							} catch (final Exception e1) {
+							} catch (@SuppressWarnings("unused") final Exception e1) {
 								throw e;
 							}
 						} else {
@@ -1153,23 +1155,23 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 						dateTimeFormatter.withZone(importDataZoneId);
 						final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 						localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-					} catch (final DateTimeParseException e) {
+					} catch (@SuppressWarnings("unused") final DateTimeParseException e) {
 						try {
 							final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateTimeFormatPattern(Locale.getDefault()));
 							dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 							dateTimeFormatter.withZone(importDataZoneId);
 							final LocalDateTime localDateTimeValueFromData = LocalDateTime.parse(valueString.trim(), dateTimeFormatter);
 							localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-						} catch (final DateTimeParseException e1) {
+						} catch (@SuppressWarnings("unused") final DateTimeParseException e1) {
 							try {
 								final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(DateUtilities.getDateFormatPattern(Locale.getDefault()));
 								dateTimeFormatter.withResolverStyle(ResolverStyle.STRICT);
 								localDateTimeValueForDb = LocalDate.parse(valueString.trim(), dateTimeFormatter).atStartOfDay();
-							} catch (final DateTimeParseException e2) {
+							} catch (@SuppressWarnings("unused") final DateTimeParseException e2) {
 								try {
 									final LocalDateTime localDateTimeValueFromData = DateUtilities.parseIso8601DateTimeString(valueString, importDataZoneId).toLocalDateTime();
 									localDateTimeValueForDb = localDateTimeValueFromData.atZone(importDataZoneId).withZoneSameInstant(databaseZoneId).toLocalDateTime();
-								} catch (final DateTimeException e3) {
+								} catch (@SuppressWarnings("unused") final DateTimeException e3) {
 									final ZonedDateTime zonedDateTimeValueFromData = DateUtilities.parseUnknownDateFormat(valueString, importDataZoneId);
 									localDateTimeValueForDb = zonedDateTimeValueFromData.withZoneSameInstant(databaseZoneId).toLocalDateTime();
 								}

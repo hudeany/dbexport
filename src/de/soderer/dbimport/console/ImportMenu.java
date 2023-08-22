@@ -441,7 +441,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setEncoding(Charset.forName(encodingString));
 								break;
-							} catch (final Exception e) {
+							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported encoding: " + encodingString, TextColor.Light_red));
 							}
 						}
@@ -453,7 +453,7 @@ public class ImportMenu extends ConsoleMenu {
 					separatorString = separatorString == null ? "" : separatorString;
 					try {
 						dbImportDefinition.setSeparator(separatorString.charAt(0));
-					} catch (final Exception e) {
+					} catch (@SuppressWarnings("unused") final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV separator character", TextColor.Light_red));
 					}
 				} else if ("q".equalsIgnoreCase(choice)) {
@@ -463,7 +463,7 @@ public class ImportMenu extends ConsoleMenu {
 					stringQuoteCharacterString = stringQuoteCharacterString == null ? "" : stringQuoteCharacterString;
 					try {
 						dbImportDefinition.setStringQuote(stringQuoteCharacterString.charAt(0));
-					} catch (final Exception e) {
+					} catch (@SuppressWarnings("unused") final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV string quote character", TextColor.Light_red));
 					}
 				} else if ("qe".equalsIgnoreCase(choice)) {
@@ -473,7 +473,7 @@ public class ImportMenu extends ConsoleMenu {
 					stringQuoteEscapeCharacterString = stringQuoteEscapeCharacterString == null ? "" : stringQuoteEscapeCharacterString;
 					try {
 						dbImportDefinition.setEscapeStringQuote(stringQuoteEscapeCharacterString.charAt(0));
-					} catch (final Exception e) {
+					} catch (@SuppressWarnings("unused") final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV string quote character", TextColor.Light_red));
 					}
 				} else if ("noheaders".equalsIgnoreCase(choice)) {
@@ -569,7 +569,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setDatabaseTimeZone(TimeZone.getTimeZone(dbtzString).toString());
 								break;
-							} catch (final Exception e) {
+							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + dbtzString, TextColor.Light_red));
 							}
 						}
@@ -587,7 +587,7 @@ public class ImportMenu extends ConsoleMenu {
 							try {
 								dbImportDefinition.setImportDataTimeZone(TimeZone.getTimeZone(idtzString).toString());
 								break;
-							} catch (final Exception e) {
+							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + idtzString, TextColor.Light_red));
 							}
 						}

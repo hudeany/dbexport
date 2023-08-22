@@ -18,12 +18,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import de.soderer.utilities.CountingInputStream;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.SqlScriptReader;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.csv.CsvDataException;
@@ -57,8 +60,16 @@ public class DbSqlWorker extends DbImportWorker {
 		if (isInlineData) {
 			dataPart = "Data: " + importFilePathOrData + "\n";
 		} else {
-			dataPart = "File: " + importFilePathOrData + "\n"
-					+ "Zip: " + Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") + "\n";
+			dataPart = "File: " + importFilePathOrData + "\n";
+			if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip")) {
+				dataPart += "Compressed: zip\n";
+			} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".tar.gz")) {
+				dataPart += "Compressed: targz\n";
+			} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".tgz")) {
+				dataPart += "Compressed: tgz\n";
+			} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".gz")) {
+				dataPart += "Compressed: gz\n";
+			}
 		}
 		return
 				dataPart
@@ -88,6 +99,7 @@ public class DbSqlWorker extends DbImportWorker {
 		sqlScriptReader = null;
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
 		OutputStream logOutputStream = null;
@@ -225,6 +237,20 @@ public class DbSqlWorker extends DbImportWorker {
 							throw new DbImportException("Zipped import file is empty: " + importFilePathOrData + ": " + zipEntry.getName());
 						}
 					}
+				} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".tar.gz")) {
+					if (TarGzUtilities.getFilesCount(new File(importFilePathOrData)) != 1) {
+						throw new Exception("Compressed import file does not contain a single compressed file: " + importFilePathOrData);
+					} else {
+						inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(importFilePathOrData)));
+					}
+				} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".tgz")) {
+					if (TarGzUtilities.getFilesCount(new File(importFilePathOrData)) != 1) {
+						throw new Exception("Compressed import file does not contain a single compressed file: " + importFilePathOrData);
+					} else {
+						inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(importFilePathOrData)));
+					}
+				} else if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".gz")) {
+					inputStream = new CountingInputStream(new GZIPInputStream(new FileInputStream(importFilePathOrData)));
 				} else {
 					inputStream = new FileInputStream(new File(importFilePathOrData));
 				}
@@ -233,7 +259,7 @@ public class DbSqlWorker extends DbImportWorker {
 				if (inputStream != null) {
 					try {
 						inputStream.close();
-					} catch (final IOException e1) {
+					} catch (@SuppressWarnings("unused") final IOException e1) {
 						// do nothing
 					}
 				}

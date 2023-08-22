@@ -235,7 +235,7 @@ public class DbImportDefinition extends DbDefinition {
 				try {
 					Paths.get(importFilePathOrData);
 					isInlineData = false;
-				} catch (final Exception e) {
+				} catch (@SuppressWarnings("unused") final Exception e) {
 					isInlineData = true;
 				}
 				if (!isInlineData) {
@@ -534,21 +534,59 @@ public class DbImportDefinition extends DbDefinition {
 			throw new DbImportException("ImportFilePath or data is missing");
 		} else if (!isInlineData) {
 			if (getDataType() == null) {
-				if (getImportFilePathOrData().toLowerCase().endsWith(".csv") || getImportFilePathOrData().toLowerCase().endsWith(".csv.zip")) {
+				if (getImportFilePathOrData().toLowerCase().endsWith(".csv")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.gz")) {
 					setDataType(DataType.CSV);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".json") || getImportFilePathOrData().toLowerCase().endsWith(".json.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".json")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".json.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".json.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".json.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".json.gz")) {
 					setDataType(DataType.JSON);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xls") || getImportFilePathOrData().toLowerCase().endsWith(".xls.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx") || getImportFilePathOrData().toLowerCase().endsWith(".xlsx.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xls")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.gz")) {
 					setDataType(DataType.EXCEL);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".ods") || getImportFilePathOrData().toLowerCase().endsWith(".ods.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".ods")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.gz")) {
 					setDataType(DataType.ODS);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xml") || getImportFilePathOrData().toLowerCase().endsWith(".xml.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xml")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.gz")) {
 					setDataType(DataType.XML);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".sql") || getImportFilePathOrData().toLowerCase().endsWith(".sql.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".sql")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.gz")) {
 					setDataType(DataType.SQL);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".vcf") || getImportFilePathOrData().toLowerCase().endsWith(".vcf.zip")) {
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".vcf")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.gz")) {
 					setDataType(DataType.VCF);
+				} else if (getImportFilePathOrData().toLowerCase().endsWith(".kdbx")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.zip")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.tar.gz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.tgz")
+						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.gz")) {
+					setDataType(DataType.KDBX);
 				} else {
 					setDataType(DataType.CSV);
 				}
@@ -768,7 +806,7 @@ public class DbImportDefinition extends DbDefinition {
 		if (isVerbose()) {
 			params += " " + "-v";
 		}
-		if (getDataType() != DataType.CSV) {
+		if (getZipPassword() != null) {
 			params += " " + "-zippassword" + " '" + new String(getZipPassword()).replace("'", "\\'") + "'";
 		}
 		if (TimeZone.getDefault().getDisplayName().equalsIgnoreCase(getDatabaseTimeZone())) {
@@ -855,9 +893,6 @@ public class DbImportDefinition extends DbDefinition {
 		}
 		if (getSchemaFilePath() != null && getSchemaFilePath().length() > 0) {
 			params += " " + "-sp '" + getSchemaFilePath().replace("'", "\\'") + "'";
-		}
-		if (getZipPassword() != null) {
-			params += " " + "-zippassword '" + new String(getZipPassword()).replace("'", "\\'") + "'";
 		}
 		if (getDatabaseTimeZone() != TimeZone.getDefault().getID()) {
 			params += " " + "-dbtz " + getDatabaseTimeZone() + "";

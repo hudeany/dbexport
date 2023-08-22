@@ -206,15 +206,15 @@ public class VcfDataProvider extends DataProvider {
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
 				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".vcf").getName()));
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tar.gz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".vcf.tar.gz");
 				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
 				outputStream = new FileOutputStream(tempFile);
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tgz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".vcf.tgz");
 				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
 				outputStream = new FileOutputStream(tempFile);
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".gz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".vcf.gz");
 				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
 				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".vcf");

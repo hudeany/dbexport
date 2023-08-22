@@ -203,22 +203,22 @@ public class KdbxDataProvider extends DataProvider {
 
 			File filteredDataFile;
 			if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".json.zip");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".kdbx.zip");
 				outputStream = ZipUtilities.openNewZipOutputStream(filteredDataFile, null);
-				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".json").getName()));
+				((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(new File(getImportFilePath() + "." + fileSuffix + ".kdbx").getName()));
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tar.gz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".kdbx.tar.gz");
 				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
 				outputStream = new FileOutputStream(tempFile);
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".tgz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".kdbx.tgz");
 				tempFile = File.createTempFile(new File(getImportFilePath()).getName(), fileSuffix);
 				outputStream = new FileOutputStream(tempFile);
 			} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".gz");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".kdbx.gz");
 				outputStream = new GZIPOutputStream(new FileOutputStream(filteredDataFile));
 			} else {
-				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".json");
+				filteredDataFile = new File(getImportFilePath() + "." + fileSuffix + ".kdbx");
 				outputStream = new FileOutputStream(filteredDataFile);
 			}
 

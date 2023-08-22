@@ -47,4 +47,14 @@ public class IoUtilities {
 		outputStream.flush();
 		return bytesCopied;
 	}
+
+	public static long getStreamSize(final InputStream inputStream) throws IOException {
+		final byte[] buffer = new byte[4096];
+		int lengthRead = -1;
+		long bytesCopied = 0;
+		while ((lengthRead = inputStream.read(buffer)) > -1) {
+			bytesCopied += lengthRead;
+		}
+		return bytesCopied;
+	}
 }

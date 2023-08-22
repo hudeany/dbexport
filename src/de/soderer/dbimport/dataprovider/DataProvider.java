@@ -15,6 +15,7 @@ import java.util.zip.GZIPInputStream;
 import de.soderer.utilities.CountingInputStream;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.InputStreamWithOtherItemsToClose;
+import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Tuple;
@@ -81,7 +82,7 @@ public abstract class DataProvider implements Closeable {
 					} else {
 						dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
 					}
-				} catch (@SuppressWarnings("unused") final Exception e) {
+				} catch (final Exception e) {
 					if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 						dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 					} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -94,11 +95,11 @@ public abstract class DataProvider implements Closeable {
 				try {
 					DateUtilities.parseLocalDateTime(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("TIMESTAMP", -1, -1, -1, true, false));
-				} catch (@SuppressWarnings("unused") final Exception e) {
+				} catch (final Exception e) {
 					try {
 						DateUtilities.parseLocalDate(DateUtilities.getDateFormatPattern(Locale.getDefault()), currentValue.trim());
 						dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
-					} catch (@SuppressWarnings("unused") final Exception e1) {
+					} catch (final Exception e1) {
 						if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 							dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 						} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -112,7 +113,7 @@ public abstract class DataProvider implements Closeable {
 				try {
 					DateUtilities.parseLocalDate(DateUtilities.getDateFormatPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
-				} catch (@SuppressWarnings("unused") final Exception e) {
+				} catch (final Exception e) {
 					if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 						dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 					} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -147,7 +148,7 @@ public abstract class DataProvider implements Closeable {
 				throw new Exception("Import file is empty: " + importFile.getAbsolutePath());
 			} else {
 				try {
-					if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".zip")) {
+					if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
 						if (ZipUtilities.getZipFileEntries(importFile).size() != 1) {
 							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
 						} else {
@@ -157,19 +158,19 @@ public abstract class DataProvider implements Closeable {
 								inputStream = new CountingInputStream(ZipUtilities.openZipFile(importFile.getAbsolutePath()));
 							}
 						}
-					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tar.gz")) {
+					} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tar.gz")) {
 						if (TarGzUtilities.getFilesCount(importFile) != 1) {
 							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
 						} else {
 							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(importFile));
 						}
-					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".tgz")) {
+					} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tgz")) {
 						if (TarGzUtilities.getFilesCount(importFile) != 1) {
 							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
 						} else {
 							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(importFile));
 						}
-					} else if (Utilities.endsWithIgnoreCase(getImportFilePath(), ".gz")) {
+					} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".gz")) {
 						inputStream = new CountingInputStream(new GZIPInputStream(new FileInputStream(importFile)));
 					} else {
 						inputStream = new CountingInputStream(new InputStreamWithOtherItemsToClose(new FileInputStream(importFile), importFile.getAbsolutePath()));
@@ -179,7 +180,7 @@ public abstract class DataProvider implements Closeable {
 					if (inputStream != null) {
 						try {
 							inputStream.close();
-						} catch (@SuppressWarnings("unused") final IOException e1) {
+						} catch (final IOException e1) {
 							// do nothing
 						}
 					}
@@ -195,10 +196,16 @@ public abstract class DataProvider implements Closeable {
 		} else {
 			String configurationLogString =  "File: " + importFile.getAbsolutePath() + "\n";
 			if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
-				configurationLogString += "Zip: true\n";
+				configurationLogString += "Compression: zip\n";
 				if (zipPassword != null) {
 					configurationLogString += "ZipPassword: true\n";
 				}
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tar.gz")) {
+				configurationLogString += "Compression: targz\n";
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tgz")) {
+				configurationLogString += "Compression: tgz\n";
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".gz")) {
+				configurationLogString += "Compression: gz\n";
 			}
 			return configurationLogString;
 		}
@@ -245,6 +252,14 @@ public abstract class DataProvider implements Closeable {
 					return Zip4jUtilities.getUncompressedSize(importFile, zipPassword);
 				} else {
 					return ZipUtilities.getDataSizeUncompressed(importFile);
+				}
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tar.gz")) {
+				return TarGzUtilities.getUncompressedSize(importFile);
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".tgz")) {
+				return TarGzUtilities.getUncompressedSize(importFile);
+			} else if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".gz")) {
+				try (InputStream gzStream = new GZIPInputStream(new FileInputStream(importFile))) {
+					return IoUtilities.getStreamSize(gzStream);
 				}
 			} else {
 				return importFile.length();

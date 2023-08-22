@@ -25,8 +25,8 @@ import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.db.SimpleDataType;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbNoSqlImportWorker extends DbImportWorker {
@@ -57,6 +57,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 		}
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public Boolean work() throws Exception {
 		signalUnlimitedProgress();
@@ -266,7 +267,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 
 					validItems++;
 					signalProgress();
-				} catch (final Exception e) {
+				} catch (@SuppressWarnings("unused") final Exception e) {
 					invalidItems.add((int) itemsDone + 1);
 					preparedInsertStatement.clearParameters();
 				}
@@ -481,7 +482,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						validItems++;
 						itemsToUpdate++;
 						signalProgress();
-					} catch (final Exception e) {
+					} catch (@SuppressWarnings("unused") final Exception e) {
 						invalidItems.add((int) itemsDone + 1);
 						preparedUpdateStatement.clearParameters();
 					}
@@ -506,7 +507,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						validItems++;
 						itemsToInsert++;
 						signalProgress();
-					} catch (final Exception e) {
+					} catch (@SuppressWarnings("unused") final Exception e) {
 						invalidItems.add((int) itemsDone + 1);
 						preparedInsertStatement.clearParameters();
 					}
