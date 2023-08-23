@@ -14,7 +14,7 @@ public class MaxItemsValidator extends BaseJsonSchemaValidator {
 			throw new JsonSchemaDefinitionError("Data for maximum items is 'null'", jsonSchemaPath);
 		} else if (validatorData instanceof Integer) {
 			if (((Integer) validatorData) < 0) {
-				throw new JsonSchemaDefinitionError("Data for maximum items amount is  negative", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for maximum items amount is negative", jsonSchemaPath);
 			}
 		} else if (validatorData instanceof String) {
 			try {
