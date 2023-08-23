@@ -18,8 +18,8 @@ public class NumberUtilities {
 	 * @param value
 	 * @return
 	 */
-	public static boolean isDigit(String digitString) {
-		for (char character : digitString.toCharArray()) {
+	public static boolean isDigit(final String digitString) {
+		for (final char character : digitString.toCharArray()) {
 			if (!Character.isDigit(character)) {
 				return false;
 			}
@@ -33,11 +33,11 @@ public class NumberUtilities {
 	 * @param value
 	 * @return
 	 */
-	public static boolean isInteger(String value) {
+	public static boolean isInteger(final String value) {
 		try {
 			Integer.parseInt(value);
 			return true;
-		} catch (NumberFormatException e) {
+		} catch (final NumberFormatException e) {
 			return false;
 		}
 	}
@@ -48,18 +48,18 @@ public class NumberUtilities {
 	 * @param value
 	 * @return
 	 */
-	public static boolean isDouble(String value) {
+	public static boolean isDouble(final String value) {
 		try {
 			Double.parseDouble(value);
 			return true;
-		} catch (NumberFormatException e) {
+		} catch (final NumberFormatException e) {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Compare Number objects
-	 * 
+	 *
 	 * @param a
 	 * @param b
 	 * @return
@@ -67,27 +67,27 @@ public class NumberUtilities {
 	 * 	 0 if a = b
 	 * 	-1 if a < b
 	 */
-	public static int compare(Number a, Number b){
-        return new BigDecimal(a.toString()).compareTo(new BigDecimal(b.toString()));
-    }
-	
-	public static boolean isNumber(String numberString) {
+	public static int compare(final Number a, final Number b) {
+		return new BigDecimal(a.toString()).compareTo(new BigDecimal(b.toString()));
+	}
+
+	public static boolean isNumber(final String numberString) {
 		return Pattern.matches("[+|-]?[0-9]*(\\.[0-9]*)?([e|E][+|-]?[0-9]*)?", numberString);
 	}
-	
-	public static Number parseNumber(String numberString) throws NumberFormatException {
+
+	public static Number parseNumber(final String numberString) throws NumberFormatException {
 		if (!isNumber(numberString)) {
 			throw new NumberFormatException("Not a number: '" + numberString + "'");
 		} else if (numberString.contains(".")) {
 			if (numberString.length() < 10) {
 				return new Float(numberString);
 			} else {
-				BigDecimal value = new BigDecimal(numberString);
-				boolean isFloat = new BigDecimal(Float.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Float.MAX_VALUE)) == -1;
+				final BigDecimal value = new BigDecimal(numberString);
+				final boolean isFloat = new BigDecimal(Float.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Float.MAX_VALUE)) == -1;
 				if (isFloat) {
 					return new Float(numberString);
 				} else {
-					boolean isDouble = new BigDecimal(Double.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Double.MAX_VALUE)) == -1;
+					final boolean isDouble = new BigDecimal(Double.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Double.MAX_VALUE)) == -1;
 					if (isDouble) {
 						return new Double(numberString);
 					} else {
@@ -99,12 +99,12 @@ public class NumberUtilities {
 			if (numberString.length() < 10) {
 				return new Integer(numberString);
 			} else {
-				BigDecimal value = new BigDecimal(numberString);
-				boolean isInteger = new BigDecimal(Integer.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Integer.MAX_VALUE)) == -1;
+				final BigDecimal value = new BigDecimal(numberString);
+				final boolean isInteger = new BigDecimal(Integer.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Integer.MAX_VALUE)) == -1;
 				if (isInteger) {
 					return new Integer(numberString);
 				} else {
-					boolean isLong = new BigDecimal(Long.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Long.MAX_VALUE)) == -1;
+					final boolean isLong = new BigDecimal(Long.MIN_VALUE).compareTo(value) == -1 && value.compareTo(new BigDecimal(Long.MAX_VALUE)) == -1;
 					if (isLong) {
 						return new Long(numberString);
 					} else {
@@ -115,23 +115,23 @@ public class NumberUtilities {
 		}
 	}
 
-	public static boolean isHexNumber(String numberString) {
+	public static boolean isHexNumber(final String numberString) {
 		return Pattern.matches("0(x|X)[0-9A-Fa-f]+", numberString);
 	}
-	
-	public static Number parseHexNumber(String hexNumberString) throws NumberFormatException {
+
+	public static Number parseHexNumber(final String hexNumberString) throws NumberFormatException {
 		if (!isHexNumber(hexNumberString)) {
 			throw new NumberFormatException("Not a hex number: '" + hexNumberString + "'");
 		} else {
 			if (hexNumberString.length() < 12) {
 				return Integer.parseInt(hexNumberString.substring(2), 16);
 			} else {
-				BigInteger value = new BigInteger(hexNumberString.substring(2), 16);
-				boolean isInteger = new BigInteger(Integer.toString(Integer.MIN_VALUE)).compareTo(value) == -1 && value.compareTo(new BigInteger(Integer.toString(Integer.MAX_VALUE))) == -1;
+				final BigInteger value = new BigInteger(hexNumberString.substring(2), 16);
+				final boolean isInteger = new BigInteger(Integer.toString(Integer.MIN_VALUE)).compareTo(value) == -1 && value.compareTo(new BigInteger(Integer.toString(Integer.MAX_VALUE))) == -1;
 				if (isInteger) {
 					return Integer.parseInt(hexNumberString.substring(2), 16);
 				} else {
-					boolean isLong = new BigInteger(Long.toString(Long.MIN_VALUE)).compareTo(value) == -1 && value.compareTo(new BigInteger(Long.toString(Long.MAX_VALUE))) == -1;
+					final boolean isLong = new BigInteger(Long.toString(Long.MIN_VALUE)).compareTo(value) == -1 && value.compareTo(new BigInteger(Long.toString(Long.MAX_VALUE))) == -1;
 					if (isLong) {
 						return Long.parseLong(hexNumberString.substring(2), 16);
 					} else {

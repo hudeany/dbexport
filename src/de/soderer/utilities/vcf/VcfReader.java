@@ -80,7 +80,7 @@ public class VcfReader implements Closeable {
 			if (nextLine.equals(VcfConstants.END_VCARD)) {
 				break;
 			} else if (Utilities.isBlank(nextLine)) {
-				//  skip empty lines
+				// skip empty lines
 			} else if (lastLine != null && lastLine.endsWith("=") && lastLineWasQuotedPrintable) {
 				// QUOTED-PRINTABLE encoded multiline
 				nextLine = lastLine + "\n" + nextLine;

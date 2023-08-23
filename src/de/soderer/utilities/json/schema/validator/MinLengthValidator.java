@@ -6,22 +6,22 @@ import de.soderer.utilities.json.schema.JsonSchemaDefinitionError;
 import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class MinLengthValidator extends BaseJsonSchemaValidator {
-	public MinLengthValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
+	public MinLengthValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
 		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-		
+
 		if (!(validatorData instanceof Integer)) {
 			throw new JsonSchemaDefinitionError("Data for minLength is not an integer", jsonSchemaPath);
-    	} else if (validatorData instanceof String) {
-    		try {
-    			this.validatorData = Integer.parseInt((String) validatorData);
-			} catch (NumberFormatException e) {
+		} else if (validatorData instanceof String) {
+			try {
+				this.validatorData = Integer.parseInt((String) validatorData);
+			} catch (final NumberFormatException e) {
 				throw new JsonSchemaDefinitionError("Data for minLength '" + validatorData + "' is not an integer", jsonSchemaPath);
 			}
-    	} else if (((Integer) validatorData) < 0) {
+		} else if (((Integer) validatorData) < 0) {
 			throw new JsonSchemaDefinitionError("Data for minLength is negative", jsonSchemaPath);
-    	}
+		}
 	}
-	
+
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		if (!(jsonNode.isString())) {
@@ -30,8 +30,8 @@ public class MinLengthValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (((String) jsonNode.getValue()).length() < ((Integer) validatorData)) {
-				throw new JsonSchemaDataValidationError("String minLength is '" + ((Integer) validatorData) + "' but was '" + ((String) jsonNode.getValue()).length()  + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("String minLength is '" + (validatorData) + "' but was '" + ((String) jsonNode.getValue()).length() + "'", jsonPath);
 			}
 		}
-    }
+	}
 }

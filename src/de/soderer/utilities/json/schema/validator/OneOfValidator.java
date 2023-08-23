@@ -13,39 +13,39 @@ import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class OneOfValidator extends BaseJsonSchemaValidator {
 	private List<List<BaseJsonSchemaValidator>> subValidatorPackages = null;
-	
-    public OneOfValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
-    	super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-    	
-    	if (validatorData == null) {
-    		throw new JsonSchemaDefinitionError("OneOf array is 'null'", jsonSchemaPath);
-    	} else if (validatorData instanceof JsonArray) {
-    		subValidatorPackages = new ArrayList<List<BaseJsonSchemaValidator>>();
-    		for (Object subValidationData : ((JsonArray) validatorData)) {
-    			if (subValidationData instanceof JsonObject) {
-    				subValidatorPackages.add(JsonSchema.createValidators((JsonObject) subValidationData, jsonSchemaDependencyResolver, jsonSchemaPath, jsonNode, jsonPath));
-    			} else {
-    				throw new JsonSchemaDefinitionError("OneOf array contains a non-JsonObject", jsonSchemaPath);
-    			}
-    		}
-    		if (subValidatorPackages == null || subValidatorPackages.size() == 0) {
-    			throw new JsonSchemaDefinitionError("OneOf array is empty", jsonSchemaPath);
-    		}
-    	} else {
-    		throw new JsonSchemaDefinitionError("OneOf property does not have an array value", jsonSchemaPath);
-    	}
-    }
+
+	public OneOfValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
+		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
+
+		if (validatorData == null) {
+			throw new JsonSchemaDefinitionError("OneOf array is 'null'", jsonSchemaPath);
+		} else if (validatorData instanceof JsonArray) {
+			subValidatorPackages = new ArrayList<>();
+			for (final Object subValidationData : ((JsonArray) validatorData)) {
+				if (subValidationData instanceof JsonObject) {
+					subValidatorPackages.add(JsonSchema.createValidators((JsonObject) subValidationData, jsonSchemaDependencyResolver, jsonSchemaPath, jsonNode, jsonPath));
+				} else {
+					throw new JsonSchemaDefinitionError("OneOf array contains a non-JsonObject", jsonSchemaPath);
+				}
+			}
+			if (subValidatorPackages == null || subValidatorPackages.size() == 0) {
+				throw new JsonSchemaDefinitionError("OneOf array is empty", jsonSchemaPath);
+			}
+		} else {
+			throw new JsonSchemaDefinitionError("OneOf property does not have an array value", jsonSchemaPath);
+		}
+	}
 
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		int applyCount = 0;
-		for (List<BaseJsonSchemaValidator> subValidatorPackage : subValidatorPackages) {
+		for (final List<BaseJsonSchemaValidator> subValidatorPackage : subValidatorPackages) {
 			try {
-				for (BaseJsonSchemaValidator subValidator : subValidatorPackage) {
+				for (final BaseJsonSchemaValidator subValidator : subValidatorPackage) {
 					subValidator.validate();
 				}
 				applyCount++;
-			} catch (JsonSchemaDataValidationError e) {
+			} catch (final JsonSchemaDataValidationError e) {
 			}
 		}
 

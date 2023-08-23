@@ -1,6 +1,6 @@
 package de.soderer.utilities.console;
 
-public class WindowsConsoleWidthDetection implements Runnable  {
+public class WindowsConsoleWidthDetection implements Runnable {
 	private final StringBuilder response;
 	private ConsoleType consoleType = null;
 
@@ -13,7 +13,7 @@ public class WindowsConsoleWidthDetection implements Runnable  {
 	}
 
 	@Override
-	public void run(){
+	public void run() {
 		try {
 			// Request current cursor position
 			System.out.print("\033[6n");

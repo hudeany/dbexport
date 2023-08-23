@@ -71,7 +71,7 @@
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
 			</manifest>
 
-		    <fileset dir="src" includes="**/*.java" />
+			<fileset dir="src" includes="**/*.java" />
 		</jar>
 
 		<tstamp>

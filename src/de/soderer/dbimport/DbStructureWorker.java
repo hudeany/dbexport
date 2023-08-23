@@ -14,8 +14,8 @@ import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbNotExistsException;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.json.JsonArray;
 import de.soderer.utilities.json.JsonNode;
 import de.soderer.utilities.json.JsonObject;
@@ -117,12 +117,12 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 	}
 
 	private void createTable(final Connection connection, final String tableName, final JsonObject tableJsonObject) throws Exception {
-		if  (tableJsonObject == null) {
+		if (tableJsonObject == null) {
 			throw new Exception("Cannot create table without table definition");
 		}
 
 		final JsonArray columnsJsonArray = (JsonArray) tableJsonObject.get("columns");
-		if  (columnsJsonArray == null) {
+		if (columnsJsonArray == null) {
 			throw new Exception("Cannot create table without columns definition");
 		}
 
@@ -152,7 +152,7 @@ public class DbStructureWorker extends WorkerSimple<Boolean> {
 	}
 
 	private void createTableColumn(final Connection connection, final String tableName, final JsonObject columnJsonObject) throws Exception {
-		if  (columnJsonObject == null) {
+		if (columnJsonObject == null) {
 			throw new Exception("Cannot create table column without column definition");
 		}
 

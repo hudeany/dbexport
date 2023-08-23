@@ -487,11 +487,11 @@ public class DbUtilities {
 
 		if (dbVendor == null) {
 			throw new Exception("Unknown db vendor");
-		} else if (Utilities.isEmpty(hostnameAndPort) && dbVendor != DbVendor.HSQL && dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby){
+		} else if (Utilities.isEmpty(hostnameAndPort) && dbVendor != DbVendor.HSQL && dbVendor != DbVendor.SQLite && dbVendor != DbVendor.Derby) {
 			throw new Exception("Cannot create db connection: Missing hostname");
-		} else if (Utilities.isEmpty(dbName)){
+		} else if (Utilities.isEmpty(dbName)) {
 			throw new Exception("Cannot create db connection: Missing dbName");
-		} else if (trustStoreFile != null && !trustStoreFile.exists()){
+		} else if (trustStoreFile != null && !trustStoreFile.exists()) {
 			throw new Exception("Cannot create db connection: Configured trustStoreFile '" + trustStoreFile.getAbsolutePath() + "' does not exist");
 		}
 
@@ -2157,7 +2157,7 @@ public class DbUtilities {
 	}
 
 	public static void createTable(final Connection connection, final String tablename, final Map<String, DbColumnType> columnsAndTypes, final Collection<String> keyColumns) throws Exception {
-		if  (keyColumns != null) {
+		if (keyColumns != null) {
 			for (String keyColumn : keyColumns) {
 				keyColumn = Utilities.trimSimultaneously(Utilities.trimSimultaneously(keyColumn, "\""), "`");
 				if (!columnsAndTypes.containsKey(keyColumn)) {
@@ -2739,7 +2739,7 @@ public class DbUtilities {
 				}
 			} else {
 				try (Statement statement = connection.createStatement()) {
-					statement.execute("ALTER TABLE " + tableName + " DROP " + (dbVendor == DbVendor.Cassandra ? "" :  "COLUMN ") + columnName);
+					statement.execute("ALTER TABLE " + tableName + " DROP " + (dbVendor == DbVendor.Cassandra ? "" : "COLUMN ") + columnName);
 					connection.commit();
 					return true;
 				} catch (final Exception e) {

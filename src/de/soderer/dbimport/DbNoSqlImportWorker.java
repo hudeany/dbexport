@@ -25,8 +25,8 @@ import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.SimpleDataType;
 import de.soderer.utilities.worker.WorkerParentSimple;
 
 public class DbNoSqlImportWorker extends DbImportWorker {
@@ -486,7 +486,7 @@ public class DbNoSqlImportWorker extends DbImportWorker {
 						invalidItems.add((int) itemsDone + 1);
 						preparedUpdateStatement.clearParameters();
 					}
-				} else if (!itemExists && (importMode == ImportMode.INSERT || importMode == ImportMode.UPSERT)){
+				} else if (!itemExists && (importMode == ImportMode.INSERT || importMode == ImportMode.UPSERT)) {
 					try {
 						int i = 1;
 						for (final String dbColumnToInsert : dbColumnsListToUpdateAndInsert) {

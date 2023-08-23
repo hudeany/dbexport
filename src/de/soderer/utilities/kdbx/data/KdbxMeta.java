@@ -69,8 +69,8 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of change of settings or meta  data change
-	 *  May only be present in KDBX 4.0 or higher.
+	 * Datetime of change of settings or meta data change
+	 * May only be present in KDBX 4.0 or higher.
 	 */
 	public KdbxMeta setSettingsChanged(final ZonedDateTime settingsChanged) {
 		this.settingsChanged = settingsChanged;
@@ -78,8 +78,8 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of change of settings or meta  data change
-	 *  May only be present in KDBX 4.0 or higher.
+	 * Datetime of change of settings or meta data change
+	 * May only be present in KDBX 4.0 or higher.
 	 */
 	public ZonedDateTime getSettingsChanged() {
 		return settingsChanged;
@@ -101,7 +101,7 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of database name change
+	 * Datetime of database name change
 	 */
 	public KdbxMeta setDatabaseNameChanged(final ZonedDateTime databaseNameChanged) {
 		this.databaseNameChanged = databaseNameChanged;
@@ -109,14 +109,14 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of database name change
+	 * Datetime of database name change
 	 */
 	public ZonedDateTime getDatabaseNameChanged() {
 		return databaseNameChanged;
 	}
 
 	/**
-	 *  Database description
+	 * Database description
 	 */
 	public KdbxMeta setDatabaseDescription(final String databaseDescription) {
 		this.databaseDescription = databaseDescription;
@@ -124,14 +124,14 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Database description
+	 * Database description
 	 */
 	public String getDatabaseDescription() {
 		return databaseDescription;
 	}
 
 	/**
-	 *  Datetime of database description change
+	 * Datetime of database description change
 	 */
 	public KdbxMeta setDatabaseDescriptionChanged(final ZonedDateTime databaseDescriptionChanged) {
 		this.databaseDescriptionChanged = databaseDescriptionChanged;
@@ -139,7 +139,7 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of database description change
+	 * Datetime of database description change
 	 */
 	public ZonedDateTime getDatabaseDescriptionChanged() {
 		return databaseDescriptionChanged;
@@ -161,7 +161,7 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of default username change
+	 * Datetime of default username change
 	 */
 	public KdbxMeta setDefaultUserNameChanged(final ZonedDateTime defaultUserNameChanged) {
 		this.defaultUserNameChanged = defaultUserNameChanged;
@@ -169,7 +169,7 @@ public class KdbxMeta {
 	}
 
 	/**
-	 *  Datetime of default username change
+	 * Datetime of default username change
 	 */
 	public ZonedDateTime getDefaultUserNameChanged() {
 		return defaultUserNameChanged;

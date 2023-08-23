@@ -152,7 +152,7 @@ public abstract class DataProvider implements Closeable {
 						if (ZipUtilities.getZipFileEntries(importFile).size() != 1) {
 							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
 						} else {
-							if (zipPassword != null)  {
+							if (zipPassword != null) {
 								inputStream = new CountingInputStream(Zip4jUtilities.openPasswordSecuredZipFile(importFile.getAbsolutePath(), zipPassword));
 							} else {
 								inputStream = new CountingInputStream(ZipUtilities.openZipFile(importFile.getAbsolutePath()));
@@ -194,7 +194,7 @@ public abstract class DataProvider implements Closeable {
 		if (isInlineData) {
 			return "Inline data: true\n";
 		} else {
-			String configurationLogString =  "File: " + importFile.getAbsolutePath() + "\n";
+			String configurationLogString = "File: " + importFile.getAbsolutePath() + "\n";
 			if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
 				configurationLogString += "Compression: zip\n";
 				if (zipPassword != null) {
@@ -248,7 +248,7 @@ public abstract class DataProvider implements Closeable {
 			return importInlineData.getBytes(StandardCharsets.UTF_8).length;
 		} else {
 			if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
-				if (zipPassword != null)  {
+				if (zipPassword != null) {
 					return Zip4jUtilities.getUncompressedSize(importFile, zipPassword);
 				} else {
 					return ZipUtilities.getDataSizeUncompressed(importFile);

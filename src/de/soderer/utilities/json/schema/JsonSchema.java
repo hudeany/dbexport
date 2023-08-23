@@ -71,7 +71,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final InputStream jsonSchemaInputStream) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final InputStream jsonSchemaInputStream) throws JsonSchemaDefinitionError {
 		this(jsonSchemaInputStream, StandardCharsets.UTF_8, false);
 	}
 
@@ -82,7 +82,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding) throws JsonSchemaDefinitionError {
 		this(jsonSchemaInputStream, encoding, false);
 	}
 
@@ -93,7 +93,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final InputStream jsonSchemaInputStream, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final InputStream jsonSchemaInputStream, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError {
 		this(jsonSchemaInputStream, StandardCharsets.UTF_8, useDraftV4Mode);
 	}
 
@@ -104,7 +104,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final InputStream jsonSchemaInputStream, final Charset encoding, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError {
 		JsonNode jsonNode;
 		try (JsonReader jsonReader = new Json5Reader(jsonSchemaInputStream, encoding)) {
 			jsonNode = jsonReader.read();
@@ -129,7 +129,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final JsonObject jsonSchemaDefinition) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final JsonObject jsonSchemaDefinition) throws JsonSchemaDefinitionError {
 		this(jsonSchemaDefinition, false);
 	}
 
@@ -140,7 +140,7 @@ public class JsonSchema {
 	 * This is useful in detection of schema definition errors.<br />
 	 * Nontheless you can switch to the Draf V4 standard behaviour<br />
 	 */
-	public JsonSchema(final JsonObject jsonSchemaDefinition, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError  {
+	public JsonSchema(final JsonObject jsonSchemaDefinition, final boolean useDraftV4Mode) throws JsonSchemaDefinitionError {
 		readSchemaData(jsonSchemaDefinition);
 		jsonSchemaDependencyResolver.setUseDraftV4Mode(useDraftV4Mode);
 	}

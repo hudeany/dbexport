@@ -7,24 +7,24 @@ import de.soderer.utilities.json.schema.JsonSchemaDefinitionError;
 import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class MinItemsValidator extends BaseJsonSchemaValidator {
-	public MinItemsValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
+	public MinItemsValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
 		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-		
+
 		if (validatorData == null) {
 			throw new JsonSchemaDefinitionError("Data for minimum items is 'null'", jsonSchemaPath);
 		} else if (validatorData instanceof Integer) {
 			if (((Integer) validatorData) < 0) {
-				throw new JsonSchemaDefinitionError("Data for minimum items amount is  negative", jsonSchemaPath);
-	    	}
-    	} else if (validatorData instanceof String) {
-    		try {
-    			this.validatorData = Integer.parseInt((String) validatorData);
-			} catch (NumberFormatException e) {
+				throw new JsonSchemaDefinitionError("Data for minimum items amount is negative", jsonSchemaPath);
+			}
+		} else if (validatorData instanceof String) {
+			try {
+				this.validatorData = Integer.parseInt((String) validatorData);
+			} catch (final NumberFormatException e) {
 				throw new JsonSchemaDefinitionError("Data for minimum items '" + validatorData + "' is not a number", jsonSchemaPath);
 			}
-    	}
+		}
 	}
-	
+
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		if (!(jsonNode.isJsonArray())) {
@@ -33,8 +33,8 @@ public class MinItemsValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (((JsonArray) jsonNode.getValue()).size() < ((Integer) validatorData)) {
-				throw new JsonSchemaDataValidationError("Required minimum number of items is '" + ((Integer) validatorData) + "' but was '" + ((JsonArray) jsonNode.getValue()).size()  + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("Required minimum number of items is '" + (validatorData) + "' but was '" + ((JsonArray) jsonNode.getValue()).size() + "'", jsonPath);
 			}
 		}
-    }
+	}
 }

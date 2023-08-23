@@ -219,7 +219,7 @@ public class DbSqlWorker extends DbImportWorker {
 			InputStream inputStream = null;
 			try {
 				if (Utilities.endsWithIgnoreCase(importFilePathOrData, ".zip") || ZipUtilities.isZipArchiveFile(new File(importFilePathOrData))) {
-					if (zipPassword != null)  {
+					if (zipPassword != null) {
 						inputStream = Zip4jUtilities.openPasswordSecuredZipFile(importFilePathOrData, zipPassword);
 					} else {
 						final List<String> filepathsFromZipArchiveFile = ZipUtilities.getZipFileEntries(new File(importFilePathOrData));

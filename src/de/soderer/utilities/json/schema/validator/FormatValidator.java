@@ -13,16 +13,16 @@ import de.soderer.utilities.json.schema.JsonSchemaDefinitionError;
 import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class FormatValidator extends BaseJsonSchemaValidator {
-    public FormatValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
-    	super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-    	
-    	if (validatorData == null) {
-    		throw new JsonSchemaDefinitionError("Format value is 'null'", jsonSchemaPath);
-    	} else if (!(validatorData instanceof String)) {
-    		throw new JsonSchemaDefinitionError("Format value is not a string", jsonSchemaPath);
-    	}
-    }
-	
+	public FormatValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
+		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
+
+		if (validatorData == null) {
+			throw new JsonSchemaDefinitionError("Format value is 'null'", jsonSchemaPath);
+		} else if (!(validatorData instanceof String)) {
+			throw new JsonSchemaDefinitionError("Format value is not a string", jsonSchemaPath);
+		}
+	}
+
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		if (!jsonNode.isString()) {
@@ -34,7 +34,7 @@ public class FormatValidator extends BaseJsonSchemaValidator {
 		} else if ("date-time".equalsIgnoreCase((String) validatorData)) {
 			try {
 				new SimpleDateFormat(DateUtilities.ISO_8601_DATETIME_FORMAT).parse((String) jsonNode.getValue());
-			} catch (ParseException e) {
+			} catch (final ParseException e) {
 				throw new JsonSchemaDataValidationError("Invalid data for format '" + ((String) validatorData) + "' was '" + jsonNode.getValue() + "'", jsonPath);
 			}
 		} else if ("hostname".equalsIgnoreCase((String) validatorData)) {
@@ -56,7 +56,7 @@ public class FormatValidator extends BaseJsonSchemaValidator {
 		} else if ("regex".equalsIgnoreCase((String) validatorData)) {
 			try {
 				Pattern.compile((String) jsonNode.getValue());
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				throw new JsonSchemaDataValidationError("Invalid data for format '" + ((String) validatorData) + "' was '" + jsonNode.getValue() + "'", jsonPath);
 			}
 		} else if ("base64".equalsIgnoreCase((String) validatorData)) {
@@ -66,5 +66,5 @@ public class FormatValidator extends BaseJsonSchemaValidator {
 		} else {
 			throw new JsonSchemaDefinitionError("Unknown format name '" + validatorData + "'", jsonSchemaPath);
 		}
-    }
+	}
 }

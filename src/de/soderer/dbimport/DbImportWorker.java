@@ -740,12 +740,12 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 	}
 
 	private void createTable(final Connection connection, final String tableNameToCreate, final JsonObject tableJsonObject) throws Exception {
-		if  (tableJsonObject == null) {
+		if (tableJsonObject == null) {
 			throw new Exception("Cannot create table without table definition");
 		}
 
 		final JsonArray columnsJsonArray = (JsonArray) tableJsonObject.get("columns");
-		if  (columnsJsonArray == null) {
+		if (columnsJsonArray == null) {
 			throw new Exception("Cannot create table without columns definition");
 		}
 
