@@ -36,7 +36,7 @@ public class TypeValidator extends BaseJsonSchemaValidator {
 						try {
 							jsonDataType = JsonDataType.getFromString((String) typeData);
 						} catch (final Exception e) {
-							throw new JsonSchemaDefinitionError("Invalid JSON data type '" + validatorData + "'", jsonSchemaPath);
+							throw new JsonSchemaDefinitionError("Invalid JSON data type '" + validatorData + "'", jsonSchemaPath, e);
 						}
 
 						if (jsonNode.getJsonDataType() == jsonDataType || (jsonDataType == JsonDataType.NUMBER && jsonNode.getJsonDataType() == JsonDataType.INTEGER)) {
@@ -50,7 +50,7 @@ public class TypeValidator extends BaseJsonSchemaValidator {
 							subValidator.validate();
 						}
 						return;
-					} catch (final JsonSchemaDataValidationError e) {
+					} catch (@SuppressWarnings("unused") final JsonSchemaDataValidationError e) {
 						// Do nothing, just check the next array item
 					}
 				} else {
@@ -66,7 +66,7 @@ public class TypeValidator extends BaseJsonSchemaValidator {
 				try {
 					jsonDataType = JsonDataType.getFromString((String) validatorData);
 				} catch (final Exception e) {
-					throw new JsonSchemaDefinitionError("Invalid JSON data type '" + validatorData + "'", jsonSchemaPath);
+					throw new JsonSchemaDefinitionError("Invalid JSON data type '" + validatorData + "'", jsonSchemaPath, e);
 				}
 
 				if (jsonNode.getJsonDataType() != jsonDataType && !(jsonDataType == JsonDataType.NUMBER && jsonNode.getJsonDataType() == JsonDataType.INTEGER)) {

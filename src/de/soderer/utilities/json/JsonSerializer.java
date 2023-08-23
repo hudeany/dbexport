@@ -1,5 +1,6 @@
 package de.soderer.utilities.json;
 
+import java.io.File;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -20,9 +21,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import de.soderer.utilities.ClassUtilities;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.code.ClassUtilities;
 
 public class JsonSerializer {
 	/**
@@ -96,7 +97,7 @@ public class JsonSerializer {
 				jsonObjectWithTypeInfo.add("value", dataObject);
 				return new JsonNode(jsonObjectWithTypeInfo);
 			} else {
-				return new JsonNode(DateUtilities.formatDate(DateUtilities.ISO_8601_DATETIME_FORMAT, (Date) dataObject));
+				return new JsonNode(dataObject);
 			}
 		} else if (dataObject instanceof LocalDateTime) {
 			if (addObjectTypeInfo) {
@@ -105,7 +106,7 @@ public class JsonSerializer {
 				jsonObjectWithTypeInfo.add("value", dataObject);
 				return new JsonNode(jsonObjectWithTypeInfo);
 			} else {
-				return new JsonNode(DateUtilities.formatDate(DateUtilities.ISO_8601_DATETIME_FORMAT_NO_TIMEZONE, (LocalDateTime) dataObject));
+				return new JsonNode(dataObject);
 			}
 		} else if (dataObject instanceof LocalDate) {
 			if (addObjectTypeInfo) {
@@ -114,7 +115,7 @@ public class JsonSerializer {
 				jsonObjectWithTypeInfo.add("value", dataObject);
 				return new JsonNode(jsonObjectWithTypeInfo);
 			} else {
-				return new JsonNode(DateUtilities.formatDate(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE, (LocalDate) dataObject));
+				return new JsonNode(dataObject);
 			}
 		} else if (dataObject instanceof ZonedDateTime) {
 			if (addObjectTypeInfo) {
@@ -123,7 +124,18 @@ public class JsonSerializer {
 				jsonObjectWithTypeInfo.add("value", dataObject);
 				return new JsonNode(jsonObjectWithTypeInfo);
 			} else {
-				return new JsonNode(DateUtilities.formatDate(DateUtilities.ISO_8601_DATETIME_FORMAT, (ZonedDateTime) dataObject));
+				return new JsonNode(dataObject);
+			}
+		} else if (dataObject instanceof File) {
+			final File fileObject = (File) dataObject;
+			final String valueString = fileObject.getAbsolutePath();
+			if (addObjectTypeInfo) {
+				final JsonObject jsonObjectWithTypeInfo = new JsonObject();
+				jsonObjectWithTypeInfo.add("class", dataObject.getClass().getName());
+				jsonObjectWithTypeInfo.add("value", valueString);
+				return new JsonNode(jsonObjectWithTypeInfo);
+			} else {
+				return new JsonNode(valueString);
 			}
 		} else if (dataObject instanceof Enum) {
 			if (addObjectTypeInfo) {
@@ -335,6 +347,8 @@ public class JsonSerializer {
 					return value;
 				} else if (clazz == Charset.class) {
 					return Charset.forName((String) value);
+				} else if (clazz == File.class) {
+					return new File((String) value);
 				} else if (clazz.isEnum()) {
 					final String enumName = (String) value;
 					for (final Object enumConstant : clazz.getEnumConstants()) {
@@ -366,7 +380,7 @@ public class JsonSerializer {
 						try {
 							field = ClassUtilities.getField(clazz, entry.getKey());
 						} catch (@SuppressWarnings("unused") final Exception e) {
-							throw new Exception("Invalid field name serialization value");
+							throw new Exception("Invalid field name serialization value: " + entry.getKey());
 						}
 						field.setAccessible(true);
 						field.set(object, deserialize((JsonObject) entry.getValue()));

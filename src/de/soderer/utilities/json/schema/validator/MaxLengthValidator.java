@@ -15,7 +15,7 @@ public class MaxLengthValidator extends BaseJsonSchemaValidator {
 			try {
 				this.validatorData = Integer.parseInt((String) validatorData);
 			} catch (final NumberFormatException e) {
-				throw new JsonSchemaDefinitionError("Data for maxLength '" + validatorData + "' is not an integer", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for maxLength '" + validatorData + "' is not an integer", jsonSchemaPath, e);
 			}
 		} else if (((Integer) validatorData) < 0) {
 			throw new JsonSchemaDefinitionError("Data for maxLength is negative", jsonSchemaPath);
@@ -30,7 +30,7 @@ public class MaxLengthValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (((String) jsonNode.getValue()).length() > ((Integer) validatorData)) {
-				throw new JsonSchemaDataValidationError("String maxLength is '" + (validatorData) + "' but was '" + ((String) jsonNode.getValue()).length() + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("String maxLength is '" + validatorData + "' but was '" + ((String) jsonNode.getValue()).length() + "'", jsonPath);
 			}
 		}
 	}

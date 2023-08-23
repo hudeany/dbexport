@@ -59,8 +59,8 @@ public class AdditionalPropertiesValidator extends ExtendedBaseJsonSchemaValidat
 								Pattern propertyKeyPattern;
 								try {
 									propertyKeyPattern = Pattern.compile(entry.getKey());
-								} catch (final Exception e1) {
-									throw new JsonSchemaDefinitionError("PatternProperties data contains invalid RegEx pattern: " + entry.getKey(), jsonSchemaPath);
+								} catch (final Exception e) {
+									throw new JsonSchemaDefinitionError("PatternProperties data contains invalid RegEx pattern: " + entry.getKey(), jsonSchemaPath, e);
 								}
 
 								if (propertyKeyPattern.matcher(checkPropertyKey).find()) {
@@ -88,7 +88,7 @@ public class AdditionalPropertiesValidator extends ExtendedBaseJsonSchemaValidat
 						try {
 							newJsonNode = new JsonNode(((JsonObject) jsonNode.getValue()).get(propertyKey));
 						} catch (final Exception e) {
-							throw new JsonSchemaDataValidationError("Invalid data type '" + ((JsonObject) jsonNode.getValue()).get(propertyKey).getClass().getSimpleName() + "'", jsonPath + "." + propertyKey);
+							throw new JsonSchemaDataValidationError("Invalid data type '" + ((JsonObject) jsonNode.getValue()).get(propertyKey).getClass().getSimpleName() + "'", jsonPath + "." + propertyKey, e);
 						}
 						final List<BaseJsonSchemaValidator> subValidators = JsonSchema.createValidators(((JsonObject) validatorData), jsonSchemaDependencyResolver, jsonSchemaPath, newJsonNode, jsonPath + "." + propertyKey);
 						for (final BaseJsonSchemaValidator subValidator : subValidators) {

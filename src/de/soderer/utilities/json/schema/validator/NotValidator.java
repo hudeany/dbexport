@@ -34,7 +34,7 @@ public class NotValidator extends BaseJsonSchemaValidator {
 			for (final BaseJsonSchemaValidator subValidator : subValidators) {
 				subValidator.validate();
 			}
-		} catch (final JsonSchemaDataValidationError e) {
+		} catch (@SuppressWarnings("unused") final JsonSchemaDataValidationError e) {
 			didNotApply = true;
 		}
 		if (!didNotApply) {

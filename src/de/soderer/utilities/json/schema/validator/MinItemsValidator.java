@@ -20,7 +20,7 @@ public class MinItemsValidator extends BaseJsonSchemaValidator {
 			try {
 				this.validatorData = Integer.parseInt((String) validatorData);
 			} catch (final NumberFormatException e) {
-				throw new JsonSchemaDefinitionError("Data for minimum items '" + validatorData + "' is not a number", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for minimum items '" + validatorData + "' is not a number", jsonSchemaPath, e);
 			}
 		}
 	}
@@ -33,7 +33,7 @@ public class MinItemsValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (((JsonArray) jsonNode.getValue()).size() < ((Integer) validatorData)) {
-				throw new JsonSchemaDataValidationError("Required minimum number of items is '" + (validatorData) + "' but was '" + ((JsonArray) jsonNode.getValue()).size() + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("Required minimum number of items is '" + validatorData + "' but was '" + ((JsonArray) jsonNode.getValue()).size() + "'", jsonPath);
 			}
 		}
 	}

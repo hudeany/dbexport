@@ -18,7 +18,7 @@ public class UniqueItemsValidator extends BaseJsonSchemaValidator {
 			try {
 				this.validatorData = Boolean.parseBoolean((String) validatorData);
 			} catch (final NumberFormatException e) {
-				throw new JsonSchemaDefinitionError("Data for 'uniqueItems' items is '" + validatorData + "' and not 'boolean'", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for 'uniqueItems' items is '" + validatorData + "' and not 'boolean'", jsonSchemaPath, e);
 			}
 		} else {
 			throw new JsonSchemaDefinitionError("Data for 'uniqueItems' is not 'boolean'", jsonSchemaPath);

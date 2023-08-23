@@ -15,7 +15,7 @@ public class MinLengthValidator extends BaseJsonSchemaValidator {
 			try {
 				this.validatorData = Integer.parseInt((String) validatorData);
 			} catch (final NumberFormatException e) {
-				throw new JsonSchemaDefinitionError("Data for minLength '" + validatorData + "' is not an integer", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for minLength '" + validatorData + "' is not an integer", jsonSchemaPath, e);
 			}
 		} else if (((Integer) validatorData) < 0) {
 			throw new JsonSchemaDefinitionError("Data for minLength is negative", jsonSchemaPath);
@@ -30,7 +30,7 @@ public class MinLengthValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (((String) jsonNode.getValue()).length() < ((Integer) validatorData)) {
-				throw new JsonSchemaDataValidationError("String minLength is '" + (validatorData) + "' but was '" + ((String) jsonNode.getValue()).length() + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("String minLength is '" + validatorData + "' but was '" + ((String) jsonNode.getValue()).length() + "'", jsonPath);
 			}
 		}
 	}
