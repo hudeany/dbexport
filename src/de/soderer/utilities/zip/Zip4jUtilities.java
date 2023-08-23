@@ -3,7 +3,9 @@ package de.soderer.utilities.zip;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipException;
 
 import de.soderer.utilities.InputStreamWithOtherItemsToClose;
 import de.soderer.utilities.Utilities;
@@ -15,6 +17,19 @@ import net.lingala.zip4j.model.enums.CompressionMethod;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 public class Zip4jUtilities {
+	public static List<String> getZipFileEntries(final File file, final char[] zipPassword) throws ZipException, IOException {
+		final List<String> entries = new ArrayList<>();
+		try (ZipFile zipFile = new ZipFile(file, zipPassword)) {
+			final List<FileHeader> fileHeaders = zipFile.getFileHeaders();
+			if (fileHeaders != null) {
+				for (final FileHeader fileHeader : fileHeaders) {
+					entries.add(fileHeader.getFileName());
+				}
+			}
+		}
+		return entries;
+	}
+
 	public static void createPasswordSecuredZipFile(final String originalZipFilePath, final char[] zipPassword, final boolean useZipCrypto) throws IOException {
 		final ZipParameters zipParameters = new ZipParameters();
 		zipParameters.setCompressionMethod(CompressionMethod.DEFLATE);
@@ -59,6 +74,7 @@ public class Zip4jUtilities {
 		return openPasswordSecuredZipFile(importFilePathOrData, zipPassword, null);
 	}
 
+	@SuppressWarnings("resource")
 	public static InputStreamWithOtherItemsToClose openPasswordSecuredZipFile(final String importFilePathOrData, final char[] zipPassword, final String zippedFilePathAndName) throws Exception {
 		ZipFile zipFile = null;
 		try {
@@ -94,7 +110,7 @@ public class Zip4jUtilities {
 				if (zipFile != null) {
 					zipFile.close();
 				}
-			} catch (final IOException e1) {
+			} catch (@SuppressWarnings("unused") final IOException e1) {
 				// Do nothing
 			}
 			throw e;

@@ -53,6 +53,10 @@ public abstract class DataProvider implements Closeable {
 		}
 	}
 
+	public char[] getZipPassword() {
+		return zipPassword;
+	}
+
 	static void detectNextDataType(final Map<String, Tuple<String, String>> mapping, final Map<String, DbColumnType> dataTypes, final String propertyKey, final String currentValue) {
 		String formatInfo = null;
 		if (mapping != null) {
@@ -82,7 +86,7 @@ public abstract class DataProvider implements Closeable {
 					} else {
 						dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
 					}
-				} catch (final Exception e) {
+				} catch (@SuppressWarnings("unused") final Exception e) {
 					if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 						dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 					} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -95,11 +99,11 @@ public abstract class DataProvider implements Closeable {
 				try {
 					DateUtilities.parseLocalDateTime(DateUtilities.getDateTimeFormatWithSecondsPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("TIMESTAMP", -1, -1, -1, true, false));
-				} catch (final Exception e) {
+				} catch (@SuppressWarnings("unused") final Exception e) {
 					try {
 						DateUtilities.parseLocalDate(DateUtilities.getDateFormatPattern(Locale.getDefault()), currentValue.trim());
 						dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
-					} catch (final Exception e1) {
+					} catch (@SuppressWarnings("unused") final Exception e1) {
 						if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 							dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 						} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -113,7 +117,7 @@ public abstract class DataProvider implements Closeable {
 				try {
 					DateUtilities.parseLocalDate(DateUtilities.getDateFormatPattern(Locale.getDefault()), currentValue.trim());
 					dataTypes.put(propertyKey, new DbColumnType("DATE", -1, -1, -1, true, false));
-				} catch (final Exception e) {
+				} catch (@SuppressWarnings("unused") final Exception e) {
 					if (NumberUtilities.isInteger(currentValue) && currentValue.trim().length() <= 10) {
 						dataTypes.put(propertyKey, new DbColumnType("INTEGER", -1, -1, -1, true, false));
 					} else if (NumberUtilities.isDouble(currentValue) && currentValue.trim().length() <= 20) {
@@ -149,11 +153,15 @@ public abstract class DataProvider implements Closeable {
 			} else {
 				try {
 					if (Utilities.endsWithIgnoreCase(importFile.getAbsolutePath(), ".zip")) {
-						if (ZipUtilities.getZipFileEntries(importFile).size() != 1) {
-							throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
-						} else {
-							if (zipPassword != null) {
+						if (zipPassword != null) {
+							if (Zip4jUtilities.getZipFileEntries(importFile, zipPassword).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
+							} else {
 								inputStream = new CountingInputStream(Zip4jUtilities.openPasswordSecuredZipFile(importFile.getAbsolutePath(), zipPassword));
+							}
+						} else {
+							if (ZipUtilities.getZipFileEntries(importFile).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + importFile.getAbsolutePath());
 							} else {
 								inputStream = new CountingInputStream(ZipUtilities.openZipFile(importFile.getAbsolutePath()));
 							}
@@ -180,7 +188,7 @@ public abstract class DataProvider implements Closeable {
 					if (inputStream != null) {
 						try {
 							inputStream.close();
-						} catch (final IOException e1) {
+						} catch (@SuppressWarnings("unused") final IOException e1) {
 							// do nothing
 						}
 					}

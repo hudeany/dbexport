@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -33,13 +34,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 import de.soderer.dbimport.DbImportDefinition.DuplicateMode;
 import de.soderer.dbimport.DbImportDefinition.ImportMode;
 import de.soderer.dbimport.dataprovider.DataProvider;
+import de.soderer.utilities.CountingInputStream;
 import de.soderer.utilities.DateUtilities;
+import de.soderer.utilities.InputStreamWithOtherItemsToClose;
+import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.NetworkUtilities;
+import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Tuple;
 import de.soderer.utilities.Utilities;
@@ -57,6 +63,8 @@ import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonReader;
 import de.soderer.utilities.worker.WorkerParentSimple;
 import de.soderer.utilities.worker.WorkerSimple;
+import de.soderer.utilities.zip.Zip4jUtilities;
+import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbImportWorker extends WorkerSimple<Boolean> {
 	// Mandatory parameters
@@ -1035,22 +1043,88 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				if (!new File(valueString).exists()) {
 					throw new Exception("File does not exist: " + valueString);
 				} else if (simpleDataType == SimpleDataType.Blob) {
+					InputStream inputStream;
+					if (Utilities.endsWithIgnoreCase(valueString, ".zip")) {
+						if (dataProvider.getZipPassword() != null) {
+							if (Zip4jUtilities.getZipFileEntries(new File(valueString), dataProvider.getZipPassword()).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + new File(valueString).getAbsolutePath());
+							} else {
+								inputStream = new CountingInputStream(Zip4jUtilities.openPasswordSecuredZipFile(new File(valueString).getAbsolutePath(), dataProvider.getZipPassword()));
+							}
+						} else {
+							if (ZipUtilities.getZipFileEntries(new File(valueString)).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + new File(valueString).getAbsolutePath());
+							} else {
+								inputStream = new CountingInputStream(ZipUtilities.openZipFile(new File(valueString).getAbsolutePath()));
+							}
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".tar.gz")) {
+						if (TarGzUtilities.getFilesCount(new File(valueString)) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + valueString);
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(valueString)));
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".tgz")) {
+						if (TarGzUtilities.getFilesCount(new File(valueString)) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + valueString);
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(valueString)));
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".gz")) {
+						inputStream = new CountingInputStream(new GZIPInputStream(new FileInputStream(new File(valueString))));
+					} else {
+						inputStream = new CountingInputStream(new InputStreamWithOtherItemsToClose(new FileInputStream(new File(valueString)), valueString));
+					}
+
 					if (dbDefinition.getDbVendor() == DbVendor.SQLite) {
 						// SQLite ignores "setBinaryStream"
-						final byte[] data = Utilities.readFileToByteArray(new File(valueString));
+						final byte[] data = IoUtilities.toByteArray(inputStream);
 						preparedStatement.setBytes(columnIndex, data);
 					} else {
-						itemToCloseAfterwards = new FileInputStream(valueString);
+						itemToCloseAfterwards = inputStream;
 						preparedStatement.setBinaryStream(columnIndex, (FileInputStream) itemToCloseAfterwards);
 					}
 					importedDataAmount += new File(valueString).length();
 				} else {
+					InputStream inputStream;
+					if (Utilities.endsWithIgnoreCase(valueString, ".zip")) {
+						if (dataProvider.getZipPassword() != null) {
+							if (Zip4jUtilities.getZipFileEntries(new File(valueString), dataProvider.getZipPassword()).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + new File(valueString).getAbsolutePath());
+							} else {
+								inputStream = new CountingInputStream(Zip4jUtilities.openPasswordSecuredZipFile(new File(valueString).getAbsolutePath(), dataProvider.getZipPassword()));
+							}
+						} else {
+							if (ZipUtilities.getZipFileEntries(new File(valueString)).size() != 1) {
+								throw new Exception("Compressed import file does not contain a single compressed file: " + new File(valueString).getAbsolutePath());
+							} else {
+								inputStream = new CountingInputStream(ZipUtilities.openZipFile(new File(valueString).getAbsolutePath()));
+							}
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".tar.gz")) {
+						if (TarGzUtilities.getFilesCount(new File(valueString)) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + valueString);
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(valueString)));
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".tgz")) {
+						if (TarGzUtilities.getFilesCount(new File(valueString)) != 1) {
+							throw new Exception("Compressed import file does not contain a single compressed file: " + valueString);
+						} else {
+							inputStream = new CountingInputStream(TarGzUtilities.openCompressedFile(new File(valueString)));
+						}
+					} else if (Utilities.endsWithIgnoreCase(valueString, ".gz")) {
+						inputStream = new CountingInputStream(new GZIPInputStream(new FileInputStream(new File(valueString))));
+					} else {
+						inputStream = new CountingInputStream(new InputStreamWithOtherItemsToClose(new FileInputStream(new File(valueString)), valueString));
+					}
+
 					if (dbDefinition.getDbVendor() == DbVendor.SQLite || dbDefinition.getDbVendor() == DbVendor.PostgreSQL) {
 						// PostgreSQL and SQLite do not read the stream
-						final byte[] data = Utilities.readFileToByteArray(new File(valueString));
+						final byte[] data = IoUtilities.toByteArray(inputStream);
 						preparedStatement.setString(columnIndex, new String(data, textFileEncoding));
 					} else {
-						itemToCloseAfterwards = new InputStreamReader(new FileInputStream(valueString), textFileEncoding);
+						itemToCloseAfterwards = new InputStreamReader(inputStream, textFileEncoding);
 						preparedStatement.setCharacterStream(columnIndex, (InputStreamReader) itemToCloseAfterwards);
 					}
 					importedDataAmount += new File(valueString).length();
@@ -1181,6 +1255,11 @@ public class DbImportWorker extends WorkerSimple<Boolean> {
 				}
 				preparedStatement.setTimestamp(columnIndex, Timestamp.valueOf(localDateTimeValueForDb));
 			}
+		} else if (dataValue instanceof ZonedDateTime) {
+			final LocalDateTime localDateTimeValueForDb = ((ZonedDateTime) dataValue).withZoneSameInstant(databaseZoneId).toLocalDateTime();
+			preparedStatement.setTimestamp(columnIndex, Timestamp.valueOf(localDateTimeValueForDb));
+		} else if (dataValue instanceof LocalDateTime) {
+			preparedStatement.setTimestamp(columnIndex, Timestamp.valueOf((LocalDateTime) dataValue));
 		} else {
 			setParameter(preparedStatement, columnIndex, simpleDataType, dataValue);
 		}
