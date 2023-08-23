@@ -17,7 +17,7 @@ public class MultipleOfValidator extends BaseJsonSchemaValidator {
 			try {
 				this.validatorData = new BigDecimal((String) validatorData);
 			} catch (final NumberFormatException e) {
-				throw new JsonSchemaDefinitionError("Data for multipleOf '" + validatorData + "' is not a number", jsonSchemaPath);
+				throw new JsonSchemaDefinitionError("Data for multipleOf '" + validatorData + "' is not a number", jsonSchemaPath, e);
 			}
 		} else if (!(validatorData instanceof Number)) {
 			throw new JsonSchemaDefinitionError("Data for multipleOf '" + validatorData + "' is not a number", jsonSchemaPath);
@@ -32,7 +32,7 @@ public class MultipleOfValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if (new BigDecimal(jsonNode.getValue().toString()).remainder(new BigDecimal(validatorData.toString())).compareTo(BigDecimal.ZERO) != 0) {
-				throw new JsonSchemaDataValidationError("Number must be multiple of '" + ((Number) validatorData).toString() + "' but value was '" + (jsonNode.getValue()) + "'", jsonPath);
+				throw new JsonSchemaDataValidationError("Number must be multiple of '" + ((Number) validatorData).toString() + "' but value was '" + jsonNode.getValue() + "'", jsonPath);
 			}
 		}
 	}

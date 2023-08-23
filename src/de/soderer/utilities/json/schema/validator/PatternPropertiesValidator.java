@@ -37,18 +37,18 @@ public class PatternPropertiesValidator extends BaseJsonSchemaValidator {
 						Pattern propertyKeyPattern;
 						try {
 							propertyKeyPattern = Pattern.compile(entry.getKey());
-						} catch (final Exception e1) {
-							throw new JsonSchemaDefinitionError("PatternProperties data contains invalid RegEx pattern: " + entry.getKey(), jsonSchemaPath);
+						} catch (final Exception e) {
+							throw new JsonSchemaDefinitionError("PatternProperties data contains invalid RegEx pattern: " + entry.getKey(), jsonSchemaPath, e);
 						}
 
 						if (propertyKeyPattern.matcher(propertyEntry.getKey()).find()) {
-							JsonNode jsonNode;
+							JsonNode nextJsonNode;
 							try {
-								jsonNode = new JsonNode(propertyEntry.getValue());
+								nextJsonNode = new JsonNode(propertyEntry.getValue());
 							} catch (final Exception e) {
-								throw new JsonSchemaDataValidationError("Invalid property data type was '" + propertyEntry.getValue().getClass().getSimpleName() + "'", jsonPath + "." + propertyEntry.getKey());
+								throw new JsonSchemaDataValidationError("Invalid property data type was '" + propertyEntry.getValue().getClass().getSimpleName() + "'", jsonPath + "." + propertyEntry.getKey(), e);
 							}
-							final List<BaseJsonSchemaValidator> subValidators = JsonSchema.createValidators(((JsonObject) entry.getValue()), jsonSchemaDependencyResolver, jsonSchemaPath + "." + propertyEntry.getKey(), jsonNode, jsonPath + "." + propertyEntry.getKey());
+							final List<BaseJsonSchemaValidator> subValidators = JsonSchema.createValidators(((JsonObject) entry.getValue()), jsonSchemaDependencyResolver, jsonSchemaPath + "." + propertyEntry.getKey(), nextJsonNode, jsonPath + "." + propertyEntry.getKey());
 							for (final BaseJsonSchemaValidator subValidator : subValidators) {
 								subValidator.validate();
 							}

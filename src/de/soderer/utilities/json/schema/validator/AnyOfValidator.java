@@ -45,7 +45,8 @@ public class AnyOfValidator extends BaseJsonSchemaValidator {
 					subValidator.validate();
 				}
 				return;
-			} catch (final JsonSchemaDataValidationError e) {
+			} catch (@SuppressWarnings("unused") final JsonSchemaDataValidationError e) {
+				// Do nothing, only one subvalidator must have successfully validated
 			}
 		}
 		throw new JsonSchemaDataValidationError("No option of 'anyOf' property did apply to JsonNode", jsonPath);

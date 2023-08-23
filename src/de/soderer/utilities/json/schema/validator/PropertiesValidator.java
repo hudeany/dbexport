@@ -35,7 +35,7 @@ public class PropertiesValidator extends BaseJsonSchemaValidator {
 						try {
 							newJsonNode = new JsonNode(((JsonObject) jsonNode.getValue()).get(entry.getKey()));
 						} catch (final Exception e) {
-							throw new JsonSchemaDataValidationError("Invalid data type '" + ((JsonObject) jsonNode.getValue()).get(entry.getKey()).getClass().getSimpleName() + "'", jsonPath + "." + entry.getKey());
+							throw new JsonSchemaDataValidationError("Invalid data type '" + ((JsonObject) jsonNode.getValue()).get(entry.getKey()).getClass().getSimpleName() + "'", jsonPath + "." + entry.getKey(), e);
 						}
 						final List<BaseJsonSchemaValidator> subValidators = JsonSchema.createValidators(((JsonObject) entry.getValue()), jsonSchemaDependencyResolver, jsonSchemaPath + "." + entry.getKey(), newJsonNode, jsonPath + "." + entry.getKey());
 						for (final BaseJsonSchemaValidator subValidator : subValidators) {

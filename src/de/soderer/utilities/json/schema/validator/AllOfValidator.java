@@ -45,7 +45,7 @@ public class AllOfValidator extends BaseJsonSchemaValidator {
 					subValidator.validate();
 				}
 			} catch (final JsonSchemaDataValidationError e) {
-				throw new JsonSchemaDataValidationError("Some option of 'allOf' property did not apply to JsonNode", jsonPath);
+				throw new JsonSchemaDataValidationError("Some option of 'allOf' property did not apply to JsonNode", jsonPath, e);
 			}
 		}
 	}
