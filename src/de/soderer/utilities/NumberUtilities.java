@@ -67,7 +67,7 @@ public class NumberUtilities {
 	 * 	 0 if a = b
 	 * 	-1 if a < b
 	 */
-	public static int compare(final Number a, final Number b){
+	public static int compare(final Number a, final Number b) {
 		return new BigDecimal(a.toString()).compareTo(new BigDecimal(b.toString()));
 	}
 

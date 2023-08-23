@@ -52,7 +52,7 @@ import de.soderer.utilities.xml.XmlUtilities;
  * versionIndexFileLocation
  * 	may include placeholders:<br />
  * 		&lt;system> : replaced by "windows" or "linux"<br />
- *  	&lt;bitmode> : replaced by "32" or "64"<br />
+ *		&lt;bitmode> : replaced by "32" or "64"<br />
  * 		&lt;username> : interactive username dialog<br />
  * 		&lt;password> : interactive password dialog<br />
  * 		&lt;time_seconds> : current timestamp in seconds (used by sourceforge.net)

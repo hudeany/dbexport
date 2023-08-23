@@ -54,7 +54,7 @@ public class ConnectionTestDefinition extends DbDefinition {
 			params += " " + getHostnameAndPort();
 		}
 		params += " " + getDbName();
-		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby  && getUsername() != null) {
+		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby && getUsername() != null) {
 			params += " " + getUsername();
 		}
 		if (getPassword() != null) {

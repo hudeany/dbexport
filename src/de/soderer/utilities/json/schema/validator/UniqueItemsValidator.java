@@ -7,24 +7,24 @@ import de.soderer.utilities.json.schema.JsonSchemaDefinitionError;
 import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class UniqueItemsValidator extends BaseJsonSchemaValidator {
-	public UniqueItemsValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
+	public UniqueItemsValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
 		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-		
+
 		if (validatorData == null) {
 			throw new JsonSchemaDefinitionError("Data for 'uniqueItems' items is 'null'", jsonSchemaPath);
 		} else if (validatorData instanceof Boolean) {
 			this.validatorData = validatorData;
-    	} else if (validatorData instanceof String) {
-    		try {
+		} else if (validatorData instanceof String) {
+			try {
 				this.validatorData = Boolean.parseBoolean((String) validatorData);
-			} catch (NumberFormatException e) {
+			} catch (final NumberFormatException e) {
 				throw new JsonSchemaDefinitionError("Data for 'uniqueItems' items is '" + validatorData + "' and not 'boolean'", jsonSchemaPath);
 			}
-    	} else {
-    		throw new JsonSchemaDefinitionError("Data for 'uniqueItems' is not 'boolean'", jsonSchemaPath);
-    	}
+		} else {
+			throw new JsonSchemaDefinitionError("Data for 'uniqueItems' is not 'boolean'", jsonSchemaPath);
+		}
 	}
-	
+
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		if (!(jsonNode.isJsonArray())) {
@@ -33,16 +33,16 @@ public class UniqueItemsValidator extends BaseJsonSchemaValidator {
 			}
 		} else {
 			if ((Boolean) validatorData) {
-				JsonArray jsonArray = (JsonArray) jsonNode.getValue();
+				final JsonArray jsonArray = (JsonArray) jsonNode.getValue();
 				for (int i = 0; i < jsonArray.size(); i++) {
 					for (int j = i + 1; j < jsonArray.size(); j++) {
 						if ((jsonArray.get(i) == jsonArray.get(j))
-							|| (jsonArray.get(i) != null && jsonArray.get(i).equals(jsonArray.get(j)))) {
+								|| (jsonArray.get(i) != null && jsonArray.get(i).equals(jsonArray.get(j)))) {
 							throw new JsonSchemaDataValidationError("Item '" + jsonArray.get(i) + "' of array is not unique", jsonPath);
 						}
 					}
 				}
 			}
 		}
-    }
+	}
 }

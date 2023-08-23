@@ -105,7 +105,7 @@ public class SecurePreferencesDialog extends ModalDialog<Boolean> {
 		preferencesTable = new JTable(new DefaultTableModel(0, 1));
 		preferencesTable.setBorder(BorderFactory.createLineBorder(Color.GRAY));
 		preferencesTable.setToolTipText(text);
-		preferencesTable.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+		preferencesTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(final ListSelectionEvent event) {
 				loadButton.setEnabled(preferencesTable.getSelectedRows().length == 1);

@@ -72,7 +72,7 @@
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
 			</manifest>
 
-		    <fileset dir="src" includes="**/*.java" />
+			<fileset dir="src" includes="**/*.java" />
 		</jar>
 
 		<tstamp>

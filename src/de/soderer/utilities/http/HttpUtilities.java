@@ -233,7 +233,7 @@ public class HttpUtilities {
 			Charset encoding = StandardCharsets.UTF_8;
 			if (headers.containsKey("content-type")) {
 				String contentType = headers.get("content-type");
-				if (contentType != null && contentType.toLowerCase().contains("charset="))  {
+				if (contentType != null && contentType.toLowerCase().contains("charset=")) {
 					contentType = contentType.toLowerCase();
 					encoding = Charset.forName(contentType.substring(contentType.indexOf("charset=") + 8).trim());
 				}
@@ -242,7 +242,7 @@ public class HttpUtilities {
 			Map<String, String> cookiesMap = null;
 			if (headers.containsKey(HttpRequest.HEADER_NAME_DOWNLOAD_COOKIE)) {
 				final String cookiesData = headers.get(HttpRequest.HEADER_NAME_DOWNLOAD_COOKIE);
-				if (cookiesData != null)  {
+				if (cookiesData != null) {
 					cookiesMap = new LinkedHashMap<>();
 					for (final String cookie : cookiesData.split(";")) {
 						final String[] cookieParts = cookie.split("=");

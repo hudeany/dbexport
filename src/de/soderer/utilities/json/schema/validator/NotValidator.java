@@ -11,30 +11,30 @@ import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class NotValidator extends BaseJsonSchemaValidator {
 	private List<BaseJsonSchemaValidator> subValidators = null;
-	
-    public NotValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
-    	super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-    	
-    	if (validatorData == null) {
-    		throw new JsonSchemaDefinitionError("Not-validation data is 'null'", jsonSchemaPath);
-    	} else if (validatorData instanceof JsonObject) {
-    		subValidators = JsonSchema.createValidators((JsonObject) validatorData, jsonSchemaDependencyResolver, jsonSchemaPath, jsonNode, jsonPath);
-    		if (subValidators == null || subValidators.size() == 0) {
-    			throw new JsonSchemaDefinitionError("Not-validation JsonObject is empty", jsonSchemaPath);
-    		}
-    	} else {
-    		throw new JsonSchemaDefinitionError("Not-validation property does not have an JsonObject value", jsonSchemaPath);
-    	}
-    }
+
+	public NotValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
+		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
+
+		if (validatorData == null) {
+			throw new JsonSchemaDefinitionError("Not-validation data is 'null'", jsonSchemaPath);
+		} else if (validatorData instanceof JsonObject) {
+			subValidators = JsonSchema.createValidators((JsonObject) validatorData, jsonSchemaDependencyResolver, jsonSchemaPath, jsonNode, jsonPath);
+			if (subValidators == null || subValidators.size() == 0) {
+				throw new JsonSchemaDefinitionError("Not-validation JsonObject is empty", jsonSchemaPath);
+			}
+		} else {
+			throw new JsonSchemaDefinitionError("Not-validation property does not have an JsonObject value", jsonSchemaPath);
+		}
+	}
 
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		boolean didNotApply = false;
 		try {
-			for (BaseJsonSchemaValidator subValidator : subValidators) {
+			for (final BaseJsonSchemaValidator subValidator : subValidators) {
 				subValidator.validate();
 			}
-		} catch (JsonSchemaDataValidationError e) {
+		} catch (final JsonSchemaDataValidationError e) {
 			didNotApply = true;
 		}
 		if (!didNotApply) {

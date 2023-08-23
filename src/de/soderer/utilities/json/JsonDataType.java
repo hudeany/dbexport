@@ -1,20 +1,20 @@
 package de.soderer.utilities.json;
 
 public enum JsonDataType {
-    STRING,
-    INTEGER,
-    NUMBER,
-    OBJECT,
-    ARRAY,
-    BOOLEAN,
-    NULL;
+	STRING,
+	INTEGER,
+	NUMBER,
+	OBJECT,
+	ARRAY,
+	BOOLEAN,
+	NULL;
 
 	public String getName() {
 		return name().toLowerCase();
 	}
 
-	public static JsonDataType getFromString(String value) throws Exception {
-		for (JsonDataType jsonDataType : JsonDataType.values()) {
+	public static JsonDataType getFromString(final String value) throws Exception {
+		for (final JsonDataType jsonDataType : JsonDataType.values()) {
 			if (jsonDataType.name().toLowerCase().equals(value)) {
 				return jsonDataType;
 			}

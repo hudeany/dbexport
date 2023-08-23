@@ -8,14 +8,14 @@ import de.soderer.utilities.json.schema.JsonSchemaDefinitionError;
 import de.soderer.utilities.json.schema.JsonSchemaDependencyResolver;
 
 public class RequiredValidator extends BaseJsonSchemaValidator {
-	public RequiredValidator(JsonSchemaDependencyResolver jsonSchemaDependencyResolver, String jsonSchemaPath, Object validatorData, JsonNode jsonNode, String jsonPath) throws JsonSchemaDefinitionError {
+	public RequiredValidator(final JsonSchemaDependencyResolver jsonSchemaDependencyResolver, final String jsonSchemaPath, final Object validatorData, final JsonNode jsonNode, final String jsonPath) throws JsonSchemaDefinitionError {
 		super(jsonSchemaDependencyResolver, jsonSchemaPath, validatorData, jsonNode, jsonPath);
-		
+
 		if (!(validatorData instanceof JsonArray)) {
 			throw new JsonSchemaDefinitionError("Data for required property keys is not a JsonArray", jsonSchemaPath);
-    	}
+		}
 	}
-	
+
 	@Override
 	public void validate() throws JsonSchemaDefinitionError, JsonSchemaDataValidationError {
 		if (!(jsonNode.isJsonObject())) {
@@ -23,7 +23,7 @@ public class RequiredValidator extends BaseJsonSchemaValidator {
 				throw new JsonSchemaDataValidationError("Expected data type 'object' but was '" + jsonNode.getJsonDataType().getName() + "'", jsonPath);
 			}
 		} else {
-			for (Object propertyKey : (JsonArray) validatorData) {
+			for (final Object propertyKey : (JsonArray) validatorData) {
 				if (propertyKey == null) {
 					throw new JsonSchemaDefinitionError("Data entry for required property key name must be 'string' but was 'null'", jsonSchemaPath);
 				} else if (!(propertyKey instanceof String)) {
@@ -33,5 +33,5 @@ public class RequiredValidator extends BaseJsonSchemaValidator {
 				}
 			}
 		}
-    }
+	}
 }
