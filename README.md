@@ -1,20 +1,21 @@
-# Java tool to import data in db from files
+# Java tool to import data in database from files
 
 ## Supported file formats and datatypes:
 - Comma-Separated-Values (.csv)
 - JSON (.json)
 - XML (.xml)
 - vCards (.vcf)
-- Excel <2003 (.xls)
-- Excel 2003+ (.xlsx)
+- Excel old (<= 2003) (.xls)
+- Excel new (2007+) (.xlsx)
 - OpenDocumentSheet (.ods)
 - KeePass (.kdbx)
 
 ## Supported file compressions:
-- Zip (.zip, optionally with password)
+- Uncompressed
+- Zip (.zip, optionally with password using aes or zipcrypto)
 - Tar (.tar)
 - TarGz (.tar.gz)
-- GZip (..gz)
+- GZip (.gz)
 
 ## Supported DB vendors:
 - MySQL
