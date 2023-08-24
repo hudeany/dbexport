@@ -1,10 +1,39 @@
-# Java tool to export db data into csv, json, xml or sql files 
+# Java tool to export data from database in files
 
-Usage: java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
+## Supported file formats and datatypes:
+- Comma-Separated-Values (.csv)
+- JSON (.json)
+- XML (.xml)
+- vCards (.vcf)
+- Excel old (<= 2003) (.xls)
+- Excel new (2007+) (.xlsx)
+- OpenDocumentSheet (.ods)
+- KeePass (.kdbx)
 
-Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
+## Supported file compressions:
+- Uncompressed
+- Zip (.zip, optionally with password using aes or zipcrypto)
+- Tar (.tar)
+- TarGz (.tar.gz)
+- GZip (.gz)
 
-Mandatory parameters for db export
+## Supported DB vendors:
+- MySQL
+- MariaDB
+- Oracle
+- PostgreSQL
+- Firebird
+- Sqlite
+- Derby
+- Hsql
+- Cassandra
+- 
+## Commandline usage
+	java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
+
+	Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
+
+## Mandatory parameters for db export
 	dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
 	hostname: With optional port (Not needed for sqlite, hsql and derby)
 	dbname: Dbname or filepath for sqlite db or derby db
@@ -19,7 +48,7 @@ Mandatory parameters for db export
 						or 'console' for output to terminal
 						may contain datetime placeholders ([YYYY], [MM], [DD], [hh], [mm], [ss])
 
-Optional parameters for db export
+## Optional parameters for db export
 	-x exportformat: Data export format, default format is CSV
 		exportformat: CSV | JSON | XML | SQL | VCF | KDBX
 		(Don't forget to beautify json for human readable data)
@@ -55,14 +84,14 @@ Optional parameters for db export
 	-truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted DB connections of some DB vendors
 	-truststorepassword '<password>': Optional password for TrustStore
 
-Global standalone parameters
+## Global standalone parameters
 	help: Show this help manual
 	gui: Open a GUI (Other parameters may also be preconfigured)
 	menu: Open a Console menu (Other parameters may also be preconfigured)
 	version: Show current local version of this tool
 	update: Check for online update and ask, whether an available update shell be installed;
 
-Connection test:
+## Connection test:
 	Usage: java -jar DbImport.jar connectiontest dbtype hostname[:port] dbname username [-iter n] [-sleep n] [-check checksql] [password]
 	
 	-iter n: Iterations to execute. Default = 1, 0 = unlimited
@@ -70,7 +99,7 @@ Connection test:
 	-check checksql: SQL statement to check or the keyword "vendor" for the vendors default check statement
 	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
 
-Create TrustStore:
+## Create TrustStore:
 	Usage: java -jar DbImport.jar createtruststore hostname:port truststorefilePath [truststorepassword]
 	
 	truststorefilePath: Filepath to create the TrustStore file in 
