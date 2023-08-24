@@ -27,7 +27,7 @@
 - Derby
 - Hsql
 - Cassandra
-- 
+
 ## Commandline usage
 	java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
 
