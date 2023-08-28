@@ -386,9 +386,55 @@ public class FileUtilities {
 	public static boolean isValidFilePath(final String path) {
 		try {
 			Paths.get(path);
-		} catch (@SuppressWarnings("unused") InvalidPathException | NullPointerException ex) {
+		} catch (InvalidPathException | NullPointerException ex) {
 			return false;
 		}
 		return true;
+	}
+
+	public static FileType getFileTypeByExtension(final String filePath) {
+		final FileType fileType = new FileType();
+
+		String filePathWithoutCompressionPart;
+
+		if (Utilities.endsWithIgnoreCase(filePath, ".zip")) {
+			fileType.setFileCompressionType(FileCompressionType.ZIP);
+			filePathWithoutCompressionPart = filePath.substring(0, filePath.length() - 4);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".tar.gz")) {
+			fileType.setFileCompressionType(FileCompressionType.TARGZ);
+			filePathWithoutCompressionPart = filePath.substring(0, filePath.length() - 7);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".tgz")) {
+			fileType.setFileCompressionType(FileCompressionType.TGZ);
+			filePathWithoutCompressionPart = filePath.substring(0, filePath.length() - 4);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".gz")) {
+			fileType.setFileCompressionType(FileCompressionType.GZ);
+			filePathWithoutCompressionPart = filePath.substring(0, filePath.length() - 3);
+		} else {
+			fileType.setFileCompressionType(null);
+			filePathWithoutCompressionPart = filePath;
+		}
+
+
+		if (Utilities.endsWithIgnoreCase(filePathWithoutCompressionPart, ".csv")) {
+			fileType.setFileDataType(FileDataType.CSV);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".xls") || Utilities.endsWithIgnoreCase(filePath, ".xlsx")) {
+			fileType.setFileDataType(FileDataType.EXCEL);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".json")) {
+			fileType.setFileDataType(FileDataType.JSON);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".kdbx")) {
+			fileType.setFileDataType(FileDataType.KDBX);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".ods")) {
+			fileType.setFileDataType(FileDataType.ODS);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".sql")) {
+			fileType.setFileDataType(FileDataType.SQL);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".vcf")) {
+			fileType.setFileDataType(FileDataType.VCF);
+		} else if (Utilities.endsWithIgnoreCase(filePath, ".xml")) {
+			fileType.setFileDataType(FileDataType.XML);
+		} else {
+			fileType.setFileDataType(null);
+		}
+
+		return fileType;
 	}
 }
