@@ -479,4 +479,23 @@ public class Utilities {
 	public static String joinNotBlank(final List<String> listOfStrings, final String glue) {
 		return join(listOfStrings.stream().filter(x -> isNotBlank(x)).collect(Collectors.toList()), glue);
 	}
+
+	public static boolean endsWithIgnoreCase(final String data, final String suffix) {
+		if (data == suffix) {
+			// both null or same object
+			return true;
+		} else if (data == null) {
+			// data is null but suffix is not
+			return false;
+		} else if (suffix == null) {
+			// suffix is null but data is not
+			return true;
+		} else if (data.toLowerCase().endsWith(suffix.toLowerCase())) {
+			// both are set, so ignore the case for standard endsWith-method
+			return true;
+		} else {
+			// anything else
+			return false;
+		}
+	}
 }
