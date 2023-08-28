@@ -1253,11 +1253,16 @@ public class DbImportGui extends UpdateableGuiApplication {
 		tableNameField.setText(dbImportDefinition.getTableName());
 		importFilePathOrDataField.setText(dbImportDefinition.getImportFilePathOrData());
 
+		boolean dataTypeFound = false;
 		for (int i = 0; i < dataTypeCombo.getItemCount(); i++) {
 			if (dataTypeCombo.getItemAt(i).equalsIgnoreCase(dbImportDefinition.getDataType().toString())) {
 				dataTypeCombo.setSelectedIndex(i);
+				dataTypeFound = true;
 				break;
 			}
+		}
+		if (!dataTypeFound) {
+			dataTypeCombo.setSelectedItem(0);
 		}
 
 		fileLogBox.setSelected(dbImportDefinition.isLog());

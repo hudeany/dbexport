@@ -903,13 +903,13 @@ public class DbImport extends UpdateableConsoleApplication implements WorkerPare
 				String tableName = dbImportDefinitionToExecute.getTableName();
 				if ("*".equals(tableName)) {
 					tableName = fileToImport.getName();
-					if (tableName.toLowerCase().endsWith(".zip")) {
+					if (Utilities.endsWithIgnoreCase(tableName, ".zip")) {
 						tableName = tableName.substring(0, tableName.length() - 4);
-					} else if (tableName.toLowerCase().endsWith(".tar.gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableName, ".tar.gz")) {
 						tableName = tableName.substring(0, tableName.length() - 7);
-					} else if (tableName.toLowerCase().endsWith(".tgz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableName, ".tgz")) {
 						tableName = tableName.substring(0, tableName.length() - 4);
-					} else if (tableName.toLowerCase().endsWith(".gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableName, ".gz")) {
 						tableName = tableName.substring(0, tableName.length() - 3);
 					}
 					if (tableName.contains(".")) {

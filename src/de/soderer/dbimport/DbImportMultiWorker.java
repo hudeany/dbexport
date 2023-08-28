@@ -58,13 +58,13 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 				final List<String> availableTables = DbUtilities.getAvailableTables(connection, "*").stream().map(x -> x.toLowerCase()).collect(Collectors.toList());
 				for (int fileIndex = 0; fileIndex < filesToImport.size(); fileIndex++) {
 					String tableNameToImport = filesToImport.get(fileIndex).getName().toLowerCase();
-					if (tableNameToImport.endsWith(".zip")) {
+					if (Utilities.endsWithIgnoreCase(tableNameToImport, ".zip")) {
 						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.length() - 4);
-					} else if (tableNameToImport.endsWith(".tar.gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableNameToImport, ".tar.gz")) {
 						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.length() - 7);
-					} else if (tableNameToImport.endsWith(".tgz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableNameToImport, ".tgz")) {
 						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.length() - 4);
-					} else if (tableNameToImport.endsWith(".gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableNameToImport, ".gz")) {
 						tableNameToImport = tableNameToImport.substring(0, tableNameToImport.length() - 3);
 					}
 					if (tableNameToImport.contains(".")) {
@@ -107,13 +107,13 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 				if ("*".equals(tableToImport)) {
 					tableToImport = filesToImport.get(fileIndex).getName();
-					if (tableToImport.toLowerCase().endsWith(".zip")) {
+					if (Utilities.endsWithIgnoreCase(tableToImport, ".zip")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 4);
-					} else if (tableToImport.toLowerCase().endsWith(".tar.gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".tar.gz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 7);
-					} else if (tableToImport.toLowerCase().endsWith(".tgz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".tgz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 4);
-					} else if (tableToImport.toLowerCase().endsWith(".gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".gz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 3);
 					}
 					if (tableToImport.contains(".")) {
@@ -128,13 +128,13 @@ public class DbImportMultiWorker extends WorkerDual<Boolean> implements WorkerPa
 
 				if ("*".equals(tableToImport)) {
 					tableToImport = fileToImport.getName();
-					if (tableToImport.toLowerCase().endsWith(".zip")) {
+					if (Utilities.endsWithIgnoreCase(tableToImport, ".zip")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 4);
-					} else if (tableToImport.toLowerCase().endsWith(".tar.gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".tar.gz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 7);
-					} else if (tableToImport.toLowerCase().endsWith(".tgz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".tgz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 4);
-					} else if (tableToImport.toLowerCase().endsWith(".gz")) {
+					} else if (Utilities.endsWithIgnoreCase(tableToImport, ".gz")) {
 						tableToImport = tableToImport.substring(0, tableToImport.length() - 3);
 					}
 					if (tableToImport.contains(".")) {

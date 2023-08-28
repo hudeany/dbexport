@@ -113,7 +113,7 @@ public class DbImportDefinition extends DbDefinition {
 	// Default optional parameters
 
 	/** The data type. */
-	private DataType dataType = DataType.CSV;
+	private DataType dataType = null;
 
 	/** Log activation. */
 	private boolean log = false;
@@ -534,58 +534,58 @@ public class DbImportDefinition extends DbDefinition {
 			throw new DbImportException("ImportFilePath or data is missing");
 		} else if (!isInlineData) {
 			if (getDataType() == null) {
-				if (getImportFilePathOrData().toLowerCase().endsWith(".csv")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".csv.gz")) {
+				if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".csv")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".csv.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".csv.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".csv.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".csv.gz")) {
 					setDataType(DataType.CSV);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".json")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".json.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".json.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".json.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".json.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".json")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".json.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".json.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".json.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".json.gz")) {
 					setDataType(DataType.JSON);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xls")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xls.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xlsx.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xls")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xls.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xls.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xls.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xls.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xlsx")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xlsx.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xlsx.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xlsx.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xlsx.gz")) {
 					setDataType(DataType.EXCEL);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".ods")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".ods.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".ods")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".ods.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".ods.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".ods.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".ods.gz")) {
 					setDataType(DataType.ODS);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".xml")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".xml.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xml")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xml.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xml.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xml.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".xml.gz")) {
 					setDataType(DataType.XML);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".sql")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".sql.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".sql")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".sql.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".sql.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".sql.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".sql.gz")) {
 					setDataType(DataType.SQL);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".vcf")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".vcf.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".vcf")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".vcf.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".vcf.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".vcf.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".vcf.gz")) {
 					setDataType(DataType.VCF);
-				} else if (getImportFilePathOrData().toLowerCase().endsWith(".kdbx")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.zip")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.tar.gz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.tgz")
-						|| getImportFilePathOrData().toLowerCase().endsWith(".kdbx.gz")) {
+				} else if (Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".kdbx")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".kdbx.zip")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".kdbx.tar.gz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".kdbx.tgz")
+						|| Utilities.endsWithIgnoreCase(getImportFilePathOrData(), ".kdbx.gz")) {
 					setDataType(DataType.KDBX);
 				} else {
 					setDataType(DataType.CSV);
@@ -658,8 +658,42 @@ public class DbImportDefinition extends DbDefinition {
 					getDateTimeFormat());
 		}
 
+		DataType dataTypeToExecute = getDataType();
+		if (dataTypeToExecute == null) {
+			switch(FileUtilities.getFileTypeByExtension(importFileOrData).getFileDataType()) {
+				case CSV:
+					dataTypeToExecute = DataType.CSV;
+					break;
+				case EXCEL:
+					dataTypeToExecute = DataType.EXCEL;
+					break;
+				case JSON:
+					dataTypeToExecute = DataType.JSON;
+					break;
+				case KDBX:
+					dataTypeToExecute = DataType.KDBX;
+					break;
+				case ODS:
+					dataTypeToExecute = DataType.ODS;
+					break;
+				case SQL:
+					dataTypeToExecute = DataType.SQL;
+					break;
+				case VCF:
+					dataTypeToExecute = DataType.VCF;
+					break;
+				case XML:
+					dataTypeToExecute = DataType.XML;
+					break;
+				default:
+					dataTypeToExecute = DataType.CSV;
+					break;
+
+			}
+		}
+
 		final DataProvider dataProvider;
-		switch (getDataType()) {
+		switch (dataTypeToExecute) {
 			case SQL:
 				return new DbSqlWorker(parent,
 						this,
@@ -797,7 +831,7 @@ public class DbImportDefinition extends DbDefinition {
 		if (isInlineData()) {
 			params += " " + "-data";
 		}
-		if (getDataType() != DataType.CSV) {
+		if (getDataType() != null) {
 			params += " " + "-x" + " " + getDataType().name();
 		}
 		if (isLog()) {

@@ -240,7 +240,7 @@ public class ImportMenu extends ConsoleMenu {
 
 				System.out.println("  " + Utilities.rightPad("data)", bulletSize) + " " + Utilities.rightPad("Use inline data:", nameSize) + dbImportDefinition.isInlineData());
 				autoCompletionStrings.add("data");
-				System.out.println("  " + Utilities.rightPad("x)", bulletSize) + " " + Utilities.rightPad("Importformat:", nameSize) + dbImportDefinition.getDataType().name());
+				System.out.println("  " + Utilities.rightPad("x)", bulletSize) + " " + Utilities.rightPad("Importformat:", nameSize) + (dbImportDefinition.getDataType() != null ? dbImportDefinition.getDataType().name() : "by file extension"));
 				autoCompletionStrings.add("x");
 				if (dbImportDefinition.getDataType() == DataType.JSON || dbImportDefinition.getDataType() == DataType.XML || dbImportDefinition.getDataType() == DataType.EXCEL || dbImportDefinition.getDataType() == DataType.ODS || dbImportDefinition.getDataType() == DataType.VCF) {
 					System.out.println("  " + Utilities.rightPad("dp)", bulletSize) + " " + Utilities.rightPad("Data path:", nameSize) + dbImportDefinition.getDataPath());
@@ -312,7 +312,7 @@ public class ImportMenu extends ConsoleMenu {
 				autoCompletionStrings.add("structure");
 				System.out.println("  " + Utilities.rightPad("logerrors)", bulletSize) + " " + Utilities.rightPad("Log error data items in file:", nameSize) + dbImportDefinition.isLogErroneousData());
 				autoCompletionStrings.add("logerrors");
-				if (dbImportDefinition.getImportFilePathOrData().toLowerCase().endsWith(".zip")) {
+				if (Utilities.endsWithIgnoreCase(dbImportDefinition.getImportFilePathOrData(), ".zip")) {
 					System.out.println("  " + Utilities.rightPad("zippassword)", bulletSize) + " " + Utilities.rightPad("Zip file password:", nameSize) + (dbImportDefinition.getZipPassword() == null ? "<empty>" : "***"));
 					autoCompletionStrings.add("zippassword");
 				}
