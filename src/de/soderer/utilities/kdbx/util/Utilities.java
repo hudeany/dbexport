@@ -112,7 +112,7 @@ public class Utilities {
 	public static String leftPad(final String value, final int minimumLength) {
 		try {
 			return String.format("%1$" + minimumLength + "s", value);
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return value;
 		}
 	}
@@ -353,7 +353,7 @@ public class Utilities {
 			final DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
 			final Document document = documentBuilder.parse(inputStream);
 			return document;
-		} catch (@SuppressWarnings("unused") final Exception e) {
+		} catch (final Exception e) {
 			return null;
 		}
 	}
@@ -447,6 +447,25 @@ public class Utilities {
 			return Utilities.toByteArray(gzipIn);
 		} catch (final IOException e) {
 			throw new Exception("GZIP decompression failed", e);
+		}
+	}
+
+	public static boolean endsWithIgnoreCase(final String data, final String suffix) {
+		if (data == suffix) {
+			// both null or same object
+			return true;
+		} else if (data == null) {
+			// data is null but suffix is not
+			return false;
+		} else if (suffix == null) {
+			// suffix is null but data is not
+			return true;
+		} else if (data.toLowerCase().endsWith(suffix.toLowerCase())) {
+			// both are set, so ignore the case for standard endsWith-method
+			return true;
+		} else {
+			// anything else
+			return false;
 		}
 	}
 }
