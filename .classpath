@@ -10,5 +10,7 @@
 	<classpathentry kind="lib" path="lib/bcprov-jdk15on-1.69.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.21.jar"/>
 	<classpathentry kind="lib" path="lib/zip4j-2.9.1.jar"/>
+	<classpathentry kind="lib" path="lib/csv-23.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/json-23.0.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
