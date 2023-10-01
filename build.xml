@@ -6,7 +6,7 @@
 	<property file="${user.home}/git/signing.properties" />
 	
 	<tstamp>
-		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en"/>
+		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en" />
 	</tstamp>
 	<echo message="buildTime: ${buildTime}" />
 
@@ -135,10 +135,6 @@
 
 			<fileset dir="src" includes="**/*.java" />
 		</jar>
-
-		<tstamp>
-			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
-		</tstamp>
 			
 		<jar destfile="${buildPath}/DbExport.jar">
 			<manifest>
