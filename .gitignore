@@ -1,11 +1,6 @@
 /bin/
 /build/
 /derby.log
-<<<<<<< HEAD
 /lib/
 /lib_db/
-=======
-/lib_db/
-/lib/
->>>>>>> branch 'master' of ssh://andreas@homebase/media/data/gitRepository/DbImport
 /lib_test/

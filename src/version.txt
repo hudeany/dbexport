@@ -1,4 +1,4 @@
 23.7.0
-2023-10-01 23:43:49
+2023-10-01 23:50:07
 https://soderer.de/index.php?download=Versions.json
 soderer-ca-certificate.pem
