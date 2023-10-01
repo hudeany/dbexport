@@ -118,7 +118,7 @@
 
 			<fileset dir="${buildPath}/bin" />
 
-			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
+			<zipfileset file="${CaPublicKey}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="lib_soderer" includes="*.jar" />
@@ -144,8 +144,8 @@
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
-			
-			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
+
+			<zipfileset file="${CaPublicKey}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="lib_soderer" includes="*.jar" />
