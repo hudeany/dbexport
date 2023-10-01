@@ -27,6 +27,7 @@ import de.soderer.utilities.kdbx.data.KdbxEntry;
 import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
+// TODO: Export/Import KDBX entry path
 public class KdbxDataProvider extends DataProvider {
 	private KdbxDatabase kdbxDatabase = null;
 	private Iterator<KdbxEntry> kdbxEntryIterator = null;

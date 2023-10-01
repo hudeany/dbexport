@@ -13,10 +13,10 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
-import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
+import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbUtilities.DbVendor;
 
 public class BlobUpdateMenu extends ConsoleMenu {
 	private BlobImportDefinition blobImportDefinition = new BlobImportDefinition();

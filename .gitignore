@@ -1,4 +1,6 @@
 /bin/
 /build/
-/build_homebase.xml
 /derby.log
+/lib_db/
+/lib/
+/lib_test/

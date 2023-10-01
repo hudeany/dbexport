@@ -1,4 +1,0 @@
-<?xml version='1.0' encoding='utf-8' standalone='yes'?>
-<ApplicationVersions creationDate='2023-04-01 20:16:20'>
-	<DbImport version='23.2.0' md5CheckSum='a7f93cc6cb888d1a77299e97653802ad'>https://github.com/hudeany/dbcsvimport/releases/download/23.2.0/DbImport-23.2.0.jar</DbImport>
-</ApplicationVersions>

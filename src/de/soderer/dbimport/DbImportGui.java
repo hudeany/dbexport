@@ -50,7 +50,6 @@ import de.soderer.utilities.ExceptionUtilities;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
-import de.soderer.utilities.NetworkUtilities;
 import de.soderer.utilities.Result;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
@@ -68,6 +67,7 @@ import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SecurePreferencesDialog;
 import de.soderer.utilities.swing.SwingColor;
 import de.soderer.utilities.swing.UpdateableGuiApplication;
+import de.soderer.utilities.json.utilities.NetworkUtilities;
 
 /**
  * The GUI for DbImport.
@@ -1181,7 +1181,9 @@ public class DbImportGui extends UpdateableGuiApplication {
 		dbImportDefinition.setTrustStoreFile(trustStoreFilePathField.isEnabled() ? new File(trustStoreFilePathField.getText()) : null);
 		dbImportDefinition.setTableName(tableNameField.getText());
 		dbImportDefinition.setImportFilePathOrData(importFilePathOrDataField.getText(), false);
-		dbImportDefinition.setDataType(DataType.getFromString((String) dataTypeCombo.getSelectedItem()));
+		if (dataTypeCombo.getSelectedIndex() > 0) {
+			dbImportDefinition.setDataType(DataType.getFromString((String) dataTypeCombo.getSelectedItem()));
+		}
 		dbImportDefinition.setLog(fileLogBox.isSelected());
 		dbImportDefinition.setEncoding(Charset.forName((String) encodingCombo.getSelectedItem()));
 		dbImportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
@@ -1434,7 +1436,7 @@ public class DbImportGui extends UpdateableGuiApplication {
 		DataType dataType;
 		try {
 			dataType = DataType.getFromString((String) dataTypeCombo.getSelectedItem());
-		} catch (final Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			dataType = null;
 		}
 		if (dataType == null) {

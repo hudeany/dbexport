@@ -16,12 +16,12 @@ import de.soderer.utilities.db.DbNotExistsException;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.db.SimpleDataType;
+import de.soderer.utilities.worker.WorkerParentSimple;
+import de.soderer.utilities.worker.WorkerSimple;
 import de.soderer.utilities.json.JsonArray;
 import de.soderer.utilities.json.JsonNode;
 import de.soderer.utilities.json.JsonObject;
 import de.soderer.utilities.json.JsonReader;
-import de.soderer.utilities.worker.WorkerParentSimple;
-import de.soderer.utilities.worker.WorkerSimple;
 
 public class DbStructureWorker extends WorkerSimple<Boolean> {
 	// Mandatory parameters

@@ -1,2 +1,4 @@
-0.0.0
-Unknown version info URL
+23.6.0
+2023-10-01 15:52:50
+${VersionsUrl}
+soderer-ca-certificate.pem
