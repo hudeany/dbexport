@@ -1,4 +1,4 @@
-package de.soderer.dbimport.utilities.jarinjarloader;
+package de.soderer.dbexport.utilities.jarinjarloader;
 
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;

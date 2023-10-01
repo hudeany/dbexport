@@ -1,4 +1,4 @@
-package de.soderer.dbimport.utilities.jarinjarloader;
+package de.soderer.dbexport.utilities.jarinjarloader;
 
 import java.io.IOException;
 import java.io.InputStream;
