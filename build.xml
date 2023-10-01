@@ -33,7 +33,6 @@
 	<target name="download_dependencies" unless="libsAvailable">
 		<mkdir dir="lib/" />
 		
-		<get src="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/commons-io/commons-io/2.14.0/commons-io-2.14.0.jar" dest="lib/" />
@@ -119,7 +118,7 @@
 
 			<fileset dir="${buildPath}/bin" />
 
-			<zipfileset dir="${user.home}/git" includes="*.pem" />
+			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="lib_soderer" includes="*.jar" />
