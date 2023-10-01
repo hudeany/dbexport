@@ -1,7 +1,35 @@
-# Java tool to export db data into csv, json, xml or sql files 
+# Java tool to export data from database in files
 
-## Comandline usage
-	Usage: java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
+## Supported file formats and datatypes:
+- Comma-Separated-Values (.csv)
+- JSON (.json)
+- XML (.xml)
+- vCards (.vcf)
+- Excel old (<= 2003) (.xls)
+- Excel new (2007+) (.xlsx)
+- OpenDocumentSheet (.ods)
+- KeePass (.kdbx)
+
+## Supported file compressions:
+- Uncompressed
+- Zip (.zip, optionally with password using aes or zipcrypto)
+- Tar (.tar)
+- TarGz (.tar.gz)
+- GZip (.gz)
+
+## Supported DB vendors:
+- MySQL
+- MariaDB
+- Oracle
+- PostgreSQL
+- Firebird
+- Sqlite
+- Derby
+- Hsql
+- Cassandra
+
+## Commandline usage
+	java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
 
 	Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
 
@@ -22,14 +50,17 @@
 
 ## Optional parameters for db export
 	-x exportformat: Data export format, default format is CSV
-		exportformat: CSV | JSON | XML | SQL
+		exportformat: CSV | JSON | XML | SQL | VCF | KDBX
 		(Don't forget to beautify json for human readable data)
 	-n 'NULL': Set a string for null values (Only for csv and xml, default is '')
 	-file: Read statement or tablepattern from text file
 	-l: Log export information in .log files
 	-v: Progress and e.t.a. output in terminal
-	-z: Output as zipfile (Not for console output)
-	-zippassword '<password>' (using AES-256 by default, not supported by Windows)
+	-z: Output as zipfile (Not for console output, same as "-compress zip")
+	-compress compresstype: Compress output (Not for console output)
+		compresstype: ZIP | TARGZ | TGZ | GZ
+	-zippassword '<zippassword>' (using AES-256 by default, not supported by Windows)
+	-kdbxpassword '<kdbxpassword>' (for KDBX datatype)
 	-useZipCrypto (use ZipCrypto algorithm, which is weak but is supported by Windows)
 	-e: Output encoding (Default UTF-8)
 	-s: Separator character, default ';', encapsulate by '
@@ -37,7 +68,7 @@
 	-qe: String quote escape character, default '"', encapsulate by '
 	-i: Indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\t', encapsulate by '
 	-a: always quote value
-	-f: Number and datetime format locale, default is systems locale, use 'de', 'en', etc. (Not needed for sqlite)
+	-f: Date and datetime format locale, default is systems locale, use 'de', 'en', etc. (e.g. for weekdays in format, 'EEE')
 	-dateFormat: overrides language format, use Java format characters (YMdhmsS) 
 	-dateTimeFormat: overrides language format, use Java format characters (YMdhmsS)
 	-decimalSeparator: overrides language format, use '.' or ','
