@@ -151,8 +151,8 @@ public class DbExportTest_Derby {
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
 					"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
-							+ "1;<test_text_base64>;\"<test_text>\";01.02.2003;1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;\"<test_text>\";01.02.2003;2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
+							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
+							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;;;;;;;\n",
 							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
@@ -168,8 +168,8 @@ public class DbExportTest_Derby {
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
 					"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
-							+ "1;<test_text_base64>;\"<test_text>\";01.02.2003;1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;\"<test_text>\";01.02.2003;2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
+							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
+							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;NULL;NULL;NULL;NULL;NULL;NULL;NULL\n",
 							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
@@ -180,13 +180,17 @@ public class DbExportTest_Derby {
 	@Test
 	public void testCsvBeautified() {
 		try {
-			DbExport._main(new String[] { "derby", DERBY_DB_PATH, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify" });
+			DbExport._main(new String[] {
+					"derby", DERBY_DB_PATH,
+					"-export", "*",
+					"-output", "~" + File.separator + "temp" + File.separator,
+			"-beautify" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
 					"ID;COLUMN_BLOB                                                                                                                                                                     ;COLUMN_CLOB                                                                                                         ;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP   ;COLUMN_VARCHAR                                                                                                      \n"
-							+ " 1;<test_text_base64>;\"<test_text>\";01.02.2003 ;        1,123;             1;01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ " 2;<test_text_base64>;\"<test_text>\";01.02.2003 ;        2,123;             2;01.02.2003 04:05:06;\"<test_text>\"\n"
+							+ " 1;<test_text_base64>;\"<test_text>\";2003-02-01 ;        1,123;             1;2003-02-01T04:05:06;\"<test_text>\"\n"
+							+ " 2;<test_text_base64>;\"<test_text>\";2003-02-01 ;        2,123;             2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ " 3;                                                                                                                                                                                ;                                                                                                                    ;           ;             ;              ;                   ;                                                                                                                    \n",
 							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
@@ -202,8 +206,8 @@ public class DbExportTest_Derby {
 			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
 			Assert.assertEquals(
 					"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DATE;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
-							+ "1;<test_text_base64>;\"<test_text>\";01.02.2003;1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;\"<test_text>\";01.02.2003;2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
+							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
+							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;;;;;;;\n",
 							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
@@ -287,20 +291,20 @@ public class DbExportTest_Derby {
 							+ "		<ID>1</ID>\n"
 							+ "		<COLUMN_BLOB><test_text_base64></COLUMN_BLOB>\n"
 							+ "		<COLUMN_CLOB><test_text></COLUMN_CLOB>\n"
-							+ "		<COLUMN_DATE>01.02.2003</COLUMN_DATE>\n"
+							+ "		<COLUMN_DATE>2003-02-01</COLUMN_DATE>\n"
 							+ "		<COLUMN_DOUBLE>1,123</COLUMN_DOUBLE>\n"
 							+ "		<COLUMN_INTEGER>1</COLUMN_INTEGER>\n"
-							+ "		<COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP>\n"
+							+ "		<COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP>\n"
 							+ "		<COLUMN_VARCHAR><test_text></COLUMN_VARCHAR>\n"
 							+ "	</line>\n"
 							+ "	<line>\n"
 							+ "		<ID>2</ID>\n"
 							+ "		<COLUMN_BLOB><test_text_base64></COLUMN_BLOB>\n"
 							+ "		<COLUMN_CLOB><test_text></COLUMN_CLOB>\n"
-							+ "		<COLUMN_DATE>01.02.2003</COLUMN_DATE>\n"
+							+ "		<COLUMN_DATE>2003-02-01</COLUMN_DATE>\n"
 							+ "		<COLUMN_DOUBLE>2,123</COLUMN_DOUBLE>\n"
 							+ "		<COLUMN_INTEGER>2</COLUMN_INTEGER>\n"
-							+ "		<COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP>\n"
+							+ "		<COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP>\n"
 							+ "		<COLUMN_VARCHAR><test_text></COLUMN_VARCHAR>\n"
 							+ "	</line>\n"
 							+ "	<line>\n"
@@ -329,8 +333,8 @@ public class DbExportTest_Derby {
 			Assert.assertEquals(
 					"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 							+ "<table statement=\"SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
-							+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>01.02.2003</COLUMN_DATE><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
-							+ "<line><ID>2</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>01.02.2003</COLUMN_DATE><COLUMN_DOUBLE>2,123</COLUMN_DOUBLE><COLUMN_INTEGER>2</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
+							+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>2003-02-01</COLUMN_DATE><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
+							+ "<line><ID>2</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>2003-02-01</COLUMN_DATE><COLUMN_DOUBLE>2,123</COLUMN_DOUBLE><COLUMN_INTEGER>2</COLUMN_INTEGER><COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
 							+ "<line><ID>3</ID><COLUMN_BLOB>NULL</COLUMN_BLOB><COLUMN_CLOB>NULL</COLUMN_CLOB><COLUMN_DATE>NULL</COLUMN_DATE><COLUMN_DOUBLE>NULL</COLUMN_DOUBLE><COLUMN_INTEGER>NULL</COLUMN_INTEGER><COLUMN_TIMESTAMP>NULL</COLUMN_TIMESTAMP><COLUMN_VARCHAR>NULL</COLUMN_VARCHAR></line>"
 							+ "</table>",
 							FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
@@ -348,8 +352,8 @@ public class DbExportTest_Derby {
 			Assert.assertEquals(
 					"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 							+ "<table statement=\"SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
-							+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>01.02.2003</COLUMN_DATE><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
-							+ "<line><ID>2</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>01.02.2003</COLUMN_DATE><COLUMN_DOUBLE>2,123</COLUMN_DOUBLE><COLUMN_INTEGER>2</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
+							+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>2003-02-01</COLUMN_DATE><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
+							+ "<line><ID>2</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DATE>2003-02-01</COLUMN_DATE><COLUMN_DOUBLE>2,123</COLUMN_DOUBLE><COLUMN_INTEGER>2</COLUMN_INTEGER><COLUMN_TIMESTAMP>2003-02-01T04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
 							+ "<line><ID>3</ID><COLUMN_BLOB></COLUMN_BLOB><COLUMN_CLOB></COLUMN_CLOB><COLUMN_DATE></COLUMN_DATE><COLUMN_DOUBLE></COLUMN_DOUBLE><COLUMN_INTEGER></COLUMN_INTEGER><COLUMN_TIMESTAMP></COLUMN_TIMESTAMP><COLUMN_VARCHAR></COLUMN_VARCHAR></line>"
 							+ "</table>",
 							FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
