@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<<<<<<< HEAD
 <project default="build_jar" name="Create all Jars for Project DbExport">
 	<property name="version" value="23.7.0" />
 	<echo message="version: ${version}" />
@@ -163,6 +164,172 @@
 		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
 				<fileset dir="${buildPath}" includes="DbExport.jar" />
+=======
+<project default="build_jar" name="Create all Jars for Project DbImport">
+	<property name="version" value="23.7.0" />
+	<echo message="version: ${version}" />
+	
+	<property file="${user.home}/git/signing.properties" />
+	
+	<tstamp>
+		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en"/>
+	</tstamp>
+	<echo message="buildTime: ${buildTime}" />
+
+	<property name="projectsPath" value="${user.home}/git" />
+	<echo message="projectsPath: ${projectsPath}" />
+	
+	<property name="projectDir" location="." />
+	<echo message="projectDir: ${projectDir}" />
+
+	<property name="buildPath" value="build" />
+	<echo message="buildPath: ${buildPath}" />
+
+	<target name="build_jar" depends="cleanup_before, create_jar, sign_jar, cleanup_after" />
+
+	<target name="cleanup_before">
+		<delete dir="${buildPath}" />
+		<mkdir dir="${buildPath}" />
+			
+		<delete dir="${buildPath}/bin" />
+		<mkdir dir="${buildPath}/bin" />
+	</target>
+
+	<available file="lib" property="libsAvailable" />
+	<target name="download_dependencies" unless="libsAvailable">
+		<mkdir dir="lib/" />
+		
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/commons-io/commons-io/2.14.0/commons-io-2.14.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-1.2-api/2.20.0/log4j-1.2-api-2.20.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi/5.2.4/poi-5.2.4.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml/5.2.4/poi-ooxml-5.2.4.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml-full/5.2.4/poi-ooxml-full-5.2.4.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/5.1.1/xmlbeans-5.1.1.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
+		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
+
+		<get src="https://github.com/hudeany/kdbx/releases/download/23.0.1/kdbx-23.0.1.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/csv/releases/download/23.0.1/csv-23.0.1.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/json/releases/download/23.0.1/json-23.0.1.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/vcf/releases/download/23.0.1/vcf-23.0.1.jar" dest="lib/" />
+		
+		<mkdir dir="lib_test/" />
+		
+		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar" dest="lib_test/" />
+		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar" dest="lib_test/" />
+		<get src="https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar" dest="lib_test/" />
+	</target>
+
+	<available file="lib_db" property="dbConnectorsAvailable" />
+	<target name="download_dbconnectors" unless="dbConnectorsAvailable">
+		<mkdir dir="lib_db" />
+		
+		<get src="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.2.0/mariadb-java-client-3.2.0.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.1.0/mysql-connector-j-8.1.0.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/org/hsqldb/hsqldb/2.7.2/hsqldb-2.7.2.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/12.4.1.jre11/mssql-jdbc-12.4.1.jre11.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.43.0.0/sqlite-jdbc-3.43.0.0.jar" dest="lib_db/" />
+		
+		<get src="https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/23.2.0.0/ojdbc8-23.2.0.0.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/com/oracle/database/nls/orai18n/23.2.0.0/orai18n-23.2.0.0.jar" dest="lib_db/" />
+		
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derby/10.16.1.1/derby-10.16.1.1.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbyshared/10.16.1.1/derbyshared-10.16.1.1.jar" dest="lib_db/" />
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbytools/10.16.1.1/derbytools-10.16.1.1.jar" dest="lib_db/" />
+	</target>
+
+	<target name="compile" depends="download_dependencies, download_dbconnectors">
+		<path id="build.classpath">
+			<fileset dir="lib">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="lib_soderer">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="1.8" target="1.8" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*">			
+			<classpath refid="build.classpath" />
+		</javac>
+
+		<copy todir="${buildPath}/bin">
+			<fileset dir="src">
+				<include name="**/LanguageProperties*.properties" />
+				<include name="**/*.txt" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="create_versionfile">
+		<delete file="${buildPath}/bin/version.txt" />
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem${line.separator}</echo>
+		<delete file="src/version.txt" />
+		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem${line.separator}</echo>
+	</target>
+
+	<target name="create_jar" depends="compile, create_versionfile">
+		<jar destfile="${buildPath}/DbImport-${version}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.DbImport" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
+			</manifest>
+
+			<fileset dir="${buildPath}/bin" />
+
+			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
+			<zipfileset dir="lib" includes="*.jar" />
+			<zipfileset dir="lib_db" includes="*.jar" />
+			<zipfileset dir="lib_soderer" includes="*.jar" />
+			<zipfileset dir="src" includes="DbImport_Icon.png" />
+			<zipfileset dir="src" includes="DbImport.ico" />
+		</jar>
+
+		<jar destfile="${buildPath}/DbImport-${version}_sources.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.DbImport" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
+			</manifest>
+
+			<fileset dir="src" includes="**/*.java" />
+		</jar>
+
+		<tstamp>
+			<format property="buildTime" pattern="yyyy/MM/dd hh:mm:ss" offset="-5" unit="hour" />
+		</tstamp>
+			
+		<jar destfile="${buildPath}/DbImport.jar">
+			<manifest>
+				<attribute name="Main-Class" value="de.soderer.DbImport" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Rsrc-Main-Class" value="de.soderer.dbimport.DbImport" />
+			</manifest>
+
+			<fileset dir="${buildPath}/bin" />
+			
+			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
+			<zipfileset dir="lib" includes="*.jar" />
+			<zipfileset dir="lib_db" includes="*.jar" />
+			<zipfileset dir="lib_soderer" includes="*.jar" />
+			<zipfileset dir="src" includes="DbImport_Icon.png" />
+			<zipfileset dir="src" includes="DbImport.ico" />
+		</jar>
+	</target>
+
+	<available file="${user.home}/git/signing.properties" property="signingPropertiesAvailable" />
+	<target name="sign_jar" depends="create_jar" if="signingPropertiesAvailable">
+		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
+			<path>
+				<fileset dir="${buildPath}" includes="DbImport.jar" />
+>>>>>>> branch 'master' of ssh://andreas@homebase/media/data/gitRepository/DbImport
 			</path>
 		</signjar>
 	</target>

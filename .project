@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
+<<<<<<< HEAD
 	<name>DbExport</name>
+=======
+	<name>DbImport</name>
+>>>>>>> branch 'master' of ssh://andreas@homebase/media/data/gitRepository/DbImport
 	<comment></comment>
 	<projects>
 	</projects>

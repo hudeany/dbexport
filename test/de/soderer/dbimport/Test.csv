@@ -1,0 +1,2 @@
+column integer; column_double; column_varchar; column_clob; column_timestamp; column_date
+123; 123.456E0; aBcDeF123; aBcDeF1234; 01.02.2003 11:12:13; 01.02.2003 21:22:23
