@@ -120,6 +120,7 @@
 			<zipfileset dir="${user.home}/git" includes="*.pem" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
+			<zipfileset dir="lib_soderer" includes="*.jar" />
 			<zipfileset dir="src" includes="DbImport_Icon.png" />
 			<zipfileset dir="src" includes="DbImport.ico" />
 		</jar>
@@ -150,6 +151,7 @@
 			<zipfileset dir="${user.home}/git" includes="${CaPublicKey}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
+			<zipfileset dir="lib_soderer" includes="*.jar" />
 			<zipfileset dir="src" includes="DbImport_Icon.png" />
 			<zipfileset dir="src" includes="DbImport.ico" />
 		</jar>
