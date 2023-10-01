@@ -15,7 +15,7 @@ import de.soderer.utilities.kdbx.KdbxWriter;
 import de.soderer.utilities.kdbx.data.KdbxEntry;
 import de.soderer.utilities.worker.WorkerParentDual;
 
-// TODO: use path for entries?
+//TODO: Export/Import KDBX entry path
 public class DbKdbxExportWorker extends AbstractDbExportWorker {
 	private char[] kdbxPassword = null;
 	private KdbxWriter kdbxWriter = null;

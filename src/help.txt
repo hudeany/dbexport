@@ -26,7 +26,7 @@ Optional parameters for db export
 	-l: Log export information in .log files
 	-v: Progress and e.t.a. output in terminal
 	-z: Output as zipfile (Not for console output, same as "-compress zip")
-	-compress compresstype: Compress output (Not for console output)
+	-compress <compresstype>: Compress output (Not for console output)
 		compresstype: ZIP | TARGZ | TGZ | GZ
 	-zippassword '<zippassword>' (using AES-256 by default, not supported by Windows)
 	-kdbxpassword '<kdbxpassword>' (for KDBX datatype)
