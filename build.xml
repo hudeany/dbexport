@@ -3,6 +3,8 @@
 	<property name="version" value="23.7.0" />
 	<echo message="version: ${version}" />
 	
+	<property file="${user.home}/git/signing.properties" />
+	
 	<tstamp>
 		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en"/>
 	</tstamp>
@@ -159,7 +161,6 @@
 
 	<available file="${user.home}/git/signing.properties" property="signingPropertiesAvailable" />
 	<target name="sign_jar" depends="create_jar" if="signingPropertiesAvailable">
-		<property file="${user.home}/git/signing.properties" />
 		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
 				<fileset dir="${buildPath}" includes="DbImport.jar" />

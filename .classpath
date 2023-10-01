@@ -10,7 +10,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/bcprov-jdk15on-1.70.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
-	<classpathentry kind="lib" path="lib_soderer/soderer-utilities-23.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-23.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.24.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.14.0.jar"/>
@@ -38,5 +37,6 @@
 	<classpathentry kind="lib" path="lib_db/orai18n-23.2.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.6.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
+	<classpathentry kind="lib" path="lib_soderer/soderer-utilities-23.1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
