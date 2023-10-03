@@ -854,7 +854,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		mandatoryParameterScrollPane.getVerticalScrollBar().setUnitIncrement(8);
 		parameterPanel.add(mandatoryParameterScrollPane);
 
-		optionalParametersPanel.setPreferredSize(new Dimension(250, 400));
+		optionalParametersPanel.setPreferredSize(new Dimension(260, 400));
 		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
 		add(Box.createRigidArea(new Dimension(0, 5)));
