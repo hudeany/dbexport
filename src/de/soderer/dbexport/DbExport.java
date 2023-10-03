@@ -50,7 +50,7 @@ import de.soderer.utilities.worker.WorkerParentDual;
 public class DbExport extends UpdateableConsoleApplication implements WorkerParentDual {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbExport";
-	public static final String APPLICATION_STARTUPCLASS_NAME = "de.soderer.DbExport";
+	public static final String APPLICATION_STARTUPCLASS_NAME = "de-soderer-DbExport";
 
 	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
 	public static final String VERSION_RESOURCE_FILE = "/version.txt";
