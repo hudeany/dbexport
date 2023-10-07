@@ -56,7 +56,7 @@ public class DbExportTest_HSQL {
 	public static void setupTestClass() throws Exception {
 		try {
 			DbUtilities.deleteDatabase(DbVendor.HSQL, HSQL_DB_FILE);
-		} catch (final Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			// Do nothing
 		}
 
@@ -86,7 +86,7 @@ public class DbExportTest_HSQL {
 
 		try {
 			DbUtilities.deleteDatabase(DbVendor.HSQL, HSQL_DB_FILE);
-		} catch (final Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			// Do nothing
 		}
 
@@ -186,7 +186,7 @@ public class DbExportTest_HSQL {
 	public static void tearDownTestClass() throws Exception {
 		try {
 			DbUtilities.deleteDatabase(DbVendor.HSQL, HSQL_DB_FILE);
-		} catch (final Exception e) {
+		} catch (@SuppressWarnings("unused") final Exception e) {
 			// Do nothing
 		}
 	}
@@ -748,10 +748,8 @@ public class DbExportTest_HSQL {
 					return name.matches("dbstructure_.*\\.json\\.zip");
 				}
 			});
-			for (final File file : files) {
-				foundFile = true;
-				break;
-			}
+
+			foundFile = files != null && files.length > 0;
 
 			Assert.assertTrue(foundFile);
 		} catch (final Exception e) {
