@@ -20,7 +20,7 @@
 ## Supported DB vendors:
 - MySQL
 - MariaDB
-- Oracle
+- Oracle (use SID, servicename or TNS description)
 - PostgreSQL
 - Firebird
 - Sqlite
