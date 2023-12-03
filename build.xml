@@ -50,7 +50,7 @@
 
 		<get src="https://github.com/hudeany/kdbx/releases/download/23.0.1/kdbx-23.0.1.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/csv/releases/download/23.0.1/csv-23.0.1.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/json/releases/download/23.0.1/json-23.0.1.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/json/releases/download/23.3.0/json-23.3.0.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/vcf/releases/download/23.0.1/vcf-23.0.1.jar" dest="lib/" />
 		
 		<mkdir dir="lib_test/" />
