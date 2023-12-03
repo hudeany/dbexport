@@ -5,7 +5,7 @@ Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement 
 Mandatory parameters for db export
 	dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
 	hostname: With optional port (Not needed for sqlite, hsql and derby)
-	dbname: Dbname or filepath for sqlite db or derby db
+	dbname: Dbname or filepath for sqlite db or derby db (for Oracle servicename use "/<servicename>", optional use Oracle TNS description)
 	username: Username (Not needed for sqlite and derby)
 	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
 	
