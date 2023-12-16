@@ -54,7 +54,7 @@ public class DbExportDefinition extends DbDefinition {
 	private String sqlStatementOrTablelist = "*";
 
 	/** The outputpath. */
-	private String outputpath;
+	private String outputpath = null;
 
 	// Default optional parameters
 
@@ -917,5 +917,75 @@ public class DbExportDefinition extends DbDefinition {
 			params += " " + "-n" + " '" + getNullValueString() + "'";
 		}
 		return params;
+	}
+
+	@Override
+	public void importParameters(final DbDefinition otherDbDefinition) {
+		super.importParameters(otherDbDefinition);
+
+		if (otherDbDefinition == null) {
+			sqlStatementOrTablelist = "*";
+			outputpath = null;
+			dataType = DataType.CSV;
+			statementFile = false;
+			log = false;
+			verbose = false;
+			compression = null;
+			zipPassword = null;
+			kdbxPassword = null;
+			useZipCrypto = false;
+			databaseTimeZone = TimeZone.getDefault().getID();
+			exportDataTimeZone = TimeZone.getDefault().getID();
+			encoding = StandardCharsets.UTF_8;
+			separator = ';';
+			stringQuote = '"';
+			stringQuoteEscapeCharacter = '"';
+			indentation = "\t";
+			alwaysQuote = false;
+			createBlobFiles = false;
+			createClobFiles = false;
+			dateFormatLocale = Locale.getDefault().getLanguage();
+			dateFormat = null;
+			dateTimeFormat = null;
+			decimalSeparator = null;
+			beautify = false;
+			noHeaders = false;
+			exportStructure = false;
+			nullValueString = "";
+		} else if (otherDbDefinition instanceof DbExportDefinition) {
+			final DbExportDefinition otherDbExportDefinition = (DbExportDefinition) otherDbDefinition;
+			sqlStatementOrTablelist = otherDbExportDefinition.getSqlStatementOrTablelist();
+			outputpath = otherDbExportDefinition.getOutputpath();
+			dataType = otherDbExportDefinition.getDataType();
+			statementFile = otherDbExportDefinition.isStatementFile();
+			log = otherDbExportDefinition.isLog();
+			verbose = otherDbExportDefinition.isVerbose();
+			compression = otherDbExportDefinition.getCompression();
+			zipPassword = otherDbExportDefinition.getZipPassword();
+			kdbxPassword = otherDbExportDefinition.getKdbxPassword();
+			useZipCrypto = otherDbExportDefinition.isUseZipCrypto();
+			databaseTimeZone = otherDbExportDefinition.getDatabaseTimeZone();
+			exportDataTimeZone = otherDbExportDefinition.getExportDataTimeZone();
+			encoding = otherDbExportDefinition.getEncoding();
+			separator = otherDbExportDefinition.getSeparator();
+			stringQuote = otherDbExportDefinition.getStringQuote();
+			stringQuoteEscapeCharacter = otherDbExportDefinition.getStringQuoteEscapeCharacter();
+			indentation = otherDbExportDefinition.getIndentation();
+			alwaysQuote = otherDbExportDefinition.isAlwaysQuote();
+			createBlobFiles = otherDbExportDefinition.isCreateBlobFiles();
+			createClobFiles = otherDbExportDefinition.isCreateClobFiles();
+			if (otherDbExportDefinition.getDateFormatLocale() == null) {
+				dateFormatLocale = null;
+			} else {
+				dateFormatLocale = otherDbExportDefinition.getDateFormatLocale().getLanguage();
+			}
+			dateFormat = otherDbExportDefinition.getDateFormat();
+			dateTimeFormat = otherDbExportDefinition.getDateTimeFormat();
+			decimalSeparator = otherDbExportDefinition.getDecimalSeparator();
+			beautify = otherDbExportDefinition.isBeautify();
+			noHeaders = otherDbExportDefinition.isNoHeaders();
+			exportStructure = otherDbExportDefinition.isExportStructure();
+			nullValueString = otherDbExportDefinition.getNullValueString();
+		}
 	}
 }
