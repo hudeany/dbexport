@@ -17,7 +17,7 @@
 - TarGz (.tar.gz)
 - GZip (.gz)
 
-## Supported DB vendors:
+## Supported database vendors:
 - MySQL
 - MariaDB
 - Oracle (use SID, servicename or TNS description)
@@ -33,10 +33,10 @@
 
 	Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
 
-## Mandatory parameters for db export
+## Mandatory parameters for database export
 	dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
 	hostname: With optional port (Not needed for sqlite, hsql and derby)
-	dbname: Dbname or filepath for sqlite db or derby db
+	dbname: Dbname or filepath for sqlite database or derby db
 	username: Username (Not needed for sqlite and derby)
 	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
 	
@@ -48,7 +48,7 @@
 						or 'console' for output to terminal
 						may contain datetime placeholders ([YYYY], [MM], [DD], [hh], [mm], [ss])
 
-## Optional parameters for db export
+## Optional parameters for database export
 	-x exportformat: Data export format, default format is CSV
 		exportformat: CSV | JSON | XML | SQL | VCF | KDBX
 		(Don't forget to beautify json for human readable data)
@@ -81,7 +81,7 @@
 	-dbtz '<databaseTimeZone>': Use a DatabaseTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-edtz '<exportDataTimeZone>': Use a ExportDataTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-secure: Use TLS/SSL for secure communication with database
-	-truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted DB connections of some DB vendors
+	-truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted database connections of some database vendors
 	-truststorepassword '<password>': Optional password for TrustStore
 
 ## Global standalone parameters

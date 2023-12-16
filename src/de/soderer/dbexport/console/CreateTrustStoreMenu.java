@@ -49,7 +49,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 			while (true) {
 				while (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) {
 					System.out.println();
-					System.out.println("Please enter db hostname and optional port separated by ':' (Default port is 443, Blank => Cancel)");
+					System.out.println("Please enter database hostname and optional port separated by ':' (Default port is 443, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
@@ -62,7 +62,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 
 				while (connectionTestDefinition.getTrustStoreFile() == null) {
 					System.out.println();
-					System.out.println("Please enter db TrustStore filepath (Blank => Cancel)");
+					System.out.println("Please enter database TrustStore filepath (Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {

@@ -75,7 +75,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 	private final ConfigurationProperties applicationConfiguration;
 
-	/** The db type combo. */
+	/** The database type combo. */
 	private final JComboBox<String> dbTypeCombo;
 
 	private final JButton connectionCheckButton;
@@ -83,7 +83,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The host field. */
 	private final JTextField hostField;
 
-	/** The db name field. */
+	/** The database name field. */
 	private final JTextField dbNameField;
 
 	/** The user field. */
@@ -184,10 +184,10 @@ public class DbExportGui extends UpdateableGuiApplication {
 	private final JTextField exportDateTimeFormatField;
 
 	/**
-	 * Instantiates a new db csv export gui.
+	 * Instantiates a new database csv export gui.
 	 *
 	 * @param dbExportDefinition
-	 *            the db csv export definition
+	 *            the database csv export definition
 	 * @throws Exception
 	 *             the exception
 	 */
@@ -286,7 +286,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		hostPanel.add(hostField);
 		mandatoryParameterPanel.add(hostPanel);
 
-		// DB name Panel
+		// Database name Panel
 		final JPanel dbNamePanel = new JPanel();
 		dbNamePanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		final JLabel dbNameLabel = new JLabel(LangResources.get("dbname"));
@@ -1215,15 +1215,15 @@ public class DbExportGui extends UpdateableGuiApplication {
 	 * Export.
 	 *
 	 * @param dbExportDefinition
-	 *            the db csv export definition
+	 *            the database csv export definition
 	 * @param dbExportGui
-	 *            the db csv export gui
+	 *            the database csv export gui
 	 */
 	private void export(final DbExportDefinition dbExportDefinition, final DbExportGui dbExportGui) {
 		try {
 			dbExportDefinition.checkParameters();
 			if (!new DbDriverSupplier(this, dbExportDefinition.getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
-				throw new Exception("Cannot aquire db driver for db vendor: " + dbExportDefinition.getDbVendor());
+				throw new Exception("Cannot aquire database driver for database vendor: " + dbExportDefinition.getDbVendor());
 			}
 
 			// The worker parent is set later by the opened DualProgressDialog

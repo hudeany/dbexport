@@ -22,6 +22,7 @@ import de.soderer.dbexport.console.ConnectionTestMenu;
 import de.soderer.dbexport.console.CreateTrustStoreMenu;
 import de.soderer.dbexport.console.ExportMenu;
 import de.soderer.dbexport.console.HelpMenu;
+import de.soderer.dbexport.console.PreferencesMenu;
 import de.soderer.dbexport.console.UpdateMenu;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.utilities.DateUtilities;
@@ -87,7 +88,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
-	/** The db csv export definition. */
+	/** The database csv export definition. */
 	private DbExportDefinition dbExportDefinitionToExecute;
 
 	private int previousTerminalWidth = 0;
@@ -570,6 +571,10 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				if (connectionTest) {
 					connectionTestMenu.setConnectionTestDefinition(connectionTestDefinition);
 				}
+
+				@SuppressWarnings("unused")
+				final PreferencesMenu preferencesMenu = new PreferencesMenu(mainMenu, exportMenu.getDbExportDefinition());
+
 				final CreateTrustStoreMenu createTrustStoreMenu = new CreateTrustStoreMenu(mainMenu, exportMenu.getDbExportDefinition());
 				if (createTrustStore) {
 					createTrustStoreMenu.setConnectionTestDefinition(connectionTestDefinition);
@@ -682,7 +687,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	}
 
 	/**
-	 * Instantiates a new db csv export.
+	 * Instantiates a new database csv export.
 	 *
 	 * @throws Exception the exception
 	 */
@@ -693,7 +698,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	/**
 	 * Export.
 	 *
-	 * @param dbExportDefinition the db csv export definition
+	 * @param dbExportDefinition the database csv export definition
 	 * @throws Exception the exception
 	 */
 	private void export(final DbExportDefinition dbExportDefinition) throws Exception {
@@ -746,7 +751,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			@SuppressWarnings("resource")
 			Connection testConnection = null;
 			try {
-				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating db connection");
+				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating database connection");
 				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
@@ -757,7 +762,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 				}
 
-				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Successfully created db connection");
+				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Successfully created database connection");
 
 				if (Utilities.isNotBlank(connectionTestDefinition.getCheckStatement())) {
 					try (Statement statement = testConnection.createStatement()) {
@@ -775,19 +780,19 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 
 				successfulConnectionCount++;
 			} catch (final SQLException sqle) {
-				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": SQL-Error creating db connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
+				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": SQL-Error creating database connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
 				returnCode = 1;
 			} catch (final Exception e) {
-				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error creating db connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
+				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error creating database connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
 				e.printStackTrace();
 				returnCode = 1;
 			} finally {
 				if (testConnection != null) {
 					try {
-						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Closing db connection");
+						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Closing database connection");
 						testConnection.close();
 					} catch (final SQLException e) {
-						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error closing db connection: " + e.getMessage());
+						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error closing database connection: " + e.getMessage());
 						returnCode = 1;
 					}
 				}

@@ -53,7 +53,7 @@ public class ExportMenu extends ConsoleMenu {
 			while (true) {
 				while (dbExportDefinition.getDbVendor() == null) {
 					try {
-						final String dbVendorString = askForSelection("Please choose DB vendor", Stream.of(DbVendor.values()).map(Enum::name).collect(Collectors.toList()));
+						final String dbVendorString = askForSelection("Please choose database vendor", Stream.of(DbVendor.values()).map(Enum::name).collect(Collectors.toList()));
 						if (dbVendorString == null) {
 							getParentMenu().getMessages().add("Canceled by user");
 							return 0;
@@ -67,7 +67,7 @@ public class ExportMenu extends ConsoleMenu {
 
 				if (Utilities.isBlank(dbExportDefinition.getHostnameAndPort()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.HSQL && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
-					System.out.println("Please enter db hostname and optional port separated by ':' (No port uses db vendors default port, Blank => Cancel)");
+					System.out.println("Please enter database hostname and optional port separated by ':' (No port uses database vendors default port, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
@@ -81,7 +81,7 @@ public class ExportMenu extends ConsoleMenu {
 				if (dbExportDefinition.getDbVendor() == DbVendor.SQLite || dbExportDefinition.getDbVendor() == DbVendor.Derby) {
 					while (Utilities.isBlank(dbExportDefinition.getDbName())) {
 						System.out.println();
-						System.out.println("Please enter db filepath (Blank => Cancel)");
+						System.out.println("Please enter database filepath (Blank => Cancel)");
 						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
@@ -98,7 +98,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else {
 					while (Utilities.isBlank(dbExportDefinition.getDbName())) {
 						System.out.println();
-						System.out.println("Please enter db name (Blank => Cancel)");
+						System.out.println("Please enter database name (Blank => Cancel)");
 						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
@@ -112,7 +112,7 @@ public class ExportMenu extends ConsoleMenu {
 
 				if (Utilities.isBlank(dbExportDefinition.getUsername()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
-					System.out.println("Please enter db username (Blank => Cancel)");
+					System.out.println("Please enter database username (Blank => Cancel)");
 					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
@@ -129,7 +129,7 @@ public class ExportMenu extends ConsoleMenu {
 
 				if (Utilities.isBlank(dbExportDefinition.getPassword()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.HSQL && dbExportDefinition.getDbVendor() != DbVendor.Derby && (dbExportDefinition.getDbVendor() != DbVendor.Cassandra || dbExportDefinition.getUsername() != null)) {
 					System.out.println();
-					System.out.println("Please enter db password (Blank => Cancel)");
+					System.out.println("Please enter database password (Blank => Cancel)");
 					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
 					if (Utilities.isBlank(passwordArray)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -184,19 +184,19 @@ public class ExportMenu extends ConsoleMenu {
 				final List<String> autoCompletionStrings = new ArrayList<>();
 				autoCompletionStrings.add("");
 
-				System.out.println("  " + Utilities.rightPad("DbVendor:", bulletSize) + " " + dbExportDefinition.getDbVendor().name());
+				System.out.println("  " + Utilities.rightPad("DB vendor:", bulletSize) + " " + dbExportDefinition.getDbVendor().name());
 				if (dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.HSQL && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
-					System.out.println("  " + Utilities.rightPad("Hostname:", bulletSize) + " " + dbExportDefinition.getHostnameAndPort());
+					System.out.println("  " + Utilities.rightPad("DB hostname:", bulletSize) + " " + dbExportDefinition.getHostnameAndPort());
 				}
 				if (dbExportDefinition.getDbVendor() == DbVendor.SQLite || dbExportDefinition.getDbVendor() == DbVendor.Derby) {
-					System.out.println("  " + Utilities.rightPad("Db filepath:", bulletSize) + " " + dbExportDefinition.getDbName());
+					System.out.println("  " + Utilities.rightPad("DB filepath:", bulletSize) + " " + dbExportDefinition.getDbName());
 				} else {
-					System.out.println("  " + Utilities.rightPad("Db name:", bulletSize) + " " + dbExportDefinition.getDbName());
+					System.out.println("  " + Utilities.rightPad("DB name:", bulletSize) + " " + dbExportDefinition.getDbName());
 				}
 				if (dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
-					System.out.println("  " + Utilities.rightPad("Db username:", bulletSize) + " " + (dbExportDefinition.getUsername() == null ? "<empty>" : dbExportDefinition.getUsername()));
+					System.out.println("  " + Utilities.rightPad("DB username:", bulletSize) + " " + (dbExportDefinition.getUsername() == null ? "<empty>" : dbExportDefinition.getUsername()));
 				}
-				System.out.println("  " + Utilities.rightPad("Db password:", bulletSize) + " " + (dbExportDefinition.getPassword() == null ? "<empty>" : "***"));
+				System.out.println("  " + Utilities.rightPad("DB password:", bulletSize) + " " + (dbExportDefinition.getPassword() == null ? "<empty>" : "***"));
 
 				if (dbExportDefinition.getDbVendor() == DbVendor.Oracle || dbExportDefinition.getDbVendor() == DbVendor.MySQL || dbExportDefinition.getDbVendor() == DbVendor.MariaDB) {
 					System.out.println("  " + Utilities.rightPad("Secure connection:", bulletSize) + " " + (dbExportDefinition.isSecureConnection() ? "yes" : "no"));
@@ -209,7 +209,7 @@ public class ExportMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("Output filepath:", bulletSize) + " " + dbExportDefinition.getOutputpath());
 				System.out.println();
 
-				System.out.println("  " + Utilities.rightPad("reset)", bulletSize) + " " + "Reset basic db parameters");
+				System.out.println("  " + Utilities.rightPad("reset)", bulletSize) + " " + "Reset basic database parameters");
 				autoCompletionStrings.add("reset");
 				System.out.println();
 
@@ -317,7 +317,7 @@ public class ExportMenu extends ConsoleMenu {
 					dbExportDefinition.setSecureConnection(dbExportDefinition.isSecureConnection());
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
-					System.out.println("Please enter db TrustStore filepath (Blank => None)");
+					System.out.println("Please enter database TrustStore filepath (Blank => None)");
 					String choiceTruststore = new SimpleConsoleInput().setPrompt(" > ").readInput();
 					choiceTruststore = choiceTruststore == null ? "" : choiceTruststore.trim();
 					if (Utilities.isBlank(choiceTruststore)) {

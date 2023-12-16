@@ -259,7 +259,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				dbValueConverter = new DefaultDBValueConverter(compression, zipPassword, useZipCrypto, createBlobFiles, createClobFiles, getFileExtension());
 				break;
 			default:
-				throw new Exception("Unsupported db vendor: null");
+				throw new Exception("Unsupported database vendor: null");
 		}
 
 		try (Connection connection = DbUtilities.createConnection(dbDefinition, true)) {

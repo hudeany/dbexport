@@ -666,7 +666,7 @@ public class DbExportTest_Cassandra {
 	public void testSqlSelectSimpleNumbers() throws Exception {
 		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
-			// Effect in Cassandra DB is the same as update on "id = 1"
+			// Effect in Cassandra database is the same as update on "id = 1"
 			statement.executeUpdate("INSERT INTO test_tbl (id, column_int) VALUES (1, 1234567)");
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -700,7 +700,7 @@ public class DbExportTest_Cassandra {
 			Assert.fail(e.getMessage());
 			throw e;
 		} finally {
-			// Revert db data changes
+			// Revert database data changes
 			try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 					Statement statement = connection.createStatement()) {
 				statement.executeUpdate("UPDATE test_tbl SET column_int = 1 WHERE id = 1");

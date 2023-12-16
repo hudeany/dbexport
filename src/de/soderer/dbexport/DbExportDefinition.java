@@ -316,10 +316,10 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	/**
-	 * Sets the db vendor.
+	 * Sets the database vendor.
 	 *
 	 * @param dbVendor
-	 *            the new db vendor
+	 *            the new database vendor
 	 * @throws Exception
 	 *             the exception
 	 */

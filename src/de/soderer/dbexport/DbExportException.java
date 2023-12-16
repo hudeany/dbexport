@@ -9,7 +9,7 @@ public class DbExportException extends Exception {
 	private static final long serialVersionUID = 6039775378389122712L;
 
 	/**
-	 * Instantiates a new db csv export exception.
+	 * Instantiates a new database csv export exception.
 	 *
 	 * @param errorMessage
 	 *            the error message
