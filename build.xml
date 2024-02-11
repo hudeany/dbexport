@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
-	<property name="version" value="24.0.0" />
+	<loadfile property="version" srcFile="build.version" failonerror="false" />
+	<property name="version" value="noVersion" />
 	<echo message="version: ${version}" />
 	
 	<property file="${user.home}/git/signing.properties" />
@@ -48,10 +49,10 @@
 		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
 
-		<get src="https://github.com/hudeany/kdbx/releases/download/23.0.1/kdbx-23.0.1.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/csv/releases/download/23.0.1/csv-23.0.1.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/json/releases/download/23.4.0/json-23.4.0.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/vcf/releases/download/23.0.1/vcf-23.0.1.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/kdbx/releases/download/24.1.0/kdbx-24.1.0.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/csv/releases/download/24.1.0/csv-24.1.0.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/json/releases/download/24.1.0/json-24.1.0.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
 		
 		<mkdir dir="lib_test/" />
 		
@@ -86,7 +87,6 @@
 			</fileset>
 			<fileset dir="lib_soderer">
 				<include name="*.jar" />
-				<exclude name="*sources.jar" />
 			</fileset>
 		</path>
 
