@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
 	<loadfile property="version" srcFile="build.version" failonerror="false" />
-	<property name="version" value="1.0.0" />
+	<property name="version" value="24.0.0" />
 	<echo message="version: ${version}" />
 	
 	<property file="${user.home}/git/signing.properties" />
@@ -160,6 +160,11 @@
 		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
 				<fileset dir="${buildPath}" includes="DbExport.jar" />
+			</path>
+		</signjar>
+		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
+			<path>
+				<fileset dir="${buildPath}" includes="DbExport-${version}.jar" />
 			</path>
 		</signjar>
 	</target>
