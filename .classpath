@@ -24,11 +24,7 @@
 	<classpathentry kind="lib" path="lib_db/derbyshared-10.16.1.1.jar"/>
 	<classpathentry kind="lib" path="lib_db/derbytools-10.16.1.1.jar"/>
 	<classpathentry kind="lib" path="lib_db/hsqldb-2.7.2.jar"/>
-	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.2.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/mssql-jdbc-12.4.1.jre11.jar"/>
-	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.1.0.jar"/>
-	<classpathentry kind="lib" path="lib_db/ojdbc8-23.2.0.0.jar"/>
-	<classpathentry kind="lib" path="lib_db/orai18n-23.2.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.6.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
@@ -37,5 +33,9 @@
 	<classpathentry kind="lib" path="lib/kdbx-24.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-24.1.0.jar"/>
 	<classpathentry kind="lib" path="lib_soderer/soderer-utilities-24.1.0.jar" sourcepath="lib_sources/soderer-utilities-24.1.0-sources.jar"/>
+	<classpathentry kind="lib" path="lib_db/ojdbc11-23.3.0.23.09.jar"/>
+	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
+	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.3.3.jar"/>
+	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.3.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
