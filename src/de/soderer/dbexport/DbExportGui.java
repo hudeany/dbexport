@@ -850,11 +850,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 		buttonPanel.add(closeButton);
 
 		final JScrollPane mandatoryParameterScrollPane = new JScrollPane(mandatoryParameterPanel);
-		mandatoryParameterScrollPane.setPreferredSize(new Dimension(475, 400));
+		mandatoryParameterScrollPane.setPreferredSize(new Dimension(500, 400));
 		mandatoryParameterScrollPane.getVerticalScrollBar().setUnitIncrement(8);
 		parameterPanel.add(mandatoryParameterScrollPane);
 
-		optionalParametersPanel.setPreferredSize(new Dimension(260, 400));
+		optionalParametersPanel.setPreferredSize(new Dimension(300, 400));
 		parameterPanel.add(optionalParametersPanel);
 		add(parameterPanel);
 		add(Box.createRigidArea(new Dimension(0, 5)));
