@@ -790,7 +790,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				if (testConnection != null) {
 					try {
 						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Closing database connection");
-						testConnection.close();
+						if (!testConnection.isClosed()) {
+							testConnection.close();
+						}
 					} catch (final SQLException e) {
 						System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error closing database connection: " + e.getMessage());
 						returnCode = 1;

@@ -370,6 +370,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 						try {
 							export(connection, sqlStatement, nextOutputFilePath);
+						} catch (final DbExportException e) {
+							throw e;
 						} catch (final Exception e) {
 							throw new Exception("Error occurred while exporting\n" + sqlStatement + "\n" + e.getMessage(), e);
 						}
@@ -794,6 +796,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				if (new File(outputFilePath).exists()) {
 					throw new DbExportException("Outputfile already exists: " + outputFilePath);
+				} else if (!new File(outputFilePath).getParentFile().exists()) {
+					throw new DbExportException("Outputfile parent directory does not exist: " + new File(outputFilePath).getParent());
 				}
 
 				if (log) {

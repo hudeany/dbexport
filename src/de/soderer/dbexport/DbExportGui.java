@@ -57,6 +57,7 @@ import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.http.HttpUtilities;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
 import de.soderer.utilities.swing.DualProgressDialog;
+import de.soderer.utilities.swing.ProgressDialog;
 import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SecurePreferencesDialog;
 import de.soderer.utilities.swing.SwingColor;
@@ -1229,8 +1230,16 @@ public class DbExportGui extends UpdateableGuiApplication {
 			// The worker parent is set later by the opened DualProgressDialog
 			final AbstractDbExportWorker worker = dbExportDefinition.getConfiguredWorker(null);
 
-			final DualProgressDialog<AbstractDbExportWorker> progressDialog = new DualProgressDialog<>(dbExportGui, DbExport.APPLICATION_NAME, null, worker);
-			final Result result = progressDialog.open();
+			final Result result;
+			if (dbExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ") ||
+					(!dbExportDefinition.getSqlStatementOrTablelist().contains("*")
+							&& !dbExportDefinition.getSqlStatementOrTablelist().contains("?"))) {
+				final ProgressDialog<AbstractDbExportWorker> progressDialog = new ProgressDialog<>(dbExportGui, DbExport.APPLICATION_NAME, null, worker);
+				result = progressDialog.open();
+			} else {
+				final DualProgressDialog<AbstractDbExportWorker> progressDialog = new DualProgressDialog<>(dbExportGui, DbExport.APPLICATION_NAME, null, worker);
+				result = progressDialog.open();
+			}
 
 			if (result == Result.CANCELED) {
 				new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME, LangResources.get("error.canceledbyuser")).setBackgroundColor(SwingColor.Yellow).open();
