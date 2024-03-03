@@ -133,6 +133,10 @@ public class DbExportDefinition extends DbDefinition {
 	/** The null value string. */
 	private String nullValueString = "";
 
+	private boolean replaceAlreadyExistingFiles = false;
+
+	private boolean createOutputDirectoyIfNotExists = false;
+
 	/**
 	 * Sets the data type.
 	 *
@@ -712,6 +716,22 @@ public class DbExportDefinition extends DbDefinition {
 		return exportStructure;
 	}
 
+	public boolean isReplaceAlreadyExistingFiles() {
+		return replaceAlreadyExistingFiles;
+	}
+
+	public void setReplaceAlreadyExistingFiles(final boolean replaceAlreadyExistingFiles) {
+		this.replaceAlreadyExistingFiles = replaceAlreadyExistingFiles;
+	}
+
+	public boolean isCreateOutputDirectoyIfNotExists() {
+		return createOutputDirectoyIfNotExists;
+	}
+
+	public void setCreateOutputDirectoyIfNotExists(final boolean createOutputDirectoyIfNotExists) {
+		this.createOutputDirectoyIfNotExists = createOutputDirectoyIfNotExists;
+	}
+
 	/**
 	 * Create and configure a worker according to the current configuration
 	 *
@@ -819,6 +839,8 @@ public class DbExportDefinition extends DbDefinition {
 		worker.setExportStructure(isExportStructure());
 		worker.setDatabaseTimeZone(getDatabaseTimeZone());
 		worker.setExportDataTimeZone(getExportDataTimeZone());
+		worker.setReplaceAlreadyExistingFiles(isReplaceAlreadyExistingFiles());
+		worker.setCreateOutputDirectoyIfNotExists(isCreateOutputDirectoyIfNotExists());
 
 		return worker;
 	}
@@ -916,6 +938,12 @@ public class DbExportDefinition extends DbDefinition {
 		if (!"".equals(getNullValueString())) {
 			params += " " + "-n" + " '" + getNullValueString() + "'";
 		}
+		if (isCreateOutputDirectoyIfNotExists()) {
+			params += " " + "-createOutputDirectoyIfNotExists";
+		}
+		if (isReplaceAlreadyExistingFiles()) {
+			params += " " + "-replaceAlreadyExistingFiles";
+		}
 		return params;
 	}
 
@@ -952,6 +980,8 @@ public class DbExportDefinition extends DbDefinition {
 			noHeaders = false;
 			exportStructure = false;
 			nullValueString = "";
+			createOutputDirectoyIfNotExists = false;
+			replaceAlreadyExistingFiles = false;
 		} else if (otherDbDefinition instanceof DbExportDefinition) {
 			final DbExportDefinition otherDbExportDefinition = (DbExportDefinition) otherDbDefinition;
 			sqlStatementOrTablelist = otherDbExportDefinition.getSqlStatementOrTablelist();
@@ -986,6 +1016,8 @@ public class DbExportDefinition extends DbDefinition {
 			noHeaders = otherDbExportDefinition.isNoHeaders();
 			exportStructure = otherDbExportDefinition.isExportStructure();
 			nullValueString = otherDbExportDefinition.getNullValueString();
+			createOutputDirectoyIfNotExists = otherDbExportDefinition.isCreateOutputDirectoyIfNotExists();
+			replaceAlreadyExistingFiles = otherDbExportDefinition.isReplaceAlreadyExistingFiles();
 		}
 	}
 }

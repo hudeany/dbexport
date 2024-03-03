@@ -45,6 +45,7 @@ import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.http.HttpUtilities;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+// TODO: Export/Import KDBX entry path
 /**
  * The Main-Class of DbExport.
  */
@@ -748,7 +749,6 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		for (int i = 1; i <= connectionTestDefinition.getIterations() || connectionTestDefinition.getIterations() == 0; i++) {
 			connectionCheckCount++;
 			System.out.println("Connection test " + i + (connectionTestDefinition.getIterations() > 0 ? " / " + connectionTestDefinition.getIterations() : ""));
-			@SuppressWarnings("resource")
 			Connection testConnection = null;
 			try {
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating database connection");

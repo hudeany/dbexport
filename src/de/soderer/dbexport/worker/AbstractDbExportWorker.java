@@ -89,6 +89,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	protected Character decimalSeparator;
 	protected boolean beautify = false;
 	protected boolean exportStructure = false;
+	protected boolean replaceAlreadyExistingFiles = false;
+	protected boolean createOutputDirectoyIfNotExists = false;
 
 	private int overallExportedLines = 0;
 	private long overallExportedDataAmountRaw = 0;
@@ -169,6 +171,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.exportStructure = exportStructure;
 	}
 
+	public void setCreateOutputDirectoyIfNotExists(final boolean createOutputDirectoyIfNotExists) {
+		this.createOutputDirectoyIfNotExists = createOutputDirectoyIfNotExists;
+	}
+
+	public void setReplaceAlreadyExistingFiles(final boolean replaceAlreadyExistingFiles) {
+		this.replaceAlreadyExistingFiles = replaceAlreadyExistingFiles;
+	}
+
 	public void setDateFormat(final String dateFormat) {
 		if (dateFormat != null) {
 			dateFormatPattern = dateFormat;
@@ -221,6 +231,32 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return dateTimeFormatterCache;
 	}
 
+	public boolean isSingleExport() {
+		if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
+			return true;
+		} else {
+			boolean isFirstTableName = true;
+			for (final String tablePattern : sqlStatementOrTablelist.split(",| |;|\\||\n")) {
+				if (Utilities.isNotBlank(tablePattern)) {
+					if (tablePattern.contains("*") || tablePattern.contains("?")) {
+						return false;
+					}
+					if (!tablePattern.startsWith("!")) {
+						if (!isFirstTableName) {
+							return false;
+						}
+						isFirstTableName = false;
+					}
+				}
+			}
+			return true;
+		}
+
+	}
+
 	@Override
 	public Boolean work() throws Exception {
 		overallExportedLines = 0;
@@ -268,6 +304,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					throw new DbExportException("Statementfile is missing");
 				} else {
 					sqlStatementOrTablelist = Utilities.replaceUsersHome(sqlStatementOrTablelist);
+					sqlStatementOrTablelist = DateUtilities.replaceDatePatternInString(sqlStatementOrTablelist, LocalDateTime.now());
 					if (!new File(sqlStatementOrTablelist).exists()) {
 						throw new DbExportException("Statementfile does not exist");
 					} else {
@@ -280,20 +317,14 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				throw new DbExportException("SqlStatement or tablelist is missing");
 			}
 
+			outputpath = DateUtilities.replaceDatePatternInString(outputpath, LocalDateTime.now());
+
 			if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
 					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
 					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
 					|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
+				// Single export
 				if (!"console".equalsIgnoreCase(outputpath) && !"gui".equalsIgnoreCase(outputpath)) {
-					if (!new File(outputpath).exists()) {
-						final int lastSeparator = Math.max(outputpath.lastIndexOf("/"), outputpath.lastIndexOf("\\"));
-						if (lastSeparator >= 0) {
-							String filename = outputpath.substring(lastSeparator + 1);
-							filename = DateUtilities.replaceDatePatternInString(filename, LocalDateTime.now());
-							outputpath = outputpath.substring(0, lastSeparator + 1) + filename;
-						}
-					}
-
 					if (new File(outputpath).exists() && new File(outputpath).isDirectory()) {
 						outputpath = outputpath + File.separator + "export_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now());
 					}
@@ -315,7 +346,23 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				if (tablesToExport.size() == 0) {
 					throw new DbExportException("No table found for export");
+				} else if (tablesToExport.size() > 1) {
+					// Multi export
+					final String basicOutputFilePath = outputpath;
+					// Create directory if missing
+					final File outputBaseDirecory = new File(basicOutputFilePath);
+					if (!outputBaseDirecory.exists()) {
+						if (createOutputDirectoyIfNotExists) {
+							outputBaseDirecory.mkdirs();
+						} else {
+							throw new DbExportException("Outputpath '" + basicOutputFilePath + "' does not exist");
+						}
+					} else if (!outputBaseDirecory.isDirectory()) {
+						throw new DbExportException("Outputpath '" + basicOutputFilePath + "' already exists but is not a directory, which is needed for an export of multiple data sets");
+					}
+					outputpath = basicOutputFilePath;
 				}
+
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
 				if (exportStructure) {
@@ -390,6 +437,22 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				DbUtilities.shutDownDerbyDb(dbDefinition.getDbName());
 			}
 		}
+	}
+
+	private String prepareOutputFilePathForMultiExport(final String basicOutputFilePath) throws DbExportException {
+		// Create directory if missing
+		final File outputBaseDirecory = new File(basicOutputFilePath);
+		if (!outputBaseDirecory.exists()) {
+			if (createOutputDirectoyIfNotExists) {
+				outputBaseDirecory.mkdirs();
+			} else {
+				throw new DbExportException("Outputpath '" + basicOutputFilePath + "' does not exist");
+			}
+		} else if (!outputBaseDirecory.isDirectory()) {
+			throw new DbExportException("Outputpath '" + basicOutputFilePath + "' already exists but is not a directory, which is needed for an export of multiple data sets");
+		}
+
+		return basicOutputFilePath;
 	}
 
 	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, String outputFilePath) throws Exception {
@@ -795,9 +858,19 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 
 				if (new File(outputFilePath).exists()) {
-					throw new DbExportException("Outputfile already exists: " + outputFilePath);
-				} else if (!new File(outputFilePath).getParentFile().exists()) {
-					throw new DbExportException("Outputfile parent directory does not exist: " + new File(outputFilePath).getParent());
+					if (replaceAlreadyExistingFiles) {
+						new File(outputFilePath).delete();
+					} else {
+						throw new DbExportException("Outputfile already exists: " + outputFilePath);
+					}
+				}
+
+				if (!new File(outputFilePath).getParentFile().exists()) {
+					if (createOutputDirectoyIfNotExists) {
+						new File(outputFilePath).getParentFile().mkdirs();
+					} else {
+						throw new DbExportException("Outputfile parent directory does not exist: " + new File(outputFilePath).getParent());
+					}
 				}
 
 				if (log) {

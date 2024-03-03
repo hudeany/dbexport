@@ -52,6 +52,8 @@ Optional parameters for database export
 	-secure: Use TLS/SSL for secure communication with database
 	-truststore '<truststorefilepath>': Filepath to TrustStore in JKS format for encrypted database connections of some database vendors
 	-truststorepassword '<password>': Optional password for TrustStore
+	-createOutputDirectoyIfNotExists: Create output directory if it is missing
+	-replaceAlreadyExistingFiles: Replace existing previously created export files
 
 Global standalone parameters
 	help: Show this help manual

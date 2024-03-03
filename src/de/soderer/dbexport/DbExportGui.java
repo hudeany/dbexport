@@ -169,6 +169,10 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The no headers box. */
 	private final JCheckBox noHeadersBox;
 
+	private final JCheckBox createOutputDirectoyIfNotExistsBox;
+
+	private final JCheckBox replaceAlreadyExistingFilesBox;
+
 	/** The temporary preferences password. */
 	private char[] temporaryPreferencesPassword = null;
 
@@ -760,6 +764,14 @@ public class DbExportGui extends UpdateableGuiApplication {
 		exportStructureBox.setToolTipText(LangResources.get("exportstructure_help"));
 		optionalParametersPanel.add(exportStructureBox);
 
+		createOutputDirectoyIfNotExistsBox = new JCheckBox(LangResources.get("createOutputDirectoyIfNotExists"));
+		createOutputDirectoyIfNotExistsBox.setToolTipText(LangResources.get("createOutputDirectoyIfNotExists_help"));
+		optionalParametersPanel.add(createOutputDirectoyIfNotExistsBox);
+
+		replaceAlreadyExistingFilesBox = new JCheckBox(LangResources.get("replaceAlreadyExistingFiles"));
+		replaceAlreadyExistingFilesBox.setToolTipText(LangResources.get("replaceAlreadyExistingFiles_help"));
+		optionalParametersPanel.add(replaceAlreadyExistingFilesBox);
+
 		// Button Panel
 		final JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
@@ -941,6 +953,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setDatabaseTimeZone((String) databaseTimezoneCombo.getSelectedItem());
 		dbExportDefinition.setExportDataTimeZone((String) exportDataTimezoneCombo.getSelectedItem());
 
+		dbExportDefinition.setCreateOutputDirectoyIfNotExists(createOutputDirectoyIfNotExistsBox.isSelected());
+		dbExportDefinition.setReplaceAlreadyExistingFiles(replaceAlreadyExistingFilesBox.isSelected());
+
 		return dbExportDefinition;
 	}
 
@@ -998,6 +1013,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 		beautifyBox.setSelected(dbExportDefinition.isBeautify());
 		exportStructureBox.setSelected(dbExportDefinition.isExportStructure());
 		noHeadersBox.setSelected(dbExportDefinition.isNoHeaders());
+		createOutputDirectoyIfNotExistsBox.setSelected(dbExportDefinition.isCreateOutputDirectoyIfNotExists());
+		replaceAlreadyExistingFilesBox.setSelected(dbExportDefinition.isReplaceAlreadyExistingFiles());
 
 		boolean encodingFound = false;
 		for (int i = 0; i < encodingCombo.getItemCount(); i++) {
@@ -1231,9 +1248,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			final AbstractDbExportWorker worker = dbExportDefinition.getConfiguredWorker(null);
 
 			final Result result;
-			if (dbExportDefinition.getSqlStatementOrTablelist().toLowerCase().startsWith("select ") ||
-					(!dbExportDefinition.getSqlStatementOrTablelist().contains("*")
-							&& !dbExportDefinition.getSqlStatementOrTablelist().contains("?"))) {
+			if (worker.isSingleExport()) {
 				final ProgressDialog<AbstractDbExportWorker> progressDialog = new ProgressDialog<>(dbExportGui, DbExport.APPLICATION_NAME, null, worker);
 				result = progressDialog.open();
 			} else {
