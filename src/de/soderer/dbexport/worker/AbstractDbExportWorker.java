@@ -439,22 +439,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
-	private String prepareOutputFilePathForMultiExport(final String basicOutputFilePath) throws DbExportException {
-		// Create directory if missing
-		final File outputBaseDirecory = new File(basicOutputFilePath);
-		if (!outputBaseDirecory.exists()) {
-			if (createOutputDirectoyIfNotExists) {
-				outputBaseDirecory.mkdirs();
-			} else {
-				throw new DbExportException("Outputpath '" + basicOutputFilePath + "' does not exist");
-			}
-		} else if (!outputBaseDirecory.isDirectory()) {
-			throw new DbExportException("Outputpath '" + basicOutputFilePath + "' already exists but is not a directory, which is needed for an export of multiple data sets");
-		}
-
-		return basicOutputFilePath;
-	}
-
 	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, String outputFilePath) throws Exception {
 		OutputStream outputStream = null;
 		File tempFile = null;
