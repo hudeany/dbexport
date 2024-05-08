@@ -213,7 +213,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			setDailyUpdateCheckStatus(true);
 			try {
 				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(this, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
-					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE, null, null, "gui", true);
+					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, "gui", true);
 				}
 			} catch (final Exception e) {
 				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -837,7 +837,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						iconImage = ImageIO.read(getClass().getClassLoader().getResource("DbExport_Icon.png"));
 					}
 
-					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE);
+					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES);
 					final Result result = applicationConfigurationDialog.open();
 					if (result != null && result == Result.OK) {
 						applicationConfiguration.save();

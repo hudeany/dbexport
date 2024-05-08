@@ -4,7 +4,7 @@
 	<property name="version" value="24.0.0" />
 	<echo message="version: ${version}" />
 	
-	<property file="${user.home}/git/signing.properties" />
+	<property file="${user.home}/git/codeSigning.properties" />
 	
 	<tstamp>
 		<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en" />
@@ -104,9 +104,9 @@
 
 	<target name="create_versionfile">
 		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem${line.separator}</echo>
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem, soderer-ca-v2-certificate.pem${line.separator}</echo>
 		<delete file="src/version.txt" />
-		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem${line.separator}</echo>
+		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem, soderer-ca-v2-certificate.pem${line.separator}</echo>
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
@@ -120,6 +120,7 @@
 			<fileset dir="${buildPath}/bin" />
 
 			<zipfileset file="${CaPublicKey}" />
+			<zipfileset file="${CaPublicKeyOld}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="lib_soderer" includes="*.jar" />
@@ -147,6 +148,7 @@
 			<fileset dir="${buildPath}/bin" />
 
 			<zipfileset file="${CaPublicKey}" />
+			<zipfileset file="${CaPublicKeyOld}" />
 			<zipfileset dir="lib" includes="*.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="lib_soderer" includes="*.jar" />
@@ -155,14 +157,14 @@
 		</jar>
 	</target>
 
-	<available file="${user.home}/git/signing.properties" property="signingPropertiesAvailable" />
+	<available file="${user.home}/git/codeSigning.properties" property="signingPropertiesAvailable" />
 	<target name="sign_jar" depends="create_jar" if="signingPropertiesAvailable">
-		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
+		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
 				<fileset dir="${buildPath}" includes="DbExport.jar" />
 			</path>
 		</signjar>
-		<signjar destDir="${buildPath}" alias="${CaKeyAlias}" keystore="${CaKeyStore}" storepass="${CaKeyStorePass}" keypass="${CaKeyPass}" preservelastmodified="true" tsaurl="${TsaUrl}">
+		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
 				<fileset dir="${buildPath}" includes="DbExport-${version}.jar" />
 			</path>

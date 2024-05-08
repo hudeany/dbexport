@@ -76,7 +76,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	public static String VERSIONINFO_DOWNLOAD_URL = null;
 
 	/** Trusted CA certificate for updates **/
-	public static String TRUSTED_UPDATE_CA_CERTIFICATE = null;
+	public static String TRUSTED_UPDATE_CA_CERTIFICATES = null;
 
 	/** The usage message. **/
 	private static String getUsageMessage() {
@@ -127,7 +127,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				VERSIONINFO_DOWNLOAD_URL = versionInfoLines.get(2);
 			}
 			if (versionInfoLines.size() >= 4) {
-				TRUSTED_UPDATE_CA_CERTIFICATE = versionInfoLines.get(3);
+				TRUSTED_UPDATE_CA_CERTIFICATES = versionInfoLines.get(3);
 			}
 		} catch (@SuppressWarnings("unused") final Exception e) {
 			// Without the version.txt file we may not go on
@@ -165,13 +165,13 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					} else if ("update".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
 						if (arguments.length > i + 2) {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE, arguments[i + 1], arguments[i + 2].toCharArray(), null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], arguments[i + 2].toCharArray(), null, false);
 						} else if (arguments.length > i + 1) {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE, arguments[i + 1], null, null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], null, null, false);
 						} else {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE, null, null, null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false);
 						}
 						return 1;
 					} else if ("gui".equalsIgnoreCase(arguments[i])) {
@@ -610,7 +610,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				} else if (consoleMenuExecutionCode == -3) {
 					// Update application
 					final DbExport dbExport = new DbExport();
-					ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATE, null, null, null, false);
+					ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false);
 					return 0;
 				} else if (consoleMenuExecutionCode == -5) {
 					// Create TrustStore
