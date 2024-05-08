@@ -103,10 +103,13 @@
 	</target>
 
 	<target name="create_versionfile">
+		<basename property="CaPublicKeyFileName" file="${CaPublicKey}"/>
+		<basename property="CaPublicKeyFileNameOld" file="${CaPublicKeyOld}"/>
+
 		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem, soderer-ca-v2-certificate.pem${line.separator}</echo>
+		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
 		<delete file="src/version.txt" />
-		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}soderer-ca-certificate.pem, soderer-ca-v2-certificate.pem${line.separator}</echo>
+		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
