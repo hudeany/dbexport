@@ -8,6 +8,8 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -36,7 +38,8 @@ public class JarInJarLoader {
 		try {
 			final String currentJarUrlPath = JarInJarLoader.class.getResource(JarInJarLoader.class.getSimpleName() + ".class").toString();
 			if (currentJarUrlPath != null && currentJarUrlPath.length() > 0) {
-				final String jarFilePath = currentJarUrlPath.substring(0, currentJarUrlPath.lastIndexOf("!")).replaceFirst("jar:file:", "");
+				String jarFilePath = currentJarUrlPath.substring(0, currentJarUrlPath.lastIndexOf("!")).replaceFirst("jar:file:", "");
+				jarFilePath = URLDecoder.decode(jarFilePath, StandardCharsets.UTF_8);
 				final File jarFile = new File(jarFilePath);
 				if (jarFile.exists()) {
 					System.getProperties().put(SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR, jarFile.getAbsolutePath());
@@ -90,6 +93,7 @@ public class JarInJarLoader {
 						// find all jar files included in the jar and add them to the classpath
 						rsrcClassPath = "./";
 						String jarFilePath = manifestFileUrl.getFile().substring(0, manifestFileUrl.getPath().indexOf("!/META-INF/MANIFEST.MF"));
+						jarFilePath = URLDecoder.decode(jarFilePath, StandardCharsets.UTF_8);
 						if (jarFilePath.startsWith("file:")) {
 							jarFilePath = jarFilePath.substring(5);
 						}
