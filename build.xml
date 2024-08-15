@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
-	<loadfile property="version" srcFile="build.version" failonerror="false" />
-	<property name="version" value="24.0.0" />
-	<echo message="version: ${version}" />
+	<loadfile property="build.version" srcFile="build.version" failonerror="false" />
+	<property name="build.version" value="24.0.0" />
+	<echo message="build.version: ${build.version}" />
 	
 	<property file="${user.home}/git/codeSigning.properties" />
 	
@@ -107,13 +107,13 @@
 		<basename property="CaPublicKeyFileNameOld" file="${CaPublicKeyOld}"/>
 
 		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
+		<echo file="${buildPath}/bin/version.txt" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
 		<delete file="src/version.txt" />
-		<echo file="src/version.txt" append="false">${version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
+		<echo file="src/version.txt" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}/DbExport-${version}.jar">
+		<jar destfile="${buildPath}/DbExport-${build.version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
@@ -131,7 +131,7 @@
 			<zipfileset dir="src" includes="DbExport.ico" />
 		</jar>
 
-		<jar destfile="${buildPath}/DbExport-${version}_sources.jar">
+		<jar destfile="${buildPath}/DbExport-${build.version}_sources.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
@@ -169,7 +169,7 @@
 		</signjar>
 		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
-				<fileset dir="${buildPath}" includes="DbExport-${version}.jar" />
+				<fileset dir="${buildPath}" includes="DbExport-${build.version}.jar" />
 			</path>
 		</signjar>
 	</target>
