@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
 	<loadfile property="build.version" srcFile="build.version" failonerror="false" />
-	<property name="build.version" value="24.0.0" />
+	<property name="build.version" value="25.0.0" />
 	<echo message="build.version: ${build.version}" />
 	
 	<property file="${user.home}/git/codeSigning.properties" />
@@ -51,7 +51,7 @@
 
 		<get src="https://github.com/hudeany/kdbx/releases/download/24.1.0/kdbx-24.1.0.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/csv/releases/download/24.1.0/csv-24.1.0.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/json/releases/download/24.1.0/json-24.1.0.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/json/releases/download/25.1.2/json-25.1.2.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
 		
 		<mkdir dir="lib_test/" />
@@ -130,16 +130,6 @@
 			<zipfileset dir="lib_soderer" includes="*.jar" />
 			<zipfileset dir="src" includes="DbExport_Icon.png" />
 			<zipfileset dir="src" includes="DbExport.ico" />
-		</jar>
-
-		<jar destfile="${buildPath}/DbExport-${build.version}_sources.jar">
-			<manifest>
-				<attribute name="Main-Class" value="de.soderer.DbExport" />
-				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
-			</manifest>
-
-			<fileset dir="src" includes="**/*.java" />
 		</jar>
 			
 		<jar destfile="${buildPath}/DbExport.jar">
