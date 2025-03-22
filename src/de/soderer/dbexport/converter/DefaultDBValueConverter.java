@@ -19,8 +19,8 @@ import java.util.zip.ZipOutputStream;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.ReaderInputStream;
-import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.Utilities;
+import de.soderer.utilities.zip.TarGzUtilities;
 import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 

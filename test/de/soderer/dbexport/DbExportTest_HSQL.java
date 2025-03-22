@@ -26,12 +26,12 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.InputStreamWithOtherItemsToClose;
 import de.soderer.utilities.IoUtilities;
-import de.soderer.utilities.TarGzUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.zip.TarGzUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 import net.lingala.zip4j.ZipFile;
 

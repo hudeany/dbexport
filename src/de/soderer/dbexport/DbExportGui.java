@@ -40,13 +40,16 @@ import javax.swing.WindowConstants;
 
 import de.soderer.dbexport.DbExportDefinition.DataType;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
+import de.soderer.network.NetworkUtilities;
+import de.soderer.network.TrustManagerUtilities;
+import de.soderer.pac.utilities.ProxyConfiguration;
+import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.ExceptionUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
-import de.soderer.utilities.NetworkUtilities;
 import de.soderer.utilities.Result;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
@@ -54,9 +57,6 @@ import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
 import de.soderer.utilities.db.DbDriverSupplier;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
-import de.soderer.utilities.http.HttpUtilities;
-import de.soderer.utilities.http.ProxyConfiguration;
-import de.soderer.utilities.http.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
 import de.soderer.utilities.swing.DualProgressDialog;
 import de.soderer.utilities.swing.ProgressDialog;
@@ -418,7 +418,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						if (new File(trustStoreFilePathField.getText()).exists()) {
 							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File already exists: '" + trustStoreFilePathField.getText() + "'").setBackgroundColor(SwingColor.LightRed).open();
 						} else {
-							HttpUtilities.createTrustStoreFile(hostField.getText(), DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()).getDefaultPort(), new File(trustStoreFilePathField.getText()), trustStorePasswordField.getPassword(), null);
+							TrustManagerUtilities.createTrustStoreFile(hostField.getText(), DbVendor.getDbVendorByName((String) dbTypeCombo.getSelectedItem()).getDefaultPort(), new File(trustStoreFilePathField.getText()), trustStorePasswordField.getPassword(), null);
 							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
 							checkButtonStatus();
 						}
@@ -1267,7 +1267,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			} else if (result == Result.ERROR) {
 				final Exception e = worker.getError();
 				if (e instanceof DbExportException) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + ((DbExportException) e).getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
 				} else {
 					final String stacktrace = ExceptionUtilities.getStackTrace(e);
 					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace).setBackgroundColor(SwingColor.LightRed).open();

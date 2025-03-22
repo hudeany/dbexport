@@ -53,6 +53,8 @@
 		<get src="https://github.com/hudeany/csv/releases/download/24.1.0/csv-24.1.0.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/json/releases/download/25.1.2/json-25.1.2.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/25.1.2/proxyautoconfig-25.1.2.jar" dest="lib/" />
+		<get src="https://github.com/hudeany/network/releases/download/25.1.0/network-25.1.0.jar" dest="lib/" />
 		
 		<mkdir dir="lib_test/" />
 		

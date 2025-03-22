@@ -25,6 +25,9 @@ import de.soderer.dbexport.console.HelpMenu;
 import de.soderer.dbexport.console.PreferencesMenu;
 import de.soderer.dbexport.console.UpdateMenu;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
+import de.soderer.network.TrustManagerUtilities;
+import de.soderer.pac.utilities.ProxyConfiguration;
+import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
@@ -43,9 +46,6 @@ import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.db.DbNotExistsException;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
-import de.soderer.utilities.http.HttpUtilities;
-import de.soderer.utilities.http.ProxyConfiguration;
-import de.soderer.utilities.http.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
 import de.soderer.utilities.worker.WorkerParentDual;
 
@@ -568,7 +568,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				}
 
 				if (createTrustStore) {
-					HttpUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null, null);
+					TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null, null);
 				}
 
 				if (!wasAllowedParam) {
@@ -631,7 +631,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					return 0;
 				} else if (consoleMenuExecutionCode == -5) {
 					// Create TrustStore
-					HttpUtilities.createTrustStoreFile(connectionTestDefinition.getHostnameAndPort(), 443, connectionTestDefinition.getTrustStoreFile(), connectionTestDefinition.getTrustStorePassword(), null);
+					TrustManagerUtilities.createTrustStoreFile(connectionTestDefinition.getHostnameAndPort(), 443, connectionTestDefinition.getTrustStoreFile(), connectionTestDefinition.getTrustStorePassword(), null);
 					System.out.println();
 					System.out.println("Created TrustStore in file '" + connectionTestDefinition.getTrustStoreFile().getAbsolutePath() + "'");
 					return 0;

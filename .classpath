@@ -30,7 +30,9 @@
 	<classpathentry kind="lib" path="lib_db/mongodb-jdbc-2.2.0-all.jar"/>
 	<classpathentry kind="lib" path="lib/json-25.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-25.1.0.jar"/>
-	<classpathentry kind="lib" path="lib_soderer/soderer-utilities-25.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/network-25.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/proxyautoconfig-25.1.2.jar"/>
+	<classpathentry kind="lib" path="lib_soderer/soderer-utilities-25.1.6.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/csv-24.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-24.1.0.jar"/>
