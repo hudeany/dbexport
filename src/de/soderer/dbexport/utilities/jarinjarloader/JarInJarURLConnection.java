@@ -13,7 +13,7 @@ public class JarInJarURLConnection extends URLConnection {
 
 	public JarInJarURLConnection(final URL url, final ClassLoader classLoader) {
 		super(url);
-		this.classLoader= classLoader;
+		this.classLoader = classLoader;
 	}
 
 	@Override
