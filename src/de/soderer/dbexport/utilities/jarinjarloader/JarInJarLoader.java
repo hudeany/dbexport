@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
@@ -56,9 +57,9 @@ public class JarInJarLoader {
 		for (int i = 0; i < manifestInfo.classPath.length; i++) {
 			final String classPath = manifestInfo.classPath[i];
 			if (classPath.endsWith("/")) {
-				classPathUrls[i] = new URL("rsrc:" + classPath);
+				classPathUrls[i] = URI.create("rsrc:" + classPath).toURL();
 			} else {
-				classPathUrls[i] = new URL("jar:rsrc:" + classPath + "!/");
+				classPathUrls[i] = URI.create("jar:rsrc:" + classPath + "!/").toURL();
 			}
 		}
 		final URLClassLoader jceClassLoader = new URLClassLoader(classPathUrls, getParentClassLoader());
