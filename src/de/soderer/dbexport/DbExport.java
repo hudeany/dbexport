@@ -26,6 +26,7 @@ import de.soderer.dbexport.console.PreferencesMenu;
 import de.soderer.dbexport.console.UpdateMenu;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.network.TrustManagerUtilities;
+import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.ConfigurationProperties;
@@ -146,6 +147,15 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		} catch (@SuppressWarnings("unused") final Exception e) {
 			System.err.println("Invalid application configuration");
 			return 1;
+		}
+
+		if (!applicationConfiguration.containsKey(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE)) {
+			if (PacScriptParser.findPacFileUrlByWpad() != null) {
+				applicationConfiguration.set(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.WPAD.name());
+			} else {
+				applicationConfiguration.set(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.None.name());
+			}
+			applicationConfiguration.save();
 		}
 
 		final ProxyConfigurationType proxyConfigurationType = ProxyConfigurationType.getFromString(applicationConfiguration.get(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE));
