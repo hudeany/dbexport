@@ -228,7 +228,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		if (dailyUpdateCheckIsPending()) {
 			setDailyUpdateCheckStatus(true);
 			try {
-				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
+				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
 					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, "gui", true);
 				}
 			} catch (final Exception e) {
