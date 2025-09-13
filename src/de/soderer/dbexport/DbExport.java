@@ -65,11 +65,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	public static final String HELP_RESOURCE_FILE = "/help.txt";
 
 	/** The Constant CONFIGURATION_FILE. */
-	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + "." + APPLICATION_NAME + ".config");
+	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + "." + APPLICATION_NAME + File.separator + "." + APPLICATION_NAME + ".config");
 	public static final String CONFIGURATION_DRIVERLOCATIONPROPERTYNAME = "driver_location";
 
 	/** The Constant SECURE_PREFERENCES_FILE. */
-	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + "." + APPLICATION_NAME + ".secpref");
+	public static final File SECURE_PREFERENCES_FILE = new File(System.getProperty("user.home") + File.separator + "." + APPLICATION_NAME + File.separator + "." + APPLICATION_NAME + ".secpref");
 
 	/** The version is filled in at application start from the version.txt file. */
 	public static Version VERSION = null;
