@@ -56,8 +56,8 @@
 		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/25.1.8/proxyautoconfig-25.1.8.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/network/releases/download/25.1.2/network-25.1.2.jar" dest="lib/" />
 
-		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/25.1.15/soderer-utilities-25.1.15.jar" dest="lib/" />
-		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/25.1.15/soderer-utilities-25.1.15-sources.jar" dest="lib/" />
+		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/25.1.22/soderer-utilities-25.1.22.jar" dest="lib/" />
+		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/25.1.22/soderer-utilities-25.1.22-sources.jar" dest="lib/" />
 		
 		<mkdir dir="lib_test/" />
 		

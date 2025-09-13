@@ -127,8 +127,8 @@ public class DbExportDefinition extends DbDefinition {
 	/** The no headers. */
 	private boolean noHeaders = false;
 
-	/** The export structure. */
-	private boolean exportStructure = false;
+	/** The export structure file. */
+	private String exportStructureFilePath = null;
 
 	/** The null value string. */
 	private String nullValueString = "";
@@ -571,7 +571,7 @@ public class DbExportDefinition extends DbDefinition {
 	public void checkParameters() throws Exception {
 		super.checkParameters(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE);
 
-		if (outputpath == null) {
+		if (outputpath == null && exportStructureFilePath == null) {
 			throw new DbExportException("Outputpath is missing");
 		} else if ("console".equalsIgnoreCase(outputpath)) {
 			if (compression != null) {
@@ -589,14 +589,6 @@ public class DbExportDefinition extends DbDefinition {
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
 			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
 				throw new DbExportException("Outputpath file already exists: " + outputpath);
-			}
-		} else {
-			if (exportStructure) {
-				if (!new File(outputpath).exists()) {
-					throw new DbExportException("Outputpath directory does not exist: " + outputpath);
-				} else if (!new File(outputpath).isDirectory()) {
-					throw new DbExportException("Outputpath is not a directory: " + outputpath);
-				}
 			}
 		}
 
@@ -697,23 +689,24 @@ public class DbExportDefinition extends DbDefinition {
 		return nullValueString;
 	}
 
-	/**
-	 * Sets the export structure.
-	 *
-	 * @param exportStructure
-	 *            the new export structure
-	 */
-	public void setExportStructure(final boolean exportStructure) {
-		this.exportStructure = exportStructure;
+	public void setExportStructureFilePath(final String exportStructureFilePath) {
+		this.exportStructureFilePath = exportStructureFilePath;
 	}
 
-	/**
-	 * Checks if is export structure.
-	 *
-	 * @return true, if is export structure
-	 */
-	public boolean isExportStructure() {
-		return exportStructure;
+	public String getExportStructureFilePath() {
+		if (exportStructureFilePath == null) {
+			return null;
+		} else if ("console".equalsIgnoreCase(exportStructureFilePath)) {
+			return "console";
+		} else if (outputpath != null) {
+			File exportStructureFile = new File(exportStructureFilePath);
+			if (exportStructureFile.getParentFile() == null) {
+				exportStructureFile = new File(outputpath, exportStructureFilePath);
+			}
+			return exportStructureFile.getAbsolutePath();
+		} else {
+			return exportStructureFilePath;
+		}
 	}
 
 	public boolean isReplaceAlreadyExistingFiles() {
@@ -747,15 +740,15 @@ public class DbExportDefinition extends DbDefinition {
 						isStatementFile(),
 						getSqlStatementOrTablelist(),
 						getOutputpath());
-				((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-				((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
-				((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-				((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				worker.setDateFormatLocale(getDateFormatLocale());
+				worker.setDateFormat(getDateFormat());
+				worker.setDateTimeFormat(getDateTimeFormat());
+				worker.setDecimalSeparator(getDecimalSeparator());
 				((DbCsvExportWorker) worker).setSeparator(getSeparator());
 				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
 				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
 				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
-				((DbCsvExportWorker) worker).setBeautify(isBeautify());
+				worker.setBeautify(isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
 				((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
 				break;
@@ -765,7 +758,7 @@ public class DbExportDefinition extends DbDefinition {
 						isStatementFile(),
 						getSqlStatementOrTablelist(),
 						getOutputpath());
-				((DbJsonExportWorker) worker).setBeautify(isBeautify());
+				worker.setBeautify(isBeautify());
 				((DbJsonExportWorker) worker).setIndentation(getIndentation());
 				break;
 			case SQL:
@@ -774,11 +767,11 @@ public class DbExportDefinition extends DbDefinition {
 						isStatementFile(),
 						getSqlStatementOrTablelist(),
 						getOutputpath());
-				((DbSqlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-				((DbSqlExportWorker) worker).setDateFormat(getDateFormat());
-				((DbSqlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-				((DbSqlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
-				((DbSqlExportWorker) worker).setBeautify(isBeautify());
+				worker.setDateFormatLocale(getDateFormatLocale());
+				worker.setDateFormat(getDateFormat());
+				worker.setDateTimeFormat(getDateTimeFormat());
+				worker.setDecimalSeparator(getDecimalSeparator());
+				worker.setBeautify(isBeautify());
 				break;
 			case VCF:
 				worker = new DbVcfExportWorker(parent,
@@ -793,11 +786,11 @@ public class DbExportDefinition extends DbDefinition {
 						isStatementFile(),
 						getSqlStatementOrTablelist(),
 						getOutputpath());
-				((DbXmlExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-				((DbXmlExportWorker) worker).setDateFormat(getDateFormat());
-				((DbXmlExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-				((DbXmlExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
-				((DbXmlExportWorker) worker).setBeautify(isBeautify());
+				worker.setDateFormatLocale(getDateFormatLocale());
+				worker.setDateFormat(getDateFormat());
+				worker.setDateTimeFormat(getDateTimeFormat());
+				worker.setDecimalSeparator(getDecimalSeparator());
+				worker.setBeautify(isBeautify());
 				((DbXmlExportWorker) worker).setIndentation(getIndentation());
 				((DbXmlExportWorker) worker).setNullValueText(getNullValueString());
 				break;
@@ -816,15 +809,15 @@ public class DbExportDefinition extends DbDefinition {
 						isStatementFile(),
 						getSqlStatementOrTablelist(),
 						getOutputpath());
-				((DbCsvExportWorker) worker).setDateFormatLocale(getDateFormatLocale());
-				((DbCsvExportWorker) worker).setDateFormat(getDateFormat());
-				((DbCsvExportWorker) worker).setDateTimeFormat(getDateTimeFormat());
-				((DbCsvExportWorker) worker).setDecimalSeparator(getDecimalSeparator());
+				worker.setDateFormatLocale(getDateFormatLocale());
+				worker.setDateFormat(getDateFormat());
+				worker.setDateTimeFormat(getDateTimeFormat());
+				worker.setDecimalSeparator(getDecimalSeparator());
 				((DbCsvExportWorker) worker).setSeparator(getSeparator());
 				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
 				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
 				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
-				((DbCsvExportWorker) worker).setBeautify(isBeautify());
+				worker.setBeautify(isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
 				((DbCsvExportWorker) worker).setNullValueText(getNullValueString());
 				break;
@@ -836,7 +829,7 @@ public class DbExportDefinition extends DbDefinition {
 		worker.setEncoding(getEncoding());
 		worker.setCreateBlobFiles(isCreateBlobFiles());
 		worker.setCreateClobFiles(isCreateClobFiles());
-		worker.setExportStructure(isExportStructure());
+		worker.setExportStructureFilePath(getExportStructureFilePath());
 		worker.setDatabaseTimeZone(getDatabaseTimeZone());
 		worker.setExportDataTimeZone(getExportDataTimeZone());
 		worker.setReplaceAlreadyExistingFiles(isReplaceAlreadyExistingFiles());
@@ -932,8 +925,8 @@ public class DbExportDefinition extends DbDefinition {
 		if (isNoHeaders()) {
 			params += " " + "-noheaders";
 		}
-		if (isExportStructure()) {
-			params += " " + "-structure";
+		if (getExportStructureFilePath() != null) {
+			params += " " + "-structure \"" + getExportStructureFilePath() + "\"";
 		}
 		if (!"".equals(getNullValueString())) {
 			params += " " + "-n" + " '" + getNullValueString() + "'";
@@ -978,7 +971,7 @@ public class DbExportDefinition extends DbDefinition {
 			decimalSeparator = null;
 			beautify = false;
 			noHeaders = false;
-			exportStructure = false;
+			exportStructureFilePath = null;
 			nullValueString = "";
 			createOutputDirectoyIfNotExists = false;
 			replaceAlreadyExistingFiles = false;
@@ -1014,7 +1007,7 @@ public class DbExportDefinition extends DbDefinition {
 			decimalSeparator = otherDbExportDefinition.getDecimalSeparator();
 			beautify = otherDbExportDefinition.isBeautify();
 			noHeaders = otherDbExportDefinition.isNoHeaders();
-			exportStructure = otherDbExportDefinition.isExportStructure();
+			exportStructureFilePath = otherDbExportDefinition.getExportStructureFilePath();
 			nullValueString = otherDbExportDefinition.getNullValueString();
 			createOutputDirectoyIfNotExists = otherDbExportDefinition.isCreateOutputDirectoyIfNotExists();
 			replaceAlreadyExistingFiles = otherDbExportDefinition.isReplaceAlreadyExistingFiles();

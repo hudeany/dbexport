@@ -2,6 +2,7 @@ package de.soderer.dbexport.console;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -12,6 +13,7 @@ import java.util.stream.Stream;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
 import de.soderer.dbexport.DbExportDefinition.DataType;
+import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
@@ -284,7 +286,7 @@ public class ExportMenu extends ConsoleMenu {
 					System.out.println("  " + Utilities.rightPad("beautify)", bulletSize) + " " + Utilities.rightPad("Beautify output:", nameSize) + dbExportDefinition.isBeautify());
 					autoCompletionStrings.add("beautify");
 				}
-				System.out.println("  " + Utilities.rightPad("structure)", bulletSize) + " " + Utilities.rightPad("Export the tables structure:", nameSize) + dbExportDefinition.isExportStructure());
+				System.out.println("  " + Utilities.rightPad("structure)", bulletSize) + " " + Utilities.rightPad("Export the tables structure:", nameSize) + dbExportDefinition.getExportStructureFilePath() != null);
 				autoCompletionStrings.add("structure");
 				System.out.println("  " + Utilities.rightPad("dbtz)", bulletSize) + " " + Utilities.rightPad("DatabaseTimeZone:", nameSize) + dbExportDefinition.getDatabaseTimeZone());
 				autoCompletionStrings.add("dbtz");
@@ -465,7 +467,12 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("beautify".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setBeautify(!dbExportDefinition.isBeautify());
 				} else if ("structure".equalsIgnoreCase(choice)) {
-					dbExportDefinition.setExportStructure(!dbExportDefinition.isExportStructure());
+					if (dbExportDefinition.getExportStructureFilePath() == null) {
+						final String exportStructureFilePath = dbExportDefinition.getOutputpath() + File.separator + "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json";
+						dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
+					} else {
+						dbExportDefinition.setExportStructureFilePath(null);
+					}
 				} else if ("dbtz".equalsIgnoreCase(choice)) {
 					while (true) {
 						System.out.println();

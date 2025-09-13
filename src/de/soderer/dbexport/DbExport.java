@@ -452,7 +452,12 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						dbExportDefinition.setNoHeaders(true);
 						wasAllowedParam = true;
 					} else if ("-structure".equalsIgnoreCase(arguments[i])) {
-						dbExportDefinition.setExportStructure(true);
+						i++;
+						if (i >= arguments.length) {
+							throw new ParameterException(arguments[i - 1], "Missing parameter value for structure");
+						} else {
+							dbExportDefinition.setExportStructureFilePath(arguments[i]);
+						}
 						wasAllowedParam = true;
 					} else if ("-export".equalsIgnoreCase(arguments[i])) {
 						i++;

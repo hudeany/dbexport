@@ -936,7 +936,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 		dbExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 		dbExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
-		dbExportDefinition.setExportStructure(exportStructureBox.isSelected());
+		final String exportStructureFilePath = exportStructureBox.isSelected() ? (outputpathField.getText() + File.separator + "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json") : null;
+		dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
 		dbExportDefinition.setNoHeaders(noHeadersBox.isEnabled() ? noHeadersBox.isSelected() : false);
 		dbExportDefinition.setEncoding(Charset.forName((String) encodingCombo.getSelectedItem()));
 		dbExportDefinition.setSeparator(((String) separatorCombo.getSelectedItem()).charAt(0));
@@ -1027,7 +1028,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		blobfilesBox.setSelected(dbExportDefinition.isCreateBlobFiles());
 		clobfilesBox.setSelected(dbExportDefinition.isCreateClobFiles());
 		beautifyBox.setSelected(dbExportDefinition.isBeautify());
-		exportStructureBox.setSelected(dbExportDefinition.isExportStructure());
+		exportStructureBox.setSelected(dbExportDefinition.getExportStructureFilePath() != null);
 		noHeadersBox.setSelected(dbExportDefinition.isNoHeaders());
 		createOutputDirectoyIfNotExistsBox.setSelected(dbExportDefinition.isCreateOutputDirectoyIfNotExists());
 		replaceAlreadyExistingFilesBox.setSelected(dbExportDefinition.isReplaceAlreadyExistingFiles());

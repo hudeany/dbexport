@@ -88,7 +88,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	protected NumberFormat decimalFormat ;
 	protected Character decimalSeparator;
 	protected boolean beautify = false;
-	protected boolean exportStructure = false;
+	protected String exportStructureFilePath = null;
 	protected boolean replaceAlreadyExistingFiles = false;
 	protected boolean createOutputDirectoyIfNotExists = false;
 
@@ -167,8 +167,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.beautify = beautify;
 	}
 
-	public void setExportStructure(final boolean exportStructure) {
-		this.exportStructure = exportStructure;
+	public void setExportStructureFilePath(final String exportStructureFilePath) {
+		this.exportStructureFilePath = exportStructureFilePath;
 	}
 
 	public void setCreateOutputDirectoyIfNotExists(final boolean createOutputDirectoyIfNotExists) {
@@ -330,8 +330,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					}
 				}
 
-				if (exportStructure) {
-					exportDbStructure(connection, sqlStatementOrTablelist, outputpath);
+				if (exportStructureFilePath != null) {
+					exportDbStructure(connection, sqlStatementOrTablelist, exportStructureFilePath);
 				} else {
 					export(connection, sqlStatementOrTablelist, outputpath);
 				}
@@ -365,11 +365,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				itemsToDo = tablesToExport.size();
 				itemsDone = 0;
-				if (exportStructure) {
-					if (new File(outputpath).exists() && new File(outputpath).isDirectory()) {
-						outputpath = outputpath + File.separator + "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now());
-					}
-					exportDbStructure(connection, tablesToExport, outputpath);
+				if (exportStructureFilePath != null) {
+					exportDbStructure(connection, tablesToExport, exportStructureFilePath);
 				} else {
 					for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
 						signalProgress(true);
@@ -675,7 +672,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
 			} else {
-
 				if (compression == FileCompressionType.ZIP) {
 					if (!Utilities.endsWithIgnoreCase(outputFilePath, ".zip")) {
 						if (!Utilities.endsWithIgnoreCase(outputFilePath, ".json")) {
@@ -713,7 +709,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 
 				if (new File(outputFilePath).exists()) {
-					throw new DbExportException("Outputfile already exists: " + outputFilePath);
+					throw new DbExportException("DB structure outputfile already exists: " + outputFilePath);
 				}
 
 				if (compression == FileCompressionType.ZIP) {

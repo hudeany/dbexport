@@ -46,7 +46,7 @@ Optional parameters for database export
 	-beautify: Beautify csv output to make column values equal length (Takes extra time)
 		or beautify json output to make it human readable with linebreak and indention
 	-noheaders: Don't export csv header line
-	-structure: Export the tables structure and column types
+	-structure <structurefilename>: Export the structure of selected tables with their column names and datatypes into a JSON file
 	-dbtz '<databaseTimeZone>': Use a DatabaseTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-edtz '<exportDataTimeZone>': Use a ExportDataTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-secure: Use TLS/SSL for secure communication with database
