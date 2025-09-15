@@ -556,7 +556,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		final List<DatabaseForeignKey> foreignKeys = DbUtilities.getForeignKeys(connection, tablename);
 		final List<DatabaseIndex> indices = DbUtilities.getIndices(connection, tablename);
 		final List<DatabaseConstraint> constraints = DbUtilities.getConstraints(connection, tablename);
-		final CaseInsensitiveMap<String> defaultValues = DbUtilities.getColumnDefaultValues(connection, tablename);
+		final CaseInsensitiveMap<Object> defaultValues = DbUtilities.getColumnDefaultValues(connection, tablename);
 
 		final JsonObject tableJsonObject = new JsonObject();
 
@@ -642,7 +642,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return tableJsonObject;
 	}
 
-	private static JsonObject createColumnJsonObject(final String columnName, final DbColumnType columnType, final String defaultValue) {
+	private static JsonObject createColumnJsonObject(final String columnName, final DbColumnType columnType, final Object defaultValue) {
 		final JsonObject columnJsonObject = new JsonObject();
 
 		columnJsonObject.add("name", columnName.toLowerCase());
