@@ -1114,6 +1114,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			TarGzUtilities.compress(new File(outputFilePath), tempFile, entryFileName);
 			overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize(new File(outputFilePath));
 			overallExportedDataAmountCompressed += new File(outputFilePath).length();
+		} else {
+			overallExportedDataAmountRaw += new File(outputFilePath).length();
 		}
 	}
 
