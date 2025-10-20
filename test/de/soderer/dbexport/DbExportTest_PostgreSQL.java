@@ -85,6 +85,18 @@ public class DbExportTest_PostgreSQL {
 				statement.execute("CREATE TABLE test_tbl (id SERIAL PRIMARY KEY, " + dataColumnsPart + ")");
 			}
 
+			try (Statement statement = connection.createStatement()) {
+				if (DbUtilities.checkSchemaExist(connection, "testschema")) {
+					if (DbUtilities.checkTableExist(connection, "testschema.test_in_schema_tbl")) {
+						statement.execute("DROP TABLE testschema.test_in_schema_tbl");
+					}
+					statement.execute("DROP SCHEMA testschema");
+				}
+
+				statement.execute("CREATE SCHEMA testschema");
+				statement.execute("CREATE TABLE testschema.test_in_schema_tbl (id SERIAL PRIMARY KEY, " + dataColumnsPart + ")");
+			}
+
 			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (" + dataColumnsPartForInsert + ") VALUES (" + Utilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
 				for (final Object[] itemData : DATA_VALUES) {
 					preparedStatement.clearParameters();
@@ -131,6 +143,13 @@ public class DbExportTest_PostgreSQL {
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DROP TABLE test_tbl");
+			}
+
+			if (DbUtilities.checkSchemaExist(connection, "testschema")) {
+				if (DbUtilities.checkTableExist(connection, "testschema.test_in_schema_tbl")) {
+					statement.execute("DROP TABLE testschema.test_in_schema_tbl");
+				}
+				statement.execute("DROP SCHEMA testschema");
 			}
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -474,6 +493,101 @@ public class DbExportTest_PostgreSQL {
 					+ "		}\n"
 					+ "}",
 					FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8));
+		} catch (final Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testDbStructureWithSchema() {
+		try {
+			DbExport._main(new String[] { "postgresql",
+					HOSTNAME,
+					DBNAME,
+					USERNAME,
+					"-export", "testschema.test_in_schema_tbl",
+					"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath(),
+					PASSWORD });
+
+			Assert.assertFalse(OUTPUTFILE_CSV.exists());
+			Assert.assertTrue(OUTPUTFILE_STRUCTURE.exists());
+			final String expectedStructureContent = "{\n"
+					+ "	\"testschema.test_in_schema_tbl\":\n"
+					+ "		{\n"
+					+ "			\"keycolumns\":\n"
+					+ "				[\n"
+					+ "					\"id\"\n"
+					+ "				],\n"
+					+ "			\"columns\":\n"
+					+ "				[\n"
+					+ "					{\n"
+					+ "						\"name\": \"id\",\n"
+					+ "						\"datatype\": \"Integer\",\n"
+					+ "						\"nullable\": false,\n"
+					+ "						\"defaultvalue\": \"nextval('testschema.test_in_schema_tbl_id_seq'::regclass)\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"integer\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_blob\",\n"
+					+ "						\"datatype\": \"Blob\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"bytea\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_clob\",\n"
+					+ "						\"datatype\": \"Clob\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"text\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_date\",\n"
+					+ "						\"datatype\": \"Date\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"date\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_double\",\n"
+					+ "						\"datatype\": \"Float\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"real\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_integer\",\n"
+					+ "						\"datatype\": \"Integer\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"integer\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_timestamp\",\n"
+					+ "						\"datatype\": \"DateTime\",\n"
+					+ "						\"databasevendorspecific_datatype\": \"timestamp without time zone\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"column_varchar\",\n"
+					+ "						\"datatype\": \"String\",\n"
+					+ "						\"datasize\": 1024,\n"
+					+ "						\"databasevendorspecific_datatype\": \"character varying\"\n"
+					+ "					}\n"
+					+ "				],\n"
+					+ "			\"indices\":\n"
+					+ "				[\n"
+					+ "					{\n"
+					+ "						\"name\": \"test_in_schema_tbl_pkey\",\n"
+					+ "						\"indexedColumns\":\n"
+					+ "							[\n"
+					+ "								\"create unique index test_in_schema_tbl_pkey on testschema.test_in_schema_tbl using btree (id)\"\n"
+					+ "							]\n"
+					+ "					}\n"
+					+ "				],\n"
+					+ "			\"constraints\":\n"
+					+ "				[\n"
+					+ "					{\n"
+					+ "						\"name\": \"17290_17292_1_not_null\",\n"
+					+ "						\"type\": \"Check\"\n"
+					+ "					},\n"
+					+ "					{\n"
+					+ "						\"name\": \"test_in_schema_tbl_pkey\",\n"
+					+ "						\"type\": \"PrimaryKey\"\n"
+					+ "					}\n"
+					+ "				]\n"
+					+ "		}\n"
+					+ "}";
+			Assert.assertEquals(expectedStructureContent.replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
