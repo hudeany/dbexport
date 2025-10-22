@@ -346,7 +346,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				if (tablesToExport.size() == 0) {
 					throw new DbExportException("No table found for export");
-				} else if (tablesToExport.size() > 1) {
+				} else if (tablesToExport.size() > 1 && exportStructureFilePath == null) {
 					// Multi export
 					final String basicOutputFilePath = outputpath;
 					// Create directory if missing
