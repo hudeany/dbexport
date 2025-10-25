@@ -121,6 +121,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	 * @return
 	 */
 	protected static int _main(final String[] args) {
+		ApplicationUpdateUtilities.removeUpdateLeftovers();
+
 		try (InputStream resourceStream = DbExport.class.getResourceAsStream(VERSION_RESOURCE_FILE)) {
 			// Try to fill the version and versioninfo download url
 			final List<String> versionInfoLines = Utilities.readLines(resourceStream, StandardCharsets.UTF_8);
