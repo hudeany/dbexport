@@ -851,6 +851,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					} else {
 						throw new DbExportException("Outputfile parent directory does not exist: " + new File(outputFilePath).getParent());
 					}
+				} else if (!new File(outputFilePath).getParentFile().isDirectory()) {
+					throw new DbExportException("Outputfile parent is not a directory: " + new File(outputFilePath).getParent());
 				}
 
 				if (log) {

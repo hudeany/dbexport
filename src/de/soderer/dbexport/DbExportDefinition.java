@@ -587,7 +587,7 @@ public class DbExportDefinition extends DbDefinition {
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
-			if (new File(outputpath).exists() && !new File(outputpath).isDirectory()) {
+			if (new File(outputpath).exists() && !new File(outputpath).isDirectory() && ! replaceAlreadyExistingFiles) {
 				throw new DbExportException("Outputpath file already exists: " + outputpath);
 			}
 		}
