@@ -5,12 +5,13 @@ import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 
+import de.soderer.json.JsonWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 public class DbJsonExportWorker extends AbstractDbExportWorker {
@@ -83,7 +84,25 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void writeColumn(final String columnName, final Object value) throws Exception {
 		jsonWriter.openJsonObjectProperty(columnName);
-		jsonWriter.addSimpleJsonObjectPropertyValue(value);
+		if (value == null) {
+			jsonWriter.addSimpleJsonObjectPropertyValueNull();
+		} else if (value instanceof Boolean) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((Boolean) value);
+		} else if (value instanceof Date) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((Date) value);
+		} else if (value instanceof LocalDate) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((LocalDate) value);
+		} else if (value instanceof LocalDateTime) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((LocalDateTime) value);
+		} else if (value instanceof Number) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((Number) value);
+		} else if (value instanceof String) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((String) value);
+		} else if (value instanceof ZonedDateTime) {
+			jsonWriter.addSimpleJsonObjectPropertyValue((ZonedDateTime) value);
+		} else {
+			throw new Exception("Unexpected data type: " + value.getClass().getSimpleName());
+		}
 	}
 
 	@Override

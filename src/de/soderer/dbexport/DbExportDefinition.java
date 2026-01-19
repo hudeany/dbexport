@@ -14,6 +14,7 @@ import de.soderer.dbexport.worker.DbKdbxExportWorker;
 import de.soderer.dbexport.worker.DbSqlExportWorker;
 import de.soderer.dbexport.worker.DbVcfExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
+import de.soderer.dbexport.worker.DbYamlExportWorker;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbDefinition;
@@ -33,6 +34,7 @@ public class DbExportDefinition extends DbDefinition {
 	public enum DataType {
 		CSV,
 		JSON,
+		YAML,
 		VCF,
 		XML,
 		SQL,
@@ -760,6 +762,14 @@ public class DbExportDefinition extends DbDefinition {
 						getOutputpath());
 				worker.setBeautify(isBeautify());
 				((DbJsonExportWorker) worker).setIndentation(getIndentation());
+				break;
+			case YAML:
+				worker = new DbYamlExportWorker(parent,
+						this,
+						isStatementFile(),
+						getSqlStatementOrTablelist(),
+						getOutputpath());
+				worker.setBeautify(isBeautify());
 				break;
 			case SQL:
 				worker = new DbSqlExportWorker(parent,

@@ -43,6 +43,9 @@ import de.soderer.dbexport.converter.MySQLDBValueConverter;
 import de.soderer.dbexport.converter.OracleDBValueConverter;
 import de.soderer.dbexport.converter.PostgreSQLDBValueConverter;
 import de.soderer.dbexport.converter.SQLiteDBValueConverter;
+import de.soderer.json.JsonArray;
+import de.soderer.json.JsonObject;
+import de.soderer.json.JsonWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
@@ -57,9 +60,6 @@ import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.db.SimpleDataType;
-import de.soderer.utilities.json.JsonArray;
-import de.soderer.utilities.json.JsonObject;
-import de.soderer.utilities.json.JsonWriter;
 import de.soderer.utilities.worker.WorkerDual;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.zip.TarGzUtilities;
@@ -642,7 +642,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return tableJsonObject;
 	}
 
-	private static JsonObject createColumnJsonObject(final String columnName, final DbColumnType columnType, final Object defaultValue) {
+	private static JsonObject createColumnJsonObject(final String columnName, final DbColumnType columnType, final Object defaultValue) throws Exception {
 		final JsonObject columnJsonObject = new JsonObject();
 
 		columnJsonObject.add("name", columnName.toLowerCase());

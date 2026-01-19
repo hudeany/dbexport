@@ -19,7 +19,7 @@ Mandatory parameters for database export
 
 Optional parameters for database export
 	-x exportformat: Data export format, default format is CSV
-		exportformat: CSV | JSON | XML | SQL | VCF | KDBX
+		exportformat: CSV | JSON | YAML | XML | SQL | VCF | KDBX
 		(Don't forget to beautify json for human readable data)
 	-n 'NULL': Set a string for null values (Only for csv and xml, default is '')
 	-file: Read statement or tablepattern from text file

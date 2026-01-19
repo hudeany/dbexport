@@ -654,7 +654,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				try {
-					final Locale locale = new Locale((String) localeCombo.getSelectedItem());
+					final Locale locale = Locale.of((String) localeCombo.getSelectedItem());
 					exportDateFormatField.setText(DateUtilities.getDateFormatPattern(locale));
 					exportDateTimeFormatField.setText(DateUtilities.getDateTimeFormatWithSecondsPattern(locale));
 				} catch (@SuppressWarnings("unused") final Exception e1) {
@@ -954,7 +954,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			indentationString = (String) indentationCombo.getSelectedItem();
 		}
 		dbExportDefinition.setIndentation(indentationString);
-		final Locale locale = new Locale((String) localeCombo.getSelectedItem());
+		final Locale locale = Locale.of((String) localeCombo.getSelectedItem());
 		dbExportDefinition.setDateFormatLocale(localeCombo.isEnabled() ? locale : null);
 
 		if (Utilities.isNotBlank(exportDateFormatField.getText()) && exportDateFormatField.isEnabled()) {
@@ -1180,6 +1180,17 @@ public class DbExportGui extends UpdateableGuiApplication {
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(true);
 				indentationCombo.setEnabled(true);
+				nullValueStringCombo.setEnabled(false);
+				kdbxPasswordField.setEnabled(false);
+				localeCombo.setEnabled(false);
+				break;
+			case YAML:
+				separatorCombo.setEnabled(false);
+				stringQuoteCombo.setEnabled(false);
+				alwaysQuoteBox.setEnabled(false);
+				noHeadersBox.setEnabled(false);
+				beautifyBox.setEnabled(false);
+				indentationCombo.setEnabled(false);
 				nullValueStringCombo.setEnabled(false);
 				kdbxPasswordField.setEnabled(false);
 				localeCombo.setEnabled(false);
