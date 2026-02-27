@@ -47,7 +47,6 @@
 		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml-full/5.2.4/poi-ooxml-full-5.2.4.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/5.1.1/xmlbeans-5.1.1.jar" dest="lib/" />
 		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
 
 		<get src="https://github.com/hudeany/kdbx/releases/download/25.1.0/kdbx-25.1.0.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/csv/releases/download/25.1.1/csv-25.1.1.jar" dest="lib/" />
