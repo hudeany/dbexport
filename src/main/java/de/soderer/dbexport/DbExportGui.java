@@ -654,7 +654,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				try {
-					final Locale locale = Locale.of((String) localeCombo.getSelectedItem());
+					final Locale locale = Locale.forLanguageTag((String) localeCombo.getSelectedItem());
 					exportDateFormatField.setText(DateUtilities.getDateFormatPattern(locale));
 					exportDateTimeFormatField.setText(DateUtilities.getDateTimeFormatWithSecondsPattern(locale));
 				} catch (@SuppressWarnings("unused") final Exception e1) {
@@ -954,7 +954,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			indentationString = (String) indentationCombo.getSelectedItem();
 		}
 		dbExportDefinition.setIndentation(indentationString);
-		final Locale locale = Locale.of((String) localeCombo.getSelectedItem());
+		final Locale locale = Locale.forLanguageTag((String) localeCombo.getSelectedItem());
 		dbExportDefinition.setDateFormatLocale(localeCombo.isEnabled() ? locale : null);
 
 		if (Utilities.isNotBlank(exportDateFormatField.getText()) && exportDateFormatField.isEnabled()) {

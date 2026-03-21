@@ -408,7 +408,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter format locale");
 						} else {
-							dbExportDefinition.setDateFormatLocale(Locale.of(arguments[i]));
+							dbExportDefinition.setDateFormatLocale(Locale.forLanguageTag(arguments[i]));
 						}
 						wasAllowedParam = true;
 					} else if ("-dateFormat".equalsIgnoreCase(arguments[i])) {
