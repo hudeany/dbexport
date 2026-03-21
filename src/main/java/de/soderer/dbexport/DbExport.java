@@ -194,13 +194,13 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					} else if ("update".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
 						if (arguments.length > i + 2) {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], arguments[i + 2].toCharArray(), null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], arguments[i + 2].toCharArray(), null, false, false);
 						} else if (arguments.length > i + 1) {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], null, null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], null, null, false, false);
 						} else {
 							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false);
+							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false, false);
 						}
 						return 1;
 					} else if ("gui".equalsIgnoreCase(arguments[i])) {
@@ -644,7 +644,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				} else if (consoleMenuExecutionCode == -3) {
 					// Update application
 					final DbExport dbExport = new DbExport();
-					ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false);
+					ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false, false);
 					return 0;
 				} else if (consoleMenuExecutionCode == -5) {
 					// Create TrustStore

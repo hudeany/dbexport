@@ -229,7 +229,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			setDailyUpdateCheckStatus(true);
 			try {
 				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
-					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, "gui", true);
+					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, "gui", true, false);
 				}
 			} catch (final Exception e) {
 				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
