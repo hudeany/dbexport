@@ -91,7 +91,7 @@
 			</fileset>
 		</path>
 
-		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="15" target="15" srcdir="src" includeantruntime="false" encoding="UTF-8" classpath="lib/*">			
+		<javac debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" source="15" target="15" srcdir="src/main/java" includeantruntime="false" encoding="UTF-8" classpath="lib/*">			
 			<classpath refid="build.classpath" />
 			<compilerarg value="-Xlint:unchecked" />
 			<compilerarg value="-parameters" />
