@@ -25,7 +25,7 @@ import de.soderer.dbexport.console.HelpMenu;
 import de.soderer.dbexport.console.PreferencesMenu;
 import de.soderer.dbexport.console.UpdateMenu;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
-import de.soderer.network.TrustManagerUtilities;
+import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;

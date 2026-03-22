@@ -49,11 +49,17 @@
 		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
 
 		<get src="https://github.com/hudeany/kdbx/releases/download/25.1.0/kdbx-25.1.0.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/csv/releases/download/25.1.1/csv-25.1.1.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/json/releases/download/26.1.17/json-26.1.17.jar" dest="lib/" />
+		
+
+		<property name="csv.version" value="25.1.1" />
+		<get src="https://github.com/hudeany/csv/releases/download/${csv.version}/csv-${csv.version}.jar" dest="lib/" />
+		<property name="json.version" value="26.1.31" />
+		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/25.1.8/proxyautoconfig-25.1.8.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/network/releases/download/25.1.2/network-25.1.2.jar" dest="lib/" />
+		<property name="ProxyAutoConfig.version" value="26.0.0" />
+		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${ProxyAutoConfig.version}/proxyautoconfig-${ProxyAutoConfig.version}.jar" dest="lib/" />
+		<property name="network.version" value="26.0.10" />
+		<get src="https://github.com/hudeany/network/releases/download/${network.version}/network-${network.version}.jar" dest="lib/" />
 
 		<property name="soderer-utilities.version" value="26.1.24" />
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}.jar" dest="lib/" />

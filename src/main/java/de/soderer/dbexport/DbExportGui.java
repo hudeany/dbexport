@@ -41,7 +41,7 @@ import javax.swing.WindowConstants;
 import de.soderer.dbexport.DbExportDefinition.DataType;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.network.NetworkUtilities;
-import de.soderer.network.TrustManagerUtilities;
+import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
