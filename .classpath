@@ -35,7 +35,7 @@
 	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.3.3.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.3.0.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.1.24.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.1.32.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/OpenJDK-17.0.2"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
