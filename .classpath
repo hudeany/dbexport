@@ -26,7 +26,7 @@
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/json-26.1.31.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-25.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/csv-25.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/csv-26.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/network-26.0.10.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.0.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
@@ -35,7 +35,7 @@
 	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.3.3.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.3.0.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.1.32.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.1.36.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/OpenJDK-17.0.2"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
