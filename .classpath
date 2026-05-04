@@ -24,9 +24,9 @@
 	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.2.0.jre11.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.6.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/json-26.1.31.jar"/>
+	<classpathentry kind="lib" path="lib/json-26.1.38.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-25.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/csv-26.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/csv-26.0.2.jar"/>
 	<classpathentry kind="lib" path="lib/network-26.0.10.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.0.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>

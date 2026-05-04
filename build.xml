@@ -51,9 +51,9 @@
 		<get src="https://github.com/hudeany/kdbx/releases/download/25.1.0/kdbx-25.1.0.jar" dest="lib/" />
 		
 
-		<property name="csv.version" value="26.0.0" />
+		<property name="csv.version" value="26.0.2" />
 		<get src="https://github.com/hudeany/csv/releases/download/${csv.version}/csv-${csv.version}.jar" dest="lib/" />
-		<property name="json.version" value="26.1.31" />
+		<property name="json.version" value="26.1.38" />
 		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
 		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
 		<property name="ProxyAutoConfig.version" value="26.0.0" />
