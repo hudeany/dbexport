@@ -33,6 +33,7 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import de.soderer.dbexport.DbDriverSupplier;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportException;
 import de.soderer.dbexport.converter.CassandraDBValueConverter;
@@ -50,16 +51,17 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.collection.CaseInsensitiveMap;
-import de.soderer.utilities.collection.CaseInsensitiveSet;
 import de.soderer.utilities.db.DatabaseConstraint;
 import de.soderer.utilities.db.DatabaseForeignKey;
 import de.soderer.utilities.db.DatabaseIndex;
 import de.soderer.utilities.db.DbColumnType;
 import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbDefinitionException;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.db.SimpleDataType;
+import de.soderer.utilities.db.utilities.CaseInsensitiveMap;
+import de.soderer.utilities.db.utilities.CaseInsensitiveSet;
 import de.soderer.utilities.worker.WorkerDual;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.zip.TarGzUtilities;
@@ -261,7 +263,17 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	public Boolean work() throws Exception {
 		overallExportedLines = 0;
 
-		dbDefinition.checkParameters(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE);
+		dbDefinition.checkParameters();
+
+		if (dbDefinition.getDbVendor() != null) {
+			try {
+				if (!new DbDriverSupplier(null, dbDefinition.getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
+					throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + dbDefinition.getDbVendor());
+				}
+			} catch (final Exception e) {
+				throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + dbDefinition.getDbVendor(), e);
+			}
+		}
 
 		switch (dbDefinition.getDbVendor()) {
 			case Oracle:

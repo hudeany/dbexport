@@ -18,6 +18,7 @@ import de.soderer.dbexport.worker.DbYamlExportWorker;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.DbDefinitionException;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.worker.WorkerParentDual;
@@ -570,8 +571,19 @@ public class DbExportDefinition extends DbDefinition {
 	 * @throws Exception
 	 *             the exception
 	 */
+	@Override
 	public void checkParameters() throws Exception {
-		super.checkParameters(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE);
+		if (getDbVendor() != null) {
+			try {
+				if (!new DbDriverSupplier(null, getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
+					throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + getDbVendor());
+				}
+			} catch (final Exception e) {
+				throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + getDbVendor(), e);
+			}
+		}
+
+		super.checkParameters();
 
 		if (outputpath == null && exportStructureFilePath == null) {
 			throw new DbExportException("Outputpath is missing");

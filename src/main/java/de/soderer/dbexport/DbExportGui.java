@@ -55,7 +55,6 @@ import de.soderer.utilities.Result;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
 import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
-import de.soderer.utilities.db.DbDriverSupplier;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.DbUtilities.DbVendor;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
