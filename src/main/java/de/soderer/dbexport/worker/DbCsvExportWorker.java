@@ -20,7 +20,7 @@ import de.soderer.utilities.csv.CsvFormat;
 import de.soderer.utilities.csv.CsvFormat.QuoteMode;
 import de.soderer.utilities.csv.CsvReader;
 import de.soderer.utilities.csv.CsvWriter;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 public class DbCsvExportWorker extends AbstractDbExportWorker {
@@ -41,7 +41,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	private List<String> values = null;
 
-	public DbCsvExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public DbCsvExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 

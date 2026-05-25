@@ -22,9 +22,9 @@ import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WildcardFilenameFilter;
-import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbExportTest_Cassandra {
@@ -55,7 +55,7 @@ public class DbExportTest_Cassandra {
 			new Object[]{ null, null, null, null, null, null, null}
 		};
 
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false)) {
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false)) {
 			String dataColumnsPart = "";
 			String dataColumnsPartForInsert = "";
 			for (final String dataType : DATA_TYPES) {
@@ -109,7 +109,7 @@ public class DbExportTest_Cassandra {
 		OUTPUTFILE_JSON.delete();
 		OUTPUTFILE_SQL.delete();
 
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DELETE FROM test_tbl WHERE column_int = 1234567");
@@ -130,7 +130,7 @@ public class DbExportTest_Cassandra {
 
 	@AfterClass
 	public static void tearDownTestClass() throws Exception {
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DROP TABLE test_tbl");
@@ -664,7 +664,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testSqlSelectSimpleNumbers() throws Exception {
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			// Effect in Cassandra database is the same as update on "id = 1"
 			statement.executeUpdate("INSERT INTO test_tbl (id, column_int) VALUES (1, 1234567)");
@@ -701,7 +701,7 @@ public class DbExportTest_Cassandra {
 			throw e;
 		} finally {
 			// Revert database data changes
-			try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
+			try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 					Statement statement = connection.createStatement()) {
 				statement.executeUpdate("UPDATE test_tbl SET column_int = 1 WHERE id = 1");
 			} catch (final Exception e) {

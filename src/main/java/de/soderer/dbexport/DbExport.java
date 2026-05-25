@@ -44,9 +44,9 @@ import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleType;
 import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.PasswordConsoleInput;
-import de.soderer.utilities.db.DbNotExistsException;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbVendor;
+import de.soderer.utilities.db.exception.DbNotExistsException;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
 import de.soderer.utilities.worker.WorkerParentDual;
 

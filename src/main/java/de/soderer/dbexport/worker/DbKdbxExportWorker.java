@@ -9,7 +9,7 @@ import java.util.List;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.kdbx.KdbxDatabase;
 import de.soderer.utilities.kdbx.KdbxWriter;
 import de.soderer.utilities.kdbx.data.KdbxEntry;
@@ -21,7 +21,7 @@ public class DbKdbxExportWorker extends AbstractDbExportWorker {
 	private KdbxDatabase kdbxDatabase = null;
 	private KdbxEntry kdbxEntry = null;
 
-	public DbKdbxExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath, final char[] kdbxPassword) {
+	public DbKdbxExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath, final char[] kdbxPassword) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 
 		this.kdbxPassword = kdbxPassword;

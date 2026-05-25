@@ -60,7 +60,7 @@
 		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${ProxyAutoConfig.version}/proxyautoconfig-${ProxyAutoConfig.version}.jar" dest="lib/" />
 		<property name="network.version" value="26.0.10" />
 		<get src="https://github.com/hudeany/network/releases/download/${network.version}/network-${network.version}.jar" dest="lib/" />
-		<property name="dbutilities.version" value="26.0.1" />
+		<property name="dbutilities.version" value="26.0.2" />
 		<get src="https://github.com/hudeany/DbUtilities/releases/download/${dbutilities.version}/dbutilities-${dbutilities.version}.jar" dest="lib/" />
 
 		<property name="soderer-utilities.version" value="26.2.0" />

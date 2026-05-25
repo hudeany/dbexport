@@ -22,9 +22,9 @@ import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WildcardFilenameFilter;
-import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbExportTest_MariaDB {
@@ -55,7 +55,7 @@ public class DbExportTest_MariaDB {
 			new Object[]{ null, null, null, null, null, null, null}
 		};
 
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false)) {
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false)) {
 			String dataColumnsPart = "";
 			String dataColumnsPartForInsert = "";
 			for (final String dataType : DATA_TYPES) {
@@ -107,7 +107,7 @@ public class DbExportTest_MariaDB {
 		OUTPUTFILE_JSON.delete();
 		OUTPUTFILE_SQL.delete();
 
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DELETE FROM test_tbl WHERE column_integer = 1234567");
@@ -128,7 +128,7 @@ public class DbExportTest_MariaDB {
 
 	@AfterClass
 	public static void tearDownTestClass() throws Exception {
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DROP TABLE test_tbl");
@@ -684,7 +684,7 @@ public class DbExportTest_MariaDB {
 
 	@Test
 	public void testSqlSelectSimpleNumbers() throws Exception {
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.MariaDB, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			statement.executeUpdate("INSERT INTO test_tbl (column_integer) VALUES (1234567)");
 		} catch (final Exception e) {

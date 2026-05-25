@@ -20,7 +20,7 @@ import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbExportTest_SQLite {

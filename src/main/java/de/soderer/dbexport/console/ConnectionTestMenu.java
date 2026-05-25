@@ -16,12 +16,12 @@ import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
-import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 
 public class ConnectionTestMenu extends ConsoleMenu {
 	private ConnectionTestDefinition connectionTestDefinition = new ConnectionTestDefinition();
-	private DbDefinition dbDefinitionCache = null;
+	private DbConnectionDefinition dbDefinitionCache = null;
 
 	public ConnectionTestDefinition getConnectionTestDefinition() {
 		return connectionTestDefinition;
@@ -31,7 +31,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 		this.connectionTestDefinition = connectionTestDefinition;
 	}
 
-	public ConnectionTestMenu(final ConsoleMenu parentMenu, final DbDefinition dbDefinitionCache) throws Exception {
+	public ConnectionTestMenu(final ConsoleMenu parentMenu, final DbConnectionDefinition dbDefinitionCache) throws Exception {
 		super(parentMenu, "Database connection test");
 
 		this.dbDefinitionCache = dbDefinitionCache;

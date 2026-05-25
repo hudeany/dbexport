@@ -56,7 +56,7 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
 import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.swing.ApplicationConfigurationDialog;
 import de.soderer.utilities.swing.DualProgressDialog;
 import de.soderer.utilities.swing.ProgressDialog;
@@ -985,7 +985,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 	 */
 	private void setConfigurationByDefinition(final DbExportDefinition dbExportDefinition) throws Exception {
 		for (int i = 0; i < dbTypeCombo.getItemCount(); i++) {
-			if (DbUtilities.DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbExportDefinition.getDbVendor()) {
+			if (DbVendor.getDbVendorByName(dbTypeCombo.getItemAt(i)) == dbExportDefinition.getDbVendor()) {
 				dbTypeCombo.setSelectedIndex(i);
 				break;
 			}

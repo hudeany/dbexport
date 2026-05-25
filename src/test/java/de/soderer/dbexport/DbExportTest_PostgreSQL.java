@@ -21,9 +21,9 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.zip.ZipUtilities;
 
 public class DbExportTest_PostgreSQL {
@@ -55,7 +55,7 @@ public class DbExportTest_PostgreSQL {
 			new Object[]{ null, null, null, null, null, null, null}
 		};
 
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.PostgreSQL, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false)) {
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.PostgreSQL, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false)) {
 			String dataColumnsPart = "";
 			String dataColumnsPartForInsert = "";
 			for (final String dataType : DATA_TYPES) {
@@ -139,7 +139,7 @@ public class DbExportTest_PostgreSQL {
 
 	@AfterClass
 	public static void tearDownTestClass() throws Exception {
-		try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.PostgreSQL, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
+		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.PostgreSQL, HOSTNAME, DBNAME, USERNAME, PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
 			if (DbUtilities.checkTableExist(connection, "test_tbl")) {
 				statement.execute("DROP TABLE test_tbl");

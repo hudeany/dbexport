@@ -28,9 +28,9 @@ import de.soderer.utilities.InputStreamWithOtherItemsToClose;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.db.DbDefinition;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.zip.TarGzUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 import net.lingala.zip4j.ZipFile;
@@ -700,7 +700,7 @@ public class DbExportTest_HSQL {
 		final File BIG_OUTPUTFILE_CSV = new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test_big_tbl.csv"));
 
 		try {
-			try (Connection connection = DbUtilities.createConnection(new DbDefinition(DbVendor.HSQL, "", HSQL_DB_FILE, null, null, false, null, null), false)) {
+			try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.HSQL, "", HSQL_DB_FILE, null, null, false, null, null), false)) {
 				String dataColumnsPart = "";
 				String dataColumnsPartForInsert = "";
 				for (final String dataType : DATA_TYPES) {

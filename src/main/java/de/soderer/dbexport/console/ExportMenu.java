@@ -22,7 +22,7 @@ import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.ConsoleUtilities.TextColor;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbVendor;
 
 public class ExportMenu extends ConsoleMenu {
 	private DbExportDefinition dbExportDefinition = new DbExportDefinition();

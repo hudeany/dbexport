@@ -15,7 +15,7 @@ import java.util.List;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 public class DbSqlExportWorker extends AbstractDbExportWorker {
@@ -27,7 +27,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 
 	private List<String> values = null;
 
-	public DbSqlExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public DbSqlExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 

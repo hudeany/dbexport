@@ -14,7 +14,7 @@ import de.soderer.utilities.SectionedProperties;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.console.SimpleConsoleInput;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SwingColor;
 

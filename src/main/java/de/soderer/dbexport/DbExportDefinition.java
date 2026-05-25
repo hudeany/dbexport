@@ -17,16 +17,15 @@ import de.soderer.dbexport.worker.DbXmlExportWorker;
 import de.soderer.dbexport.worker.DbYamlExportWorker;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.db.DbDefinitionException;
-import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
+import de.soderer.utilities.db.exception.DbDefinitionException;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 /**
  * The Class DbExportDefinition.
  */
-public class DbExportDefinition extends DbDefinition {
+public class DbExportDefinition extends DbConnectionDefinition {
 	public static final String CONNECTIONTEST_SIGN = "connectiontest";
 
 	/**
@@ -331,7 +330,7 @@ public class DbExportDefinition extends DbDefinition {
 	 *             the exception
 	 */
 	public void setDbVendor(final String dbVendor) throws Exception {
-		this.dbVendor = DbUtilities.DbVendor.getDbVendorByName(dbVendor);
+		this.dbVendor = DbVendor.getDbVendorByName(dbVendor);
 	}
 
 	/**
@@ -963,10 +962,10 @@ public class DbExportDefinition extends DbDefinition {
 	}
 
 	@Override
-	public void importParameters(final DbDefinition otherDbDefinition) {
-		super.importParameters(otherDbDefinition);
+	public void importParameters(final DbConnectionDefinition otherDbConnectionDefinition) {
+		super.importParameters(otherDbConnectionDefinition);
 
-		if (otherDbDefinition == null) {
+		if (otherDbConnectionDefinition == null) {
 			sqlStatementOrTablelist = "*";
 			outputpath = null;
 			dataType = DataType.CSV;
@@ -997,8 +996,8 @@ public class DbExportDefinition extends DbDefinition {
 			nullValueString = "";
 			createOutputDirectoyIfNotExists = false;
 			replaceAlreadyExistingFiles = false;
-		} else if (otherDbDefinition instanceof DbExportDefinition) {
-			final DbExportDefinition otherDbExportDefinition = (DbExportDefinition) otherDbDefinition;
+		} else if (otherDbConnectionDefinition instanceof DbExportDefinition) {
+			final DbExportDefinition otherDbExportDefinition = (DbExportDefinition) otherDbConnectionDefinition;
 			sqlStatementOrTablelist = otherDbExportDefinition.getSqlStatementOrTablelist();
 			outputpath = otherDbExportDefinition.getOutputpath();
 			dataType = otherDbExportDefinition.getDataType();

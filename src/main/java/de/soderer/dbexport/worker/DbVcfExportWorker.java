@@ -11,7 +11,7 @@ import java.util.Map;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.vcf.VcfCard;
 import de.soderer.utilities.vcf.VcfWriter;
 import de.soderer.utilities.worker.WorkerParentDual;
@@ -20,7 +20,7 @@ public class DbVcfExportWorker extends AbstractDbExportWorker {
 	private VcfWriter vcfWriter = null;
 	private Map<String, Object> currentVcfCardMap = null;
 
-	public DbVcfExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public DbVcfExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 
 		setDateFormat(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);

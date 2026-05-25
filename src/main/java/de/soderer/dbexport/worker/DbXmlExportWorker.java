@@ -14,7 +14,7 @@ import javax.xml.stream.XMLStreamWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.NumberUtilities;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
 
@@ -24,7 +24,7 @@ public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private String indentation = "\t";
 	private String nullValueText = "";
 
-	public DbXmlExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public DbXmlExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 

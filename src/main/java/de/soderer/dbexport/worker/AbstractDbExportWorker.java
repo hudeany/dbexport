@@ -54,12 +54,12 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DatabaseConstraint;
 import de.soderer.utilities.db.DatabaseForeignKey;
 import de.soderer.utilities.db.DatabaseIndex;
-import de.soderer.utilities.db.DbColumnType;
-import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.db.DbDefinitionException;
 import de.soderer.utilities.db.DbUtilities;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
-import de.soderer.utilities.db.SimpleDataType;
+import de.soderer.utilities.db.data.DbColumnType;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbSimpleDataType;
+import de.soderer.utilities.db.data.DbVendor;
+import de.soderer.utilities.db.exception.DbDefinitionException;
 import de.soderer.utilities.db.utilities.CaseInsensitiveMap;
 import de.soderer.utilities.db.utilities.CaseInsensitiveSet;
 import de.soderer.utilities.worker.WorkerDual;
@@ -70,7 +70,7 @@ import de.soderer.utilities.zip.ZipUtilities;
 
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
-	protected DbDefinition dbDefinition = null;
+	protected DbConnectionDefinition dbDefinition = null;
 	private boolean isStatementFile = false;
 	private String sqlStatementOrTablelist;
 	private String outputpath;
@@ -109,7 +109,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
-	public AbstractDbExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public AbstractDbExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent);
 		this.dbDefinition = dbDefinition;
 		this.isStatementFile = isStatementFile;
@@ -659,7 +659,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		columnJsonObject.add("name", columnName.toLowerCase());
 		columnJsonObject.add("datatype", columnType.getSimpleDataType().name());
-		if (columnType.getSimpleDataType() == SimpleDataType.String) {
+		if (columnType.getSimpleDataType() == DbSimpleDataType.String) {
 			columnJsonObject.add("datasize", columnType.getCharacterByteSize());
 		}
 		if (!columnType.isNullable()) {

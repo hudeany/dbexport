@@ -11,7 +11,7 @@ import java.util.List;
 import de.soderer.json.JsonWriter;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
-import de.soderer.utilities.db.DbDefinition;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 public class DbJsonExportWorker extends AbstractDbExportWorker {
@@ -19,7 +19,7 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 
 	private String indentation = "\t";
 
-	public DbJsonExportWorker(final WorkerParentDual parent, final DbDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
+	public DbJsonExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 
 		setDateFormat(DateUtilities.ISO_8601_DATE_FORMAT_NO_TIMEZONE);

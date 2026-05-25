@@ -1,11 +1,11 @@
 package de.soderer.dbexport;
 
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.db.DbDefinition;
-import de.soderer.utilities.db.DbDefinitionException;
-import de.soderer.utilities.db.DbUtilities.DbVendor;
+import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
+import de.soderer.utilities.db.exception.DbDefinitionException;
 
-public class ConnectionTestDefinition extends DbDefinition {
+public class ConnectionTestDefinition extends DbConnectionDefinition {
 	/** The statement to use for check. */
 	private String checkStatement;
 
