@@ -55,7 +55,8 @@
 		<get src="https://github.com/hudeany/csv/releases/download/${csv.version}/csv-${csv.version}.jar" dest="lib/" />
 		<property name="json.version" value="26.1.38" />
 		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
-		<get src="https://github.com/hudeany/vcf/releases/download/24.1.0/vcf-24.1.0.jar" dest="lib/" />
+		<property name="vcf.version" value="26.0.0" />
+		<get src="https://github.com/hudeany/vcf/releases/download/${vcf.version}/vcf-${vcf.version}.jar" dest="lib/" />
 		<property name="ProxyAutoConfig.version" value="26.0.0" />
 		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${ProxyAutoConfig.version}/proxyautoconfig-${ProxyAutoConfig.version}.jar" dest="lib/" />
 		<property name="network.version" value="26.0.10" />

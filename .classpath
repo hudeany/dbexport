@@ -30,7 +30,7 @@
 	<classpathentry kind="lib" path="lib/network-26.0.10.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.0.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="lib/vcf-24.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/vcf-26.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/ojdbc11-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.3.3.jar"/>
