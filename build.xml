@@ -57,8 +57,8 @@
 		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
 		<property name="vcf.version" value="26.0.0" />
 		<get src="https://github.com/hudeany/vcf/releases/download/${vcf.version}/vcf-${vcf.version}.jar" dest="lib/" />
-		<property name="ProxyAutoConfig.version" value="26.0.0" />
-		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${ProxyAutoConfig.version}/proxyautoconfig-${ProxyAutoConfig.version}.jar" dest="lib/" />
+		<property name="proxyautoconfig.version" value="26.0.7" />
+		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${proxyautoconfig.version}/proxyautoconfig-${proxyautoconfig.version}.jar" dest="lib/" />
 		<property name="network.version" value="26.0.10" />
 		<get src="https://github.com/hudeany/network/releases/download/${network.version}/network-${network.version}.jar" dest="lib/" />
 		<property name="dbutilities.version" value="26.0.2" />
