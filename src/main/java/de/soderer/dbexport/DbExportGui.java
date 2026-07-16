@@ -852,7 +852,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						iconImage = ImageIO.read(getClass().getClassLoader().getResource("DbExport_Icon.png"));
 					}
 
-					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES);
+					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null);
 					final Result result = applicationConfigurationDialog.open();
 					if (result != null && result == Result.OK) {
 						applicationConfiguration.save();
