@@ -24,10 +24,10 @@
 	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.2.0.jre11.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.6.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/json-26.1.51.jar"/>
+	<classpathentry kind="lib" path="lib/json-26.1.52.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-25.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/csv-26.0.4.jar"/>
-	<classpathentry kind="lib" path="lib/network-26.0.16.jar"/>
+	<classpathentry kind="lib" path="lib/network-26.0.17.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.0.7.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/vcf-26.0.0.jar"/>
@@ -35,7 +35,7 @@
 	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.3.3.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.3.0.jar"/>
-	<classpathentry kind="lib" path="lib/dbutilities-26.0.8.jar"/>
+	<classpathentry kind="lib" path="lib/dbutilities-26.0.9.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.11.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/OpenJDK-17.0.2"/>
 	<classpathentry kind="output" path="bin"/>
