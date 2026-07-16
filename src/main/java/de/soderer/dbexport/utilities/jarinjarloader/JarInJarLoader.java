@@ -40,7 +40,7 @@ public class JarInJarLoader {
 			final String currentJarUrlPath = JarInJarLoader.class.getResource(JarInJarLoader.class.getSimpleName() + ".class").toString();
 			if (currentJarUrlPath != null && currentJarUrlPath.length() > 0) {
 				String jarFilePath = currentJarUrlPath.substring(0, currentJarUrlPath.lastIndexOf("!")).replaceFirst("jar:file:", "");
-				jarFilePath = URLDecoder.decode(jarFilePath, StandardCharsets.UTF_8);
+				jarFilePath = decodeUrlEncodedPath(jarFilePath);
 				final File jarFile = new File(jarFilePath);
 				if (jarFile.exists()) {
 					System.getProperties().put(SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR, jarFile.getAbsolutePath());
@@ -93,8 +93,9 @@ public class JarInJarLoader {
 					if (rsrcClassPath == null) {
 						// find all jar files included in the jar and add them to the classpath
 						rsrcClassPath = "./";
-						String jarFilePath = manifestFileUrl.getFile().substring(0, manifestFileUrl.getPath().indexOf("!/META-INF/MANIFEST.MF"));
-						jarFilePath = URLDecoder.decode(jarFilePath, StandardCharsets.UTF_8);
+						final String manifestFileUrlFile = manifestFileUrl.getFile();
+						String jarFilePath = manifestFileUrlFile.substring(0, manifestFileUrlFile.indexOf("!/META-INF/MANIFEST.MF"));
+						jarFilePath = decodeUrlEncodedPath(jarFilePath);
 						if (jarFilePath.startsWith("file:")) {
 							jarFilePath = jarFilePath.substring(5);
 						}
@@ -135,8 +136,19 @@ public class JarInJarLoader {
 				// Skip invalid manifest file
 			}
 		}
-		System.err.println("Missing attributes for JarInJarLoader in Manifest (Rsrc-Main-Class, Rsrc-Class-Path)");
-		return null;
+		throw new IOException("Missing attributes for JarInJarLoader in Manifest (Rsrc-Main-Class, Rsrc-Class-Path)");
+	}
+
+	/**
+	 * Decodes a percent-encoded file path (e.g. from a "jar:file:...!/..." or manifest URL).
+	 *
+	 * <p>{@link URLDecoder#decode(String, java.nio.charset.Charset)} is built for
+	 * application/x-www-form-urlencoded data and also turns a literal '+' into a space,
+	 * which corrupts file paths that legitimately contain a '+' (e.g. "C++Tools"). Escaping
+	 * '+' to "%2B" beforehand protects it, while real "%XX" escapes are still decoded normally.
+	 */
+	private static String decodeUrlEncodedPath(final String encodedPath) {
+		return URLDecoder.decode(encodedPath.replace("+", "%2B"), StandardCharsets.UTF_8);
 	}
 
 	private static boolean isBlank(final String value) {
@@ -168,7 +180,7 @@ public class JarInJarLoader {
 			return false;
 		} else if (suffix == null) {
 			// suffix is null but data is not
-			return true;
+			return false;
 		} else if (data.toLowerCase().endsWith(suffix.toLowerCase())) {
 			// both are set, so ignore the case for standard endsWith-method
 			return true;

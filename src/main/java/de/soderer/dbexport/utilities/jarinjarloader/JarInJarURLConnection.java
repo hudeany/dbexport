@@ -23,7 +23,9 @@ public class JarInJarURLConnection extends URLConnection {
 
 	@Override
 	public InputStream getInputStream() throws IOException {
-		final String file = URLDecoder.decode(url.getFile(), StandardCharsets.UTF_8.name());
+		// Escape literal '+' to "%2B" first: URLDecoder is built for form-urlencoded data and
+		// would otherwise turn a literal '+' in the resource path into a space.
+		final String file = URLDecoder.decode(url.getFile().replace("+", "%2B"), StandardCharsets.UTF_8);
 		final InputStream result = classLoader.getResourceAsStream(file);
 		if (result == null) {
 			throw new MalformedURLException("Could not open InputStream for URL '" + url + "'");
