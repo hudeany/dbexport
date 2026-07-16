@@ -51,20 +51,20 @@
 		<get src="https://github.com/hudeany/kdbx/releases/download/25.1.0/kdbx-25.1.0.jar" dest="lib/" />
 		
 
-		<property name="csv.version" value="26.0.2" />
+		<property name="csv.version" value="26.0.4" />
 		<get src="https://github.com/hudeany/csv/releases/download/${csv.version}/csv-${csv.version}.jar" dest="lib/" />
-		<property name="json.version" value="26.1.38" />
+		<property name="json.version" value="26.1.51" />
 		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
 		<property name="vcf.version" value="26.0.0" />
 		<get src="https://github.com/hudeany/vcf/releases/download/${vcf.version}/vcf-${vcf.version}.jar" dest="lib/" />
 		<property name="proxyautoconfig.version" value="26.0.7" />
 		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${proxyautoconfig.version}/proxyautoconfig-${proxyautoconfig.version}.jar" dest="lib/" />
-		<property name="network.version" value="26.0.10" />
+		<property name="network.version" value="26.0.15" />
 		<get src="https://github.com/hudeany/network/releases/download/${network.version}/network-${network.version}.jar" dest="lib/" />
-		<property name="dbutilities.version" value="26.0.2" />
+		<property name="dbutilities.version" value="26.0.8" />
 		<get src="https://github.com/hudeany/DbUtilities/releases/download/${dbutilities.version}/dbutilities-${dbutilities.version}.jar" dest="lib/" />
 
-		<property name="soderer-utilities.version" value="26.2.0" />
+		<property name="soderer-utilities.version" value="26.2.10" />
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}.jar" dest="lib/" />
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}-sources.jar" dest="lib/" />
 		
