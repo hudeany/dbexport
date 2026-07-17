@@ -609,7 +609,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			throw new DbExportException("ZipPassword is set without zip compression");
 		}
 
-		if (dataType == DataType.KDBX && kdbxPassword != null) {
+		if (dataType == DataType.KDBX && kdbxPassword == null) {
 			throw new DbExportException("KDBX data type is set without kdbx password");
 		}
 
@@ -901,10 +901,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (isUseZipCrypto()) {
 			params += " " + "-useZipCrypto";
 		}
-		if (TimeZone.getDefault().getDisplayName().equalsIgnoreCase(getDatabaseTimeZone())) {
+		if (!TimeZone.getDefault().getID().equalsIgnoreCase(getDatabaseTimeZone())) {
 			params += " " + "-dbtz" + " " + getDatabaseTimeZone();
 		}
-		if (TimeZone.getDefault().getDisplayName().equalsIgnoreCase(getExportDataTimeZone())) {
+		if (!TimeZone.getDefault().getID().equalsIgnoreCase(getExportDataTimeZone())) {
 			params += " " + "-edtz" + " " + getExportDataTimeZone();
 		}
 		if (getEncoding() != StandardCharsets.UTF_8) {
@@ -931,7 +931,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (isCreateClobFiles()) {
 			params += " " + "-clobfiles";
 		}
-		if (Locale.getDefault() != getDateFormatLocale()) {
+		if (!Locale.getDefault().equals(getDateFormatLocale())) {
 			params += " " + "-f" + " " + getDateFormatLocale().getLanguage();
 		}
 		if (Utilities.isNotBlank(getDateFormat())) {

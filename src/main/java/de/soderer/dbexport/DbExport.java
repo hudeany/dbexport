@@ -191,7 +191,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					} else if ("version".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
 						System.out.println(VERSION);
 						return 1;
-					} else if ("update".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
+					} else if ("update".equalsIgnoreCase(arguments[i]) && i == 0 && arguments.length <= 3) {
 						if (arguments.length > i + 2) {
 							final DbExport dbExport = new DbExport();
 							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], arguments[i + 2].toCharArray(), null, false, false);
@@ -255,9 +255,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 
 			// Read the parameters
 			for (int i = 0; i < arguments.length; i++) {
-				boolean wasAllowedParam = false;
+				boolean wasAllowedParam = createTrustStore;
 
-				if (!connectionTest) {
+				if (!connectionTest && !createTrustStore) {
 					if ("-x".equalsIgnoreCase(arguments[i])) {
 						i++;
 						if (i >= arguments.length) {
@@ -584,13 +584,16 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					}
 				}
 
-				if (createTrustStore) {
-					TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null, null);
-				}
-
 				if (!wasAllowedParam) {
 					throw new ParameterException(arguments[i], "Invalid parameter");
 				}
+			}
+
+			if (createTrustStore) {
+				TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null, null);
+				System.out.println();
+				System.out.println("Created TrustStore in file '" + arguments[1] + "'");
+				return 0;
 			}
 
 			if (openMenu) {
