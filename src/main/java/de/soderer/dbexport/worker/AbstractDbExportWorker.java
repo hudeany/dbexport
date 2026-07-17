@@ -160,9 +160,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	public void setDateFormatLocale(final Locale dateFormatLocale) {
-		this.dateFormatLocale = dateFormatLocale;
+		this.dateFormatLocale = dateFormatLocale == null ? Locale.getDefault() : dateFormatLocale;
 		dateFormatterCache = null;
 		dateTimeFormatterCache = null;
+		decimalFormat = NumberFormat.getNumberInstance(this.dateFormatLocale);
+		decimalFormat.setGroupingUsed(false);
 	}
 
 	public void setBeautify(final boolean beautify) {
