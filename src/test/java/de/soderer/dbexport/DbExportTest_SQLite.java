@@ -137,7 +137,7 @@ public class DbExportTest_SQLite {
 					"column_text\n"
 							+ "\"<test_text>\"\n"
 							+ "\"<test_text>\"\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -160,7 +160,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;01.02.2003;1;1,124;\"<test_text>\";01.02.2003 04:05:06\n"
 							+ "2;<test_text_base64>;01.02.2003;2;2,124;\"<test_text>\";01.02.2003 04:05:06\n"
 							+ "3;;;;;;\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -181,7 +181,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "3;NULL;NULL;NULL;NULL;NULL;NULL\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -198,7 +198,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T02:05:06\n"
 							+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T02:05:06\n"
 							+ "3;NULL;NULL;NULL;NULL;NULL;NULL\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -211,11 +211,11 @@ public class DbExportTest_SQLite {
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
-					"id;column_blob                                                                                                                                                                     ;column_date;column_integer;column_real;column_text                                                                                                         ;column_timestamp   \n"
+					"id;column_blob                                                                                                                                                                     ;column_date;column_integer;column_real;column_text                                                                                                          ;column_timestamp   \n"
 							+ " 1;<test_text_base64>;2003-02-01 ;             1;      1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ " 2;<test_text_base64>;2003-02-01 ;             2;      2,124;\"<test_text>\";2003-02-01T04:05:06\n"
-							+ " 3;                                                                                                                                                                                ;           ;              ;           ;                                                                                                                    ;                   \n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							+ " 3;                                                                                                                                                                                ;           ;              ;           ;                                                                                                                     ;                   \n",
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -232,7 +232,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "3;;;;;;\n",
-							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -274,7 +274,9 @@ public class DbExportTest_SQLite {
 							+ "		\"column_timestamp\": null\n"
 							+ "	}\n"
 							+ "]",
-							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\"").replace("/", "\\/"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8)
+								.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\""), "<test_text>")
+								.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -292,7 +294,9 @@ public class DbExportTest_SQLite {
 							+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01\",\"column_integer\":2,\"column_real\":2.1237,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06\"},"
 							+ "{\"id\":3,\"column_blob\":null,\"column_date\":null,\"column_integer\":null,\"column_real\":null,\"column_text\":null,\"column_timestamp\":null}"
 							+ "]",
-							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\"").replace("/", "\\/"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8)
+								.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\""), "<test_text>")
+								.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -393,9 +397,9 @@ public class DbExportTest_SQLite {
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
 					"--SELECT id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp FROM test_tbl ORDER BY id\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (1, '<test_text_base64>', '2003-02-01', 1, 1.1237, '<test_text>', '2003-02-01 04:05:06');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (2, '<test_text_base64>', '2003-02-01', 2, 2.1237, '<test_text>', '2003-02-01 04:05:06');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL);\n",
+							+ "INSERT INTO test_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (1, '<test_text_base64>', '2003-02-01', 1, 1.1237, '<test_text>', '2003-02-01 04:05:06');\n"
+							+ "INSERT INTO test_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (2, '<test_text_base64>', '2003-02-01', 2, 2.1237, '<test_text>', '2003-02-01 04:05:06');\n"
+							+ "INSERT INTO test_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL);\n",
 							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
@@ -410,9 +414,9 @@ public class DbExportTest_SQLite {
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
 					"--SELECT column_text FROM test_tbl WHERE 1 = 1\n"
-							+ "INSERT INTO export_tbl (column_text) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_text) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_text) VALUES (NULL);\n",
+							+ "INSERT INTO test_tbl (column_text) VALUES ('<test_text>');\n"
+							+ "INSERT INTO test_tbl (column_text) VALUES ('<test_text>');\n"
+							+ "INSERT INTO test_tbl (column_text) VALUES (NULL);\n",
 							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
@@ -439,7 +443,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;01.02.2003;1;1,1237;\"<test_text>\";01.02.2003 04:05:06\n"
 							+ "2;<test_text_base64>;01.02.2003;2;2,1237;\"<test_text>\";01.02.2003 04:05:06\n"
 							+ "3;;;;;;\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -462,7 +466,7 @@ public class DbExportTest_SQLite {
 							+ "1;<test_text_base64>;2003-02-01;1;1,1237;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "2;<test_text_base64>;2003-02-01;2;2,1237;\"<test_text>\";2003-02-01T04:05:06\n"
 							+ "3;;;;;;\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}

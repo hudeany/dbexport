@@ -165,7 +165,7 @@ public class DbExportTest_PostgreSQL {
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
 					"column_varchar\n\"<test_text>\"\n\"<test_text>\"\n",
-					FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+					FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -182,7 +182,7 @@ public class DbExportTest_PostgreSQL {
 							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;;;;;;;\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -199,7 +199,7 @@ public class DbExportTest_PostgreSQL {
 							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;NULL;NULL;NULL;NULL;NULL;NULL;NULL\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -212,11 +212,11 @@ public class DbExportTest_PostgreSQL {
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
-					"id;column_blob                                                                                                                                                                     ;column_clob                                                                                                         ;column_date;column_double;column_integer;column_timestamp   ;column_varchar                                                                                                      \n"
+					"id;column_blob                                                                                                                                                                     ;column_clob                                                                                                          ;column_date;column_double;column_integer;column_timestamp   ;column_varchar                                                                                                       \n"
 							+ " 1;<test_text_base64>;\"<test_text>\";2003-02-01 ;        1,123;             1;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ " 2;<test_text_base64>;\"<test_text>\";2003-02-01 ;        2,123;             2;2003-02-01T04:05:06;\"<test_text>\"\n"
-							+ " 3;                                                                                                                                                                                ;                                                                                                                    ;           ;             ;              ;                   ;                                                                                                                    \n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							+ " 3;                                                                                                                                                                                ;                                                                                                                     ;           ;             ;              ;                   ;                                                                                                                     \n",
+							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -233,7 +233,7 @@ public class DbExportTest_PostgreSQL {
 							+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
 							+ "3;;;;;;;\n",
-							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -279,8 +279,8 @@ public class DbExportTest_PostgreSQL {
 							+ "	}\n"
 							+ "]",
 							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8)
-							.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("/", "\\/").replace("\"", "\\\""), "<test_text>")
-							.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+							.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\""), "<test_text>")
+							.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -299,8 +299,8 @@ public class DbExportTest_PostgreSQL {
 							+ "{\"id\":3,\"column_blob\":null,\"column_clob\":null,\"column_date\":null,\"column_double\":null,\"column_integer\":null,\"column_timestamp\":null,\"column_varchar\":null}"
 							+ "]",
 							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8)
-							.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("/", "\\/").replace("\"", "\\\""), "<test_text>")
-							.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+							.replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\""), "<test_text>")
+							.replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -398,9 +398,9 @@ public class DbExportTest_PostgreSQL {
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
 					"--SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '<test_text>', '2003-02-01', 1.123, 1, '2003-02-01 04:05:06', '<test_text>');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '<test_text>', '2003-02-01', 2.123, 2, '2003-02-01 04:05:06', '<test_text>');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL, NULL);\n",
+							+ "INSERT INTO test_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '<test_text>', '2003-02-01', 1.123, 1, '2003-02-01 04:05:06', '<test_text>');\n"
+							+ "INSERT INTO test_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '<test_text>', '2003-02-01', 2.123, 2, '2003-02-01 04:05:06', '<test_text>');\n"
+							+ "INSERT INTO test_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL, NULL);\n",
 							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
@@ -415,9 +415,9 @@ public class DbExportTest_PostgreSQL {
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
 					"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES (NULL);\n",
+							+ "INSERT INTO test_tbl (column_varchar) VALUES ('<test_text>');\n"
+							+ "INSERT INTO test_tbl (column_varchar) VALUES ('<test_text>');\n"
+							+ "INSERT INTO test_tbl (column_varchar) VALUES (NULL);\n",
 							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
@@ -432,7 +432,7 @@ public class DbExportTest_PostgreSQL {
 					HOSTNAME,
 					DBNAME,
 					USERNAME,
-					"-export", "*",
+					"-export", "test_tbl,testschema.test_in_schema_tbl",
 					"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath(),
 					PASSWORD });
 
@@ -451,6 +451,7 @@ public class DbExportTest_PostgreSQL {
 					+ "						\"name\": \"id\",\n"
 					+ "						\"datatype\": \"Integer\",\n"
 					+ "						\"nullable\": false,\n"
+					+ "						\"defaultvalue\": \"nextval('test_tbl_id_seq'::regclass)\",\n"
 					+ "						\"databasevendorspecific_datatype\": \"integer\"\n"
 					+ "					},\n"
 					+ "					{\n"
@@ -503,7 +504,7 @@ public class DbExportTest_PostgreSQL {
 					+ "			\"constraints\":\n"
 					+ "				[\n"
 					+ "					{\n"
-					+ "						\"name\": \"2200_17821_1_not_null\",\n"
+					+ "						\"name\": \"test_tbl_id_not_null\",\n"
 					+ "						\"type\": \"Check\"\n"
 					+ "					},\n"
 					+ "					{\n"
@@ -577,7 +578,7 @@ public class DbExportTest_PostgreSQL {
 					+ "			\"constraints\":\n"
 					+ "				[\n"
 					+ "					{\n"
-					+ "						\"name\": \"17829_17831_1_not_null\",\n"
+					+ "						\"name\": \"test_in_schema_tbl_id_not_null\",\n"
 					+ "						\"type\": \"Check\"\n"
 					+ "					},\n"
 					+ "					{\n"
@@ -587,7 +588,7 @@ public class DbExportTest_PostgreSQL {
 					+ "				]\n"
 					+ "		}\n"
 					+ "}";
-			Assert.assertEquals(expectedContent.replaceAll("\".*_1_not_null\"", "\"checkid_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceAll("\".*_1_not_null\"", "\"checkid_not_null\""));
+			Assert.assertEquals(expectedContent.replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
@@ -682,7 +683,7 @@ public class DbExportTest_PostgreSQL {
 					+ "				]\n"
 					+ "		}\n"
 					+ "}";
-			Assert.assertEquals(expectedStructureContent.replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""));
+			Assert.assertEquals(expectedStructureContent.replaceFirst("\".*_1_not_null\"", "\"name\": \"test_in_schema_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""));
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		}
