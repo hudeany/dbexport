@@ -222,7 +222,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					connectionTestDefinition.setTrustStoreFile(null);
 					connectionTestDefinition.setTrustStorePassword(null);
 				} else if ("secure".equalsIgnoreCase(choice)) {
-					connectionTestDefinition.setSecureConnection(connectionTestDefinition.isSecureConnection());
+					connectionTestDefinition.setSecureConnection(!connectionTestDefinition.isSecureConnection());
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter database TrustStore filepath (Blank => None)");
@@ -235,7 +235,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					} else if (!new File(choiceTruststore).exists()) {
 						getErrors().add("Filepath does not exist");
 					} else {
-						connectionTestDefinition.setHostnameAndPort(choiceTruststore);
+						connectionTestDefinition.setTrustStoreFile(new File(choiceTruststore));
 					}
 				} else if ("truststorepassword".equalsIgnoreCase(choice)) {
 					System.out.println();

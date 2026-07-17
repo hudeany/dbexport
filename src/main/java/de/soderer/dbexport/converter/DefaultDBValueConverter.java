@@ -91,11 +91,11 @@ public class DefaultDBValueConverter {
 		String lobOutputFilePathPrefix = exportFilePath;
 		if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
 			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.ZIP.getDefaultFileExtension().length());
-		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
 			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.TARGZ.getDefaultFileExtension().length());
-		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.TGZ.getDefaultFileExtension())) {
 			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.TGZ.getDefaultFileExtension().length());
-		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+		} else if (lobOutputFilePathPrefix.endsWith("." + FileCompressionType.GZ.getDefaultFileExtension())) {
 			lobOutputFilePathPrefix = exportFilePath.substring(0, exportFilePath.length() - 1 - FileCompressionType.GZ.getDefaultFileExtension().length());
 		}
 		if (lobOutputFilePathPrefix.endsWith("." + fileExtension)) {

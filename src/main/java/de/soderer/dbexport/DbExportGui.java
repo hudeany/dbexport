@@ -1164,11 +1164,15 @@ public class DbExportGui extends UpdateableGuiApplication {
 					&& secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && Utilities.isNotBlank(hostField.getText()));
 			trustStorePasswordField.setEnabled(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && Utilities.isNotBlank(trustStoreFilePathField.getText()));
 
+			final boolean isCassandra = DbVendor.Cassandra.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem());
+			final boolean credentialsOk = isCassandra
+					? (Utilities.isBlank(userField.getText()) || Utilities.isNotBlank(passwordField.getPassword()))
+					: (Utilities.isNotBlank(userField.getText()) && Utilities.isNotBlank(passwordField.getPassword()));
+
 			connectionCheckButton.setEnabled(
 					Utilities.isNotBlank(dbNameField.getText())
 					&& Utilities.isNotBlank(hostField.getText())
-					&& Utilities.isNotBlank(userField.getText()) || DbVendor.Cassandra.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem())
-					&& Utilities.isNotBlank(passwordField.getPassword()) || DbVendor.Cassandra.toString().equalsIgnoreCase((String) dbTypeCombo.getSelectedItem()));
+					&& credentialsOk);
 		}
 
 		switch (DataType.getFromString((String) dataTypeCombo.getSelectedItem())) {

@@ -45,8 +45,7 @@ public class PreferencesMenu extends ConsoleMenu {
 				final List<String> availablePreferences = new ArrayList<>();
 
 				if (DbExport.SECURE_PREFERENCES_FILE != null && DbExport.SECURE_PREFERENCES_FILE.exists()) {
-					final boolean retry = true;
-					while (secureDataStore == null && retry) {
+					while (secureDataStore == null) {
 						try {
 							secureDataStore = new SecureDataStore();
 							secureDataStore.load(DbExport.SECURE_PREFERENCES_FILE, getPassword());
@@ -59,6 +58,7 @@ public class PreferencesMenu extends ConsoleMenu {
 							if (Utilities.isBlank(passwordArray)) {
 								setPassword(null);
 								getParentMenu().getMessages().add("Canceled by user");
+								return 0;
 							} else {
 								setPassword(passwordArray);
 							}

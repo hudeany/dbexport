@@ -72,8 +72,9 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	protected void startOutput(final Connection connection, final String sqlStatement, final List<String> columnNames) throws Exception {
 		fileWriter.write("--" + sqlStatement + "\n");
 
-		if (sqlStatement.toUpperCase().startsWith("SELECT * FROM ")) {
-			tableName = sqlStatement.substring(14).trim();
+		final int fromIndex = sqlStatement.toUpperCase().indexOf(" FROM ");
+		if (fromIndex >= 0) {
+			tableName = sqlStatement.substring(fromIndex + 6).trim();
 			if (tableName.contains(" ")) {
 				tableName = tableName.substring(0, tableName.indexOf(" "));
 			}

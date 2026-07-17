@@ -286,7 +286,7 @@ public class ExportMenu extends ConsoleMenu {
 					System.out.println("  " + Utilities.rightPad("beautify)", bulletSize) + " " + Utilities.rightPad("Beautify output:", nameSize) + dbExportDefinition.isBeautify());
 					autoCompletionStrings.add("beautify");
 				}
-				System.out.println("  " + Utilities.rightPad("structure)", bulletSize) + " " + Utilities.rightPad("Export the tables structure:", nameSize) + dbExportDefinition.getExportStructureFilePath() != null);
+				System.out.println("  " + Utilities.rightPad("structure)", bulletSize) + " " + Utilities.rightPad("Export the tables structure:", nameSize) + (dbExportDefinition.getExportStructureFilePath() != null));
 				autoCompletionStrings.add("structure");
 				System.out.println("  " + Utilities.rightPad("dbtz)", bulletSize) + " " + Utilities.rightPad("DatabaseTimeZone:", nameSize) + dbExportDefinition.getDatabaseTimeZone());
 				autoCompletionStrings.add("dbtz");
@@ -309,14 +309,13 @@ public class ExportMenu extends ConsoleMenu {
 					dbExportDefinition.setHostnameAndPort(null);
 					dbExportDefinition.setUsername(null);
 					dbExportDefinition.setDbName(null);
-					dbExportDefinition.setDbName(null);
 					dbExportDefinition.setSqlStatementOrTablelist(null);
 					dbExportDefinition.setPassword(null);
 					dbExportDefinition.setSecureConnection(false);
 					dbExportDefinition.setTrustStoreFile(null);
 					dbExportDefinition.setTrustStorePassword(null);
 				} else if ("secure".equalsIgnoreCase(choice)) {
-					dbExportDefinition.setSecureConnection(dbExportDefinition.isSecureConnection());
+					dbExportDefinition.setSecureConnection(!dbExportDefinition.isSecureConnection());
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter database TrustStore filepath (Blank => None)");
@@ -484,7 +483,7 @@ public class ExportMenu extends ConsoleMenu {
 							return 0;
 						} else {
 							try {
-								dbExportDefinition.setDatabaseTimeZone(TimeZone.getTimeZone(dbtzString).toString());
+								dbExportDefinition.setDatabaseTimeZone(TimeZone.getTimeZone(dbtzString).getID());
 								break;
 							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + dbtzString, TextColor.Light_red));
@@ -502,7 +501,7 @@ public class ExportMenu extends ConsoleMenu {
 							return 0;
 						} else {
 							try {
-								dbExportDefinition.setExportDataTimeZone(TimeZone.getTimeZone(edtzString).toString());
+								dbExportDefinition.setExportDataTimeZone(TimeZone.getTimeZone(edtzString).getID());
 								break;
 							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + edtzString, TextColor.Light_red));

@@ -10,7 +10,7 @@ import de.soderer.utilities.console.ConsoleMenu;
 import de.soderer.utilities.console.ConsoleUtilities;
 
 public class HelpMenu extends ConsoleMenu {
-	private static final boolean keyCodeDebugMode = true;
+	private static final boolean keyCodeDebugMode = false;
 
 	public HelpMenu(final ConsoleMenu parentMenu) throws Exception {
 		super(parentMenu, "Print help text");

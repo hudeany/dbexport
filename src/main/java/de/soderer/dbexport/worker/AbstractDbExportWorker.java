@@ -204,15 +204,17 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private DateTimeFormatter dateFormatterCache = null;
 	protected DateTimeFormatter getDateFormatter() {
 		if (dateFormatterCache == null) {
+			DateTimeFormatter formatter;
 			if (Utilities.isNotBlank(dateFormatPattern)) {
-				dateFormatterCache = DateTimeFormatter.ofPattern(dateFormatPattern);
+				formatter = DateTimeFormatter.ofPattern(dateFormatPattern);
 			} else {
-				dateFormatterCache = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+				formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 			}
 			if (dateFormatLocale != null) {
-				dateFormatterCache.localizedBy(dateFormatLocale);
+				formatter = formatter.localizedBy(dateFormatLocale);
 			}
-			dateFormatterCache.withResolverStyle(ResolverStyle.STRICT);
+			formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
+			dateFormatterCache = formatter;
 		}
 		return dateFormatterCache;
 	}
@@ -220,15 +222,17 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private DateTimeFormatter dateTimeFormatterCache = null;
 	protected DateTimeFormatter getDateTimeFormatter() {
 		if (dateTimeFormatterCache == null) {
+			DateTimeFormatter formatter;
 			if (Utilities.isNotBlank(dateTimeFormatPattern)) {
-				dateTimeFormatterCache = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
+				formatter = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
 			} else {
-				dateTimeFormatterCache = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+				formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 			}
 			if (dateFormatLocale != null) {
-				dateTimeFormatterCache.localizedBy(dateFormatLocale);
+				formatter = formatter.localizedBy(dateFormatLocale);
 			}
-			dateTimeFormatterCache.withResolverStyle(ResolverStyle.STRICT);
+			formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
+			dateTimeFormatterCache = formatter;
 		}
 		return dateTimeFormatterCache;
 	}
@@ -806,6 +810,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		OutputStream logOutputStream = null;
 		boolean errorOccurred = false;
 		boolean fileWasCreated = false;
+		long exportedLines = 0;
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
 				outputStream = System.out;
@@ -822,7 +827,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 						outputFilePath = outputFilePath + ".zip";
 					}
 				} else if (compression == FileCompressionType.TARGZ) {
-					if (!Utilities.endsWithIgnoreCase(outputFilePath, ".targ.gz")) {
+					if (!Utilities.endsWithIgnoreCase(outputFilePath, ".tar.gz")) {
 						if (!Utilities.endsWithIgnoreCase(outputFilePath, "." + getFileExtension())) {
 							outputFilePath = outputFilePath + "." + getFileExtension();
 						}
@@ -979,7 +984,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 								writeDateColumn(columnName, ((LocalDateTime) value).toLocalDate());
 							} else if (value != null && value instanceof LocalDate) {
 								writeDateColumn(columnName, (LocalDate) value);
-							} else if (value != null && value instanceof ZonedDateTime) {
+							} else if (value != null && value instanceof ZonedDateTime && metaData.getColumnType(columnIndex) == Types.DATE) {
 								value = DateUtilities.changeDateTimeZone((ZonedDateTime) value, ZoneId.of(exportDataTimeZone));
 								writeDateColumn(columnName, ((ZonedDateTime) value).toLocalDate());
 							} else if (value != null && value instanceof Date) {
@@ -1036,7 +1041,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 				closeWriter();
 
-				long exportedLines;
 				if (currentItemName == null) {
 					exportedLines = itemsDone;
 				} else {
@@ -1097,7 +1101,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			Utilities.closeQuietly(outputStream);
 			Utilities.closeQuietly(logOutputStream);
 
-			if (errorOccurred && fileWasCreated && new File(outputFilePath).exists() && overallExportedLines == 0) {
+			if (errorOccurred && fileWasCreated && new File(outputFilePath).exists() && exportedLines == 0) {
 				new File(outputFilePath).delete();
 			} else if (cancel && fileWasCreated && new File(outputFilePath).exists()) {
 				new File(outputFilePath).delete();

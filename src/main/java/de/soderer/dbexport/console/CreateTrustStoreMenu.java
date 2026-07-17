@@ -73,7 +73,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					} else if (new File(choice).exists()) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Filepath already exists", TextColor.Light_red));
 					} else {
-						connectionTestDefinition.setHostnameAndPort(choice);
+						connectionTestDefinition.setTrustStoreFile(new File(choice));
 					}
 				}
 
@@ -116,6 +116,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					}
 
 					getParentMenu().getMessages().add("Canceled by user");
+					return 0;
 				} else if ("reset".equalsIgnoreCase(choice)) {
 					connectionTestDefinition.setDbVendor((DbVendor) null);
 					connectionTestDefinition.setHostnameAndPort(null);
