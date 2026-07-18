@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -215,7 +214,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			if (dateFormatLocale != null) {
 				formatter = formatter.localizedBy(dateFormatLocale);
 			}
-			formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
 			dateFormatterCache = formatter;
 		}
 		return dateFormatterCache;
@@ -233,7 +231,6 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			if (dateFormatLocale != null) {
 				formatter = formatter.localizedBy(dateFormatLocale);
 			}
-			formatter = formatter.withResolverStyle(ResolverStyle.STRICT);
 			dateTimeFormatterCache = formatter;
 		}
 		return dateTimeFormatterCache;
