@@ -110,10 +110,10 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	protected void openWriter(final OutputStream outputStream) throws Exception {
 		if (beautify) {
 			temporaryUglifiedFile = File.createTempFile("DbExport_Uglified", ".csv", new File(System.getProperty("java.io.tmpdir")));
-			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).setQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
-			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote));
+			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
+			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote));
 		} else {
-			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote).setStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).setQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
+			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
 		}
 	}
 
@@ -223,7 +223,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			try {
 				beautifiedCsvWriter.setColumnPaddings(columnPaddings);
 				beautifiedCsvWriter.setMinimumColumnSizes(minimumColumnSizes);
-				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().setSeparator(separator).setStringQuote(stringQuote));
+				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote));
 				List<String> nextLine;
 				while ((nextLine = csvReaderFinal.readNextCsvLine()) != null) {
 					beautifiedCsvWriter.writeValues(nextLine);
