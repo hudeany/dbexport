@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -228,7 +230,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 			setDailyUpdateCheckStatus(true);
 			try {
 				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
-					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, "gui", true, false);
+					final List<String> appParameters = new ArrayList<>();
+					appParameters.add("gui");
+					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, appParameters, true, false);
 				}
 			} catch (final Exception e) {
 				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -852,7 +856,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 						iconImage = ImageIO.read(getClass().getClassLoader().getResource("DbExport_Icon.png"));
 					}
 
-					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null);
+					final List<String> appParameters = new ArrayList<>();
+					appParameters.add("gui");
+					final ApplicationConfigurationDialog applicationConfigurationDialog = new ApplicationConfigurationDialog(dbExportGui, DbExport.APPLICATION_NAME, DbExport.APPLICATION_STARTUPCLASS_NAME, DbExport.VERSION, DbExport.VERSION_BUILDTIME, applicationConfiguration, iconData, iconImage, DbExport.VERSIONINFO_DOWNLOAD_URL, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, appParameters);
 					final Result result = applicationConfigurationDialog.open();
 					if (result != null && result == Result.OK) {
 						applicationConfiguration.save();
