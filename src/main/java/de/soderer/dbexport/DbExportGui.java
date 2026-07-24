@@ -45,7 +45,6 @@ import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.network.NetworkUtilities;
 import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
-import de.soderer.pac.utilities.ProxyConfiguration;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
@@ -75,8 +74,6 @@ public class DbExportGui extends UpdateableGuiApplication {
 	private static final long serialVersionUID = 5969613637206441880L;
 
 	public static final File KEYSTORE_FILE = new File(System.getProperty("user.home") + File.separator + "." + DbExport.APPLICATION_NAME + File.separator + "." + DbExport.APPLICATION_NAME + ".keystore");
-	public static final String CONFIG_DAILY_UPDATE_CHECK = "DailyUpdateCheck";
-	public static final String CONFIG_NEXT_DAILY_UPDATE_CHECK = "NextDailyUpdateCheck";
 
 	private final ConfigurationProperties applicationConfiguration;
 
@@ -207,32 +204,28 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 		applicationConfiguration = new ConfigurationProperties(DbExport.APPLICATION_NAME, true);
 		DbExportGui.setupDefaultConfig(applicationConfiguration);
-		if ("de".equalsIgnoreCase(applicationConfiguration.get(ApplicationConfigurationDialog.CONFIG_LANGUAGE))) {
+		if ("de".equalsIgnoreCase(applicationConfiguration.get(ConfigurationProperties.CONFIG_KEY_LANGUAGE))) {
 			Locale.setDefault(Locale.GERMAN);
 		} else {
 			Locale.setDefault(Locale.ENGLISH);
 		}
 
-		if (!applicationConfiguration.containsKey(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE)) {
+		if (!applicationConfiguration.containsKey(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE)) {
 			if (PacScriptParser.findPacFileUrlByWpad() != null) {
-				applicationConfiguration.set(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.WPAD.name());
+				applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.WPAD.name());
 			} else {
-				applicationConfiguration.set(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.None.name());
+				applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.None.name());
 			}
 			applicationConfiguration.save();
 		}
 
-		final ProxyConfigurationType proxyConfigurationType = ProxyConfigurationType.getFromString(applicationConfiguration.get(ApplicationConfigurationDialog.CONFIG_PROXY_CONFIGURATION_TYPE));
-		final String proxyUrl = applicationConfiguration.get(ApplicationConfigurationDialog.CONFIG_PROXY_URL);
-		final ProxyConfiguration proxyConfiguration = new ProxyConfiguration(proxyConfigurationType, proxyUrl);
-
 		if (dailyUpdateCheckIsPending()) {
 			setDailyUpdateCheckStatus(true);
 			try {
-				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
+				if (ApplicationUpdateUtilities.checkForNewVersionAvailable(DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, VersionInfo.getApplicationVersion()) != null) {
 					final List<String> appParameters = new ArrayList<>();
 					appParameters.add("gui");
-					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, proxyConfiguration, DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, appParameters, true, false);
+					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, appParameters, true, false);
 				}
 			} catch (final Exception e) {
 				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
@@ -1347,26 +1340,24 @@ public class DbExportGui extends UpdateableGuiApplication {
 	}
 
 	public static void setupDefaultConfig(final ConfigurationProperties applicationConfiguration) {
-		if (Utilities.isBlank(applicationConfiguration.get(ApplicationConfigurationDialog.CONFIG_LANGUAGE))) {
-			applicationConfiguration.set(ApplicationConfigurationDialog.CONFIG_LANGUAGE, Locale.getDefault().getLanguage());
-		}
+		applicationConfiguration.setupDefaultConfig();
 	}
 
 	@Override
 	protected void setDailyUpdateCheckStatus(final boolean checkboxStatus) {
-		applicationConfiguration.set(CONFIG_DAILY_UPDATE_CHECK, checkboxStatus);
-		applicationConfiguration.set(CONFIG_NEXT_DAILY_UPDATE_CHECK, LocalDateTime.now().plusDays(1));
+		applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK, checkboxStatus);
+		applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_NEXT_DAILY_UPDATE_CHECK, LocalDateTime.now().plusDays(1));
 		applicationConfiguration.save();
 	}
 
 	@Override
 	protected Boolean isDailyUpdateCheckActivated() {
-		return applicationConfiguration.getBoolean(CONFIG_DAILY_UPDATE_CHECK);
+		return applicationConfiguration.getBoolean(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK);
 	}
 
 	protected boolean dailyUpdateCheckIsPending() {
-		return applicationConfiguration.getBoolean(CONFIG_DAILY_UPDATE_CHECK)
-				&& (applicationConfiguration.getDate(CONFIG_NEXT_DAILY_UPDATE_CHECK) == null || applicationConfiguration.getDate(CONFIG_NEXT_DAILY_UPDATE_CHECK).isBefore(LocalDateTime.now()))
+		return applicationConfiguration.getBoolean(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK)
+				&& (applicationConfiguration.getDate(ConfigurationProperties.CONFIG_KEY_NEXT_DAILY_UPDATE_CHECK) == null || applicationConfiguration.getDate(ConfigurationProperties.CONFIG_KEY_NEXT_DAILY_UPDATE_CHECK).isBefore(LocalDateTime.now()))
 				&& NetworkUtilities.checkForNetworkConnection();
 	}
 
