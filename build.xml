@@ -64,7 +64,7 @@
 		<property name="dbutilities.version" value="26.0.11" />
 		<get src="https://github.com/hudeany/DbUtilities/releases/download/${dbutilities.version}/dbutilities-${dbutilities.version}.jar" dest="lib/" />
 
-		<property name="soderer-utilities.version" value="26.2.27" />
+		<property name="soderer-utilities.version" value="26.2.28" />
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}.jar" dest="lib/" />
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}-sources.jar" dest="lib/" />
 		
