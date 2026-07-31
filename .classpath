@@ -29,7 +29,6 @@
 	<classpathentry kind="lib" path="lib/csv-26.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/network-26.0.26.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.0.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/ojdbc11-23.3.0.23.09.jar"/>
 	<classpathentry kind="lib" path="lib_db/orai18n-23.3.0.23.09.jar"/>
@@ -37,6 +36,13 @@
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-8.3.0.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.0.11.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.32.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/OpenJDK-17.0.2"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib_test/hamcrest-2.2.jar"/>
+	<classpathentry kind="lib" path="lib_test/hamcrest-core-2.2.jar"/>
+	<classpathentry kind="lib" path="lib_test/junit-4.13.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
