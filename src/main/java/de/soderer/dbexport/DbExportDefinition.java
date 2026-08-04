@@ -99,6 +99,9 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	/** The string quote escape character. */
 	private char stringQuoteEscapeCharacter = '"';
 
+	/** Use escape sequences (e.g. \n, \t) when writing csv string values, instead of writing raw characters. */
+	private boolean interpretEscapeSequences = true;
+
 	/** The indentation. */
 	private String indentation = "\t";
 
@@ -279,6 +282,15 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	 */
 	public void setStringQuoteEscapeCharacter(final char stringQuoteEscapeCharacter) {
 		this.stringQuoteEscapeCharacter = stringQuoteEscapeCharacter;
+	}
+
+	/**
+	 * Sets whether escape sequences (e.g. \n, \t) are used when writing csv string values.
+	 *
+	 * @param interpretEscapeSequences
+	 */
+	public void setInterpretEscapeSequences(final boolean interpretEscapeSequences) {
+		this.interpretEscapeSequences = interpretEscapeSequences;
 	}
 
 	/**
@@ -489,6 +501,15 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	 */
 	public char getStringQuoteEscapeCharacter() {
 		return stringQuoteEscapeCharacter;
+	}
+
+	/**
+	 * Checks if escape sequences (e.g. \n, \t) are used when writing csv string values.
+	 *
+	 * @return true, if escape sequences are used
+	 */
+	public boolean isInterpretEscapeSequences() {
+		return interpretEscapeSequences;
 	}
 
 	/**
@@ -760,6 +781,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 				((DbCsvExportWorker) worker).setSeparator(getSeparator());
 				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
 				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
+				((DbCsvExportWorker) worker).setInterpretEscapeSequences(isInterpretEscapeSequences());
 				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
 				worker.setBeautify(isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
@@ -837,6 +859,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 				((DbCsvExportWorker) worker).setSeparator(getSeparator());
 				((DbCsvExportWorker) worker).setStringQuote(getStringQuote());
 				((DbCsvExportWorker) worker).setStringQuoteEscapeCharacter(getStringQuoteEscapeCharacter());
+				((DbCsvExportWorker) worker).setInterpretEscapeSequences(isInterpretEscapeSequences());
 				((DbCsvExportWorker) worker).setAlwaysQuote(isAlwaysQuote());
 				worker.setBeautify(isBeautify());
 				((DbCsvExportWorker) worker).setNoHeaders(isNoHeaders());
@@ -919,6 +942,9 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (getStringQuoteEscapeCharacter() != '"') {
 			params += " " + "-qe" + " '" + Character.toString(getStringQuoteEscapeCharacter()).replace("'", "\\'") + "'";
 		}
+		if (!isInterpretEscapeSequences()) {
+			params += " " + "-noescapesequences";
+		}
 		if (!"\t".equals(getIndentation())) {
 			params += " " + "-i" + " '" + getIndentation().replace("'", "\\'") + "'";
 		}
@@ -982,6 +1008,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			separator = ';';
 			stringQuote = '"';
 			stringQuoteEscapeCharacter = '"';
+			interpretEscapeSequences = true;
 			indentation = "\t";
 			alwaysQuote = false;
 			createBlobFiles = false;
@@ -1014,6 +1041,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			separator = otherDbExportDefinition.getSeparator();
 			stringQuote = otherDbExportDefinition.getStringQuote();
 			stringQuoteEscapeCharacter = otherDbExportDefinition.getStringQuoteEscapeCharacter();
+			interpretEscapeSequences = otherDbExportDefinition.isInterpretEscapeSequences();
 			indentation = otherDbExportDefinition.getIndentation();
 			alwaysQuote = otherDbExportDefinition.isAlwaysQuote();
 			createBlobFiles = otherDbExportDefinition.isCreateBlobFiles();

@@ -60,7 +60,7 @@ public class DbDriverSupplier {
 		if (parent == null) {
 			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile));
 			System.out.println(LangResources.get("emptyForCancel"));
-			return new SimpleConsoleInput().setPrompt(LangResources.get("enterDriverFile") + ": ").readInput();
+			return new SimpleConsoleInput().withPrompt(LangResources.get("enterDriverFile") + ": ").readInput();
 		} else {
 			new QuestionDialog(parent, applicationName + " database driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
 			final JFileChooser fileChooser = new JFileChooser();

@@ -28,6 +28,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	private char separator = ';';
 	private char stringQuote = '"';
 	private char stringQuoteEscapeCharacter = '"';
+	private boolean interpretEscapeSequences = true;
 	private String nullValueText = "";
 	private boolean alwaysQuote = false;
 	private boolean noHeaders = false;
@@ -55,6 +56,10 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	public void setStringQuoteEscapeCharacter(final char stringQuoteEscapeCharacter) {
 		this.stringQuoteEscapeCharacter = stringQuoteEscapeCharacter;
+	}
+
+	public void setInterpretEscapeSequences(final boolean interpretEscapeSequences) {
+		this.interpretEscapeSequences = interpretEscapeSequences;
 	}
 
 	public void setAlwaysQuote(final boolean alwaysQuote) {
@@ -91,6 +96,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		configurationLogString += "Encoding: " + encoding + "\n"
 				+ "StringQuote: " + stringQuote + "\n"
 				+ "StringQuoteEscapeCharacter: " + stringQuoteEscapeCharacter + "\n"
+				+ "InterpretEscapeSequences: " + interpretEscapeSequences + "\n"
 				+ "AlwaysQuote: " + alwaysQuote + "\n"
 				+ "SqlStatement: " + sqlStatement + "\n"
 				+ "OutputFormatLocale: " + dateFormatLocale.getLanguage() + "\n"
@@ -110,10 +116,10 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 	protected void openWriter(final OutputStream outputStream) throws Exception {
 		if (beautify) {
 			temporaryUglifiedFile = File.createTempFile("DbExport_Uglified", ".csv", new File(System.getProperty("java.io.tmpdir")));
-			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
-			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote));
+			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
+			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withEscapeLineBreaks(interpretEscapeSequences));
 		} else {
-			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
+			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
 		}
 	}
 
@@ -223,7 +229,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			try {
 				beautifiedCsvWriter.setColumnPaddings(columnPaddings);
 				beautifiedCsvWriter.setMinimumColumnSizes(minimumColumnSizes);
-				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote));
+				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withEscapeLineBreaks(interpretEscapeSequences));
 				List<String> nextLine;
 				while ((nextLine = csvReaderFinal.readNextCsvLine()) != null) {
 					beautifiedCsvWriter.writeValues(nextLine);

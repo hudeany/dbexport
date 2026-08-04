@@ -50,7 +50,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 				while (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) {
 					System.out.println();
 					System.out.println("Please enter database hostname and optional port separated by ':' (Default port is 443, Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -63,7 +63,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 				while (connectionTestDefinition.getTrustStoreFile() == null) {
 					System.out.println();
 					System.out.println("Please enter database TrustStore filepath (Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -108,7 +108,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("cancel)", bulletSize) + " " + "Cancel");
 				autoCompletionStrings.add("cancel");
 
-				String choice = new SimpleConsoleInput().setAutoCompletionStrings(autoCompletionStrings).setPrompt(" > ").readInput();
+				String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 				choice = choice == null ? "" : choice.trim();
 				if (Utilities.isBlank(choice)) {
 					if (dbDefinitionCache != null) {
@@ -129,7 +129,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 				} else if ("password".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter TrustStore password (Blank => Empty)");
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(passwordArray) ? passwordArray : null);
 				} else if ("params".equalsIgnoreCase(choice)) {
 					String params = "createtruststore";

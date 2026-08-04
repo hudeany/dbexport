@@ -70,7 +70,7 @@ public class ExportMenu extends ConsoleMenu {
 				if (Utilities.isBlank(dbExportDefinition.getHostnameAndPort()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.HSQL && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter database hostname and optional port separated by ':' (No port uses database vendors default port, Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -84,7 +84,7 @@ public class ExportMenu extends ConsoleMenu {
 					while (Utilities.isBlank(dbExportDefinition.getDbName())) {
 						System.out.println();
 						System.out.println("Please enter database filepath (Blank => Cancel)");
-						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -101,7 +101,7 @@ public class ExportMenu extends ConsoleMenu {
 					while (Utilities.isBlank(dbExportDefinition.getDbName())) {
 						System.out.println();
 						System.out.println("Please enter database name (Blank => Cancel)");
-						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -115,7 +115,7 @@ public class ExportMenu extends ConsoleMenu {
 				if (Utilities.isBlank(dbExportDefinition.getUsername()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter database username (Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						if (dbExportDefinition.getDbVendor() == DbVendor.Cassandra) {
@@ -132,7 +132,7 @@ public class ExportMenu extends ConsoleMenu {
 				if (Utilities.isBlank(dbExportDefinition.getPassword()) && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.HSQL && dbExportDefinition.getDbVendor() != DbVendor.Derby && (dbExportDefinition.getDbVendor() != DbVendor.Cassandra || dbExportDefinition.getUsername() != null)) {
 					System.out.println();
 					System.out.println("Please enter database password (Blank => Cancel)");
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					if (Utilities.isBlank(passwordArray)) {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
@@ -143,7 +143,7 @@ public class ExportMenu extends ConsoleMenu {
 				while (Utilities.isBlank(dbExportDefinition.getSqlStatementOrTablelist())) {
 					System.out.println();
 					System.out.println("Please enter export statement or comma-separated table list (tablename wildcards *? and !(=not, use as tablename prefix), Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -156,7 +156,7 @@ public class ExportMenu extends ConsoleMenu {
 				while (Utilities.isBlank(dbExportDefinition.getOutputpath())) {
 					System.out.println();
 					System.out.println("Please enter export filepath ('console' for output to terminal, Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -261,6 +261,8 @@ public class ExportMenu extends ConsoleMenu {
 					autoCompletionStrings.add("q");
 					System.out.println("  " + Utilities.rightPad("qe)", bulletSize) + " " + Utilities.rightPad("CSV string quote escape character:", nameSize) + dbExportDefinition.getStringQuoteEscapeCharacter());
 					autoCompletionStrings.add("qe");
+					System.out.println("  " + Utilities.rightPad("noescapesequences)", bulletSize) + " " + Utilities.rightPad("Use escape sequences (\\n, \\t) in CSV values:", nameSize) + dbExportDefinition.isInterpretEscapeSequences());
+					autoCompletionStrings.add("noescapesequences");
 					System.out.println("  " + Utilities.rightPad("a)", bulletSize) + " " + Utilities.rightPad("Always quote CSV value:", nameSize) + dbExportDefinition.isAlwaysQuote());
 					autoCompletionStrings.add("a");
 					System.out.println("  " + Utilities.rightPad("noheaders)", bulletSize) + " " + Utilities.rightPad("Don't export CSV headers:", nameSize) + dbExportDefinition.isNoHeaders());
@@ -299,7 +301,7 @@ public class ExportMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("start)", bulletSize) + " " + "Start export");
 				autoCompletionStrings.add("start");
 
-				String choice = new SimpleConsoleInput().setAutoCompletionStrings(autoCompletionStrings).setPrompt(" > ").readInput();
+				String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 				choice = choice == null ? "" : choice.trim();
 				if (Utilities.isBlank(choice)) {
 					getParentMenu().getMessages().add("Canceled by user");
@@ -319,7 +321,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter database TrustStore filepath (Blank => None)");
-					String choiceTruststore = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choiceTruststore = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choiceTruststore = choiceTruststore == null ? "" : choiceTruststore.trim();
 					if (Utilities.isBlank(choiceTruststore)) {
 						dbExportDefinition.setTrustStoreFile(null);
@@ -333,7 +335,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("truststorepassword".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter TrustStore password (Blank => Empty)");
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					dbExportDefinition.setTrustStorePassword(Utilities.isNotEmpty(passwordArray) ? passwordArray : null);
 				} else if ("x".equalsIgnoreCase(choice)) {
 					while (true) {
@@ -352,7 +354,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("n".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter null value string");
-					final String nullValueString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					final String nullValueString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					dbExportDefinition.setNullValueString(nullValueString);
 				} else if ("file".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setStatementFile(!dbExportDefinition.isStatementFile());
@@ -363,7 +365,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("compression".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter compression type (zip, targz, tgz, gz, none");
-					final String compressionValueString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					final String compressionValueString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					FileCompressionType compressionType;
 					try {
 						compressionType = FileCompressionType.getFromString(compressionValueString);
@@ -374,12 +376,12 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("zippassword".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter zip password");
-					final char[] zipPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] zipPasswordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					dbExportDefinition.setZipPassword(zipPasswordArray);
 				} else if ("kdbxpassword".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter KDBX password");
-					final char[] kdbxPasswordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] kdbxPasswordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					dbExportDefinition.setKdbxPassword(kdbxPasswordArray);
 				} else if ("zipcrypto".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setUseZipCrypto(!dbExportDefinition.isUseZipCrypto());
@@ -387,7 +389,7 @@ public class ExportMenu extends ConsoleMenu {
 					while (true) {
 						System.out.println();
 						System.out.println("Please enter output encoding");
-						String encodingString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String encodingString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						encodingString = encodingString == null ? "" : encodingString.trim();
 						if (Utilities.isBlank(encodingString)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -404,7 +406,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("s".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter CSV separator character");
-					String separatorString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String separatorString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					separatorString = separatorString == null ? "" : separatorString;
 					try {
 						dbExportDefinition.setSeparator(separatorString.charAt(0));
@@ -414,7 +416,7 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("q".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter CSV string quote character");
-					String stringQuoteCharacterString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String stringQuoteCharacterString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					stringQuoteCharacterString = stringQuoteCharacterString == null ? "" : stringQuoteCharacterString;
 					try {
 						dbExportDefinition.setStringQuote(stringQuoteCharacterString.charAt(0));
@@ -424,13 +426,15 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("qe".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter CSV string quote escape character");
-					String stringQuoteEscapeCharacterString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String stringQuoteEscapeCharacterString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					stringQuoteEscapeCharacterString = stringQuoteEscapeCharacterString == null ? "" : stringQuoteEscapeCharacterString;
 					try {
 						dbExportDefinition.setStringQuoteEscapeCharacter(stringQuoteEscapeCharacterString.charAt(0));
 					} catch (@SuppressWarnings("unused") final Exception e) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Invalid CSV string quote character", TextColor.Light_red));
 					}
+				} else if ("noescapesequences".equalsIgnoreCase(choice)) {
+					dbExportDefinition.setInterpretEscapeSequences(!dbExportDefinition.isInterpretEscapeSequences());
 				} else if ("a".equalsIgnoreCase(choice)) {
 					dbExportDefinition.setAlwaysQuote(!dbExportDefinition.isAlwaysQuote());
 				} else if ("noheaders".equalsIgnoreCase(choice)) {
@@ -438,14 +442,14 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("i".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter indentation string");
-					String indentationString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String indentationString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					indentationString = indentationString == null ? "" : indentationString;
 					dbExportDefinition.setIndentation(indentationString);
 				} else if ("f".equalsIgnoreCase(choice)) {
 					while (true) {
 						System.out.println();
 						System.out.println("Please enter output format locale");
-						String localeString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String localeString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						localeString = localeString == null ? "" : localeString.trim();
 						if (Utilities.isBlank(localeString)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -476,7 +480,7 @@ public class ExportMenu extends ConsoleMenu {
 					while (true) {
 						System.out.println();
 						System.out.println("Please enter database timezone");
-						String dbtzString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String dbtzString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						dbtzString = dbtzString == null ? "" : dbtzString.trim();
 						if (Utilities.isBlank(dbtzString)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -494,7 +498,7 @@ public class ExportMenu extends ConsoleMenu {
 					while (true) {
 						System.out.println();
 						System.out.println("Please enter export data timezone");
-						String edtzString = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String edtzString = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						edtzString = edtzString == null ? "" : edtzString.trim();
 						if (Utilities.isBlank(edtzString)) {
 							getParentMenu().getMessages().add("Canceled by user");

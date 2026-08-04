@@ -35,6 +35,7 @@ Optional parameters for database export
 	-s: Separator character, default ';', encapsulate by '
 	-q: String quote character, default '"', encapsulate by '
 	-qe: String quote escape character, default '"', encapsulate by '
+	-noescapesequences: Do not use escape sequences (e.g. \n or \t) when writing csv string values, write raw characters instead (Default is to use them)
 	-i: Indentation string for JSON and XML (TAB, BLANK, DOUBLEBLANK), default TAB or '\t', encapsulate by '
 	-a: always quote value
 	-f: Date and datetime format locale, default is systems locale, use 'de', 'en', etc. (e.g. for weekdays in format, 'EEE')

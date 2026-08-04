@@ -67,7 +67,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				if (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort()) && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.HSQL && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter database hostname and optional port separated by ':' (No port uses database vendors default port, Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
@@ -81,7 +81,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					while (Utilities.isBlank(connectionTestDefinition.getDbName())) {
 						System.out.println();
 						System.out.println("Please enter database filepath (Blank => Cancel)");
-						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -98,7 +98,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 					while (Utilities.isBlank(connectionTestDefinition.getDbName())) {
 						System.out.println();
 						System.out.println("Please enter database name (Blank => Cancel)");
-						String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						choice = choice == null ? "" : choice.trim();
 						if (Utilities.isBlank(choice)) {
 							getParentMenu().getMessages().add("Canceled by user");
@@ -112,7 +112,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				if (Utilities.isBlank(connectionTestDefinition.getUsername()) && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
 					System.out.println();
 					System.out.println("Please enter database username (Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						if (connectionTestDefinition.getDbVendor() == DbVendor.Cassandra) {
@@ -129,7 +129,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				if (Utilities.isBlank(connectionTestDefinition.getPassword()) && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.HSQL && connectionTestDefinition.getDbVendor() != DbVendor.Derby && (connectionTestDefinition.getDbVendor() != DbVendor.Cassandra || connectionTestDefinition.getUsername() != null)) {
 					System.out.println();
 					System.out.println("Please enter database password (Blank => Cancel)");
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					if (Utilities.isBlank(passwordArray)) {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
@@ -203,7 +203,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				System.out.println("  " + Utilities.rightPad("cancel)", bulletSize) + " " + "Cancel");
 				autoCompletionStrings.add("cancel");
 
-				String choice = new SimpleConsoleInput().setAutoCompletionStrings(autoCompletionStrings).setPrompt(" > ").readInput();
+				String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 				choice = choice == null ? "" : choice.trim();
 				if (Utilities.isBlank(choice)) {
 					if (dbDefinitionCache != null) {
@@ -226,7 +226,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				} else if ("truststore".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter database TrustStore filepath (Blank => None)");
-					String choiceTruststore = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choiceTruststore = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choiceTruststore = choiceTruststore == null ? "" : choiceTruststore.trim();
 					if (Utilities.isBlank(choiceTruststore)) {
 						connectionTestDefinition.setTrustStoreFile(null);
@@ -240,12 +240,12 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				} else if ("truststorepassword".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter TrustStore password (Blank => Empty)");
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 					connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(passwordArray) ? passwordArray : null);
 				} else if ("iter".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter iterations (0 = unlimited, Blank => Back to Database connection test menu)");
-					String choiceIterations = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choiceIterations = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choiceIterations = choiceIterations == null ? "" : choiceIterations.trim();
 					if (Utilities.isBlank(choiceIterations)) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Canceled by user", TextColor.Light_green));
@@ -258,7 +258,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				} else if ("sleep".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter sleeptime seconds between iterations (Blank => Back to Database connection test menu)");
-					String choiceIterations = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choiceIterations = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choiceIterations = choiceIterations == null ? "" : choiceIterations.trim();
 					if (Utilities.isBlank(choiceIterations)) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Canceled by user", TextColor.Light_green));
@@ -271,7 +271,7 @@ public class ConnectionTestMenu extends ConsoleMenu {
 				} else if ("check".equalsIgnoreCase(choice)) {
 					System.out.println();
 					System.out.println("Please enter check sql statement or 'vendor' for vendors default check statement (Blank => Connection check only)");
-					String choiceCheckSql = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					String choiceCheckSql = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choiceCheckSql = choiceCheckSql == null ? "" : choiceCheckSql.trim();
 					if (Utilities.isBlank(choiceCheckSql)) {
 						connectionTestDefinition.setCheckStatement(null);

@@ -161,6 +161,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The always quote box. */
 	private final JCheckBox alwaysQuoteBox;
 
+	/** The checkbox to toggle usage of escape sequences (e.g. \n, \t) when writing csv string values. */
+	private final JCheckBox interpretEscapeSequencesBox;
+
 	/** The beautify box. */
 	private final JCheckBox beautifyBox;
 
@@ -756,6 +759,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 		alwaysQuoteBox.setToolTipText(LangResources.get("alwaysquote_help"));
 		optionalParametersPanel.add(alwaysQuoteBox);
 
+		interpretEscapeSequencesBox = new JCheckBox(LangResources.get("interpretEscapeSequences"));
+		interpretEscapeSequencesBox.setToolTipText(LangResources.get("interpretEscapeSequences_help"));
+		interpretEscapeSequencesBox.setSelected(true);
+		optionalParametersPanel.add(interpretEscapeSequencesBox);
+
 		blobfilesBox = new JCheckBox(LangResources.get("blobfiles"));
 		blobfilesBox.setToolTipText(LangResources.get("blobfiles_help"));
 		optionalParametersPanel.add(blobfilesBox);
@@ -931,6 +939,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setZipPassword(Utilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
 		dbExportDefinition.setKdbxPassword(Utilities.isEmpty(kdbxPasswordField.getPassword()) ? null : kdbxPasswordField.getPassword());
 		dbExportDefinition.setAlwaysQuote(alwaysQuoteBox.isEnabled() ? alwaysQuoteBox.isSelected() : false);
+		dbExportDefinition.setInterpretEscapeSequences(interpretEscapeSequencesBox.isEnabled() ? interpretEscapeSequencesBox.isSelected() : true);
 		dbExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 		dbExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 		dbExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
@@ -1023,6 +1032,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		zipPasswordField.setText(dbExportDefinition.getZipPassword() == null ? "" : new String(dbExportDefinition.getZipPassword()));
 		kdbxPasswordField.setText(dbExportDefinition.getKdbxPassword() == null ? "" : new String(dbExportDefinition.getKdbxPassword()));
 		alwaysQuoteBox.setSelected(dbExportDefinition.isAlwaysQuote());
+		interpretEscapeSequencesBox.setSelected(dbExportDefinition.isInterpretEscapeSequences());
 		blobfilesBox.setSelected(dbExportDefinition.isCreateBlobFiles());
 		clobfilesBox.setSelected(dbExportDefinition.isCreateClobFiles());
 		beautifyBox.setSelected(dbExportDefinition.isBeautify());
@@ -1179,6 +1189,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(true);
 				indentationCombo.setEnabled(true);
@@ -1190,6 +1201,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(false);
 				indentationCombo.setEnabled(false);
@@ -1201,6 +1213,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(true);
 				indentationCombo.setEnabled(true);
@@ -1212,6 +1225,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(true);
 				indentationCombo.setEnabled(true);
@@ -1223,6 +1237,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(false);
 				indentationCombo.setEnabled(false);
@@ -1234,6 +1249,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
+				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
 				beautifyBox.setEnabled(false);
 				indentationCombo.setEnabled(false);
@@ -1246,6 +1262,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				separatorCombo.setEnabled(true);
 				stringQuoteCombo.setEnabled(true);
 				alwaysQuoteBox.setEnabled(true);
+				interpretEscapeSequencesBox.setEnabled(true);
 				noHeadersBox.setEnabled(true);
 				beautifyBox.setEnabled(true);
 				indentationCombo.setEnabled(false);

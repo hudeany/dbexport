@@ -375,6 +375,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 							dbExportDefinition.setStringQuoteEscapeCharacter(arguments[i].charAt(0));
 						}
 						wasAllowedParam = true;
+					} else if ("-noescapesequences".equalsIgnoreCase(arguments[i])) {
+						dbExportDefinition.setInterpretEscapeSequences(false);
+						wasAllowedParam = true;
 					} else if ("-i".equalsIgnoreCase(arguments[i])) {
 						i++;
 						if (i >= arguments.length) {
@@ -677,7 +680,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						&& connectionTestDefinition.getDbVendor() != DbVendor.SQLite
 						&& connectionTestDefinition.getDbVendor() != DbVendor.Derby
 						&& connectionTestDefinition.getDbVendor() != DbVendor.Cassandra) {
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					connectionTestDefinition.setPassword(passwordArray);
 				}
 
@@ -688,7 +691,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						&& dbExportDefinition.getDbVendor() != DbVendor.SQLite
 						&& dbExportDefinition.getDbVendor() != DbVendor.Derby
 						&& dbExportDefinition.getDbVendor() != DbVendor.Cassandra) {
-					final char[] passwordArray = new PasswordConsoleInput().setPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
+					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					dbExportDefinition.setPassword(passwordArray);
 				}
 

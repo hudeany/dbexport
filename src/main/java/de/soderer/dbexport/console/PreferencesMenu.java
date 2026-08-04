@@ -54,7 +54,7 @@ public class PreferencesMenu extends ConsoleMenu {
 
 							System.out.println();
 							System.out.println("Please enter preferences password (Blank => Cancel)");
-							final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+							final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 							if (Utilities.isBlank(passwordArray)) {
 								setPassword(null);
 								getParentMenu().getMessages().add("Canceled by user");
@@ -83,14 +83,14 @@ public class PreferencesMenu extends ConsoleMenu {
 
 					System.out.println();
 					System.out.println("Please select existing preference\n or 'save' to store new preference\n or 'delete' to delete a preference ('save' => new preference, 'delete' => delete preference, Blank => Cancel)");
-					String choice = new SimpleConsoleInput().setAutoCompletionStrings(autoCompletionStrings).setPrompt(" > ").readInput();
+					String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
 					if (Utilities.isBlank(choice)) {
 						return 0;
 					} else if ("save".equalsIgnoreCase(choice)) {
 						System.out.println();
 						System.out.println("Please enter new preference name (Blank => Cancel)");
-						final String newPreferenceName = new SimpleConsoleInput().setPrompt(" > ").readInput();
+						final String newPreferenceName = new SimpleConsoleInput().withPrompt(" > ").readInput();
 						if (Utilities.isBlank(newPreferenceName)) {
 							return 0;
 						} else {
@@ -99,7 +99,7 @@ public class PreferencesMenu extends ConsoleMenu {
 					} else if ("delete".equalsIgnoreCase(choice)) {
 						System.out.println();
 						System.out.println("Please enter new preference name to delete (Blank => Cancel)");
-						final String deletePreferenceName = new SimpleConsoleInput().setAutoCompletionStrings(new ArrayList<>(availablePreferences)).setPrompt(" > ").readInput();
+						final String deletePreferenceName = new SimpleConsoleInput().withAutoCompletionStrings(new ArrayList<>(availablePreferences)).withPrompt(" > ").readInput();
 						if (Utilities.isNotBlank(deletePreferenceName)) {
 							secureDataStore.removeEntriesByEntryName(deletePreferenceName);
 							secureDataStore.save(DbExport.SECURE_PREFERENCES_FILE, getPassword());
@@ -118,7 +118,7 @@ public class PreferencesMenu extends ConsoleMenu {
 				} else {
 					System.out.println();
 					System.out.println("Please enter new preference name (Blank => Cancel)");
-					final String newPreferenceName = new SimpleConsoleInput().setPrompt(" > ").readInput();
+					final String newPreferenceName = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					if (Utilities.isBlank(newPreferenceName)) {
 						return 0;
 					} else {
@@ -143,7 +143,7 @@ public class PreferencesMenu extends ConsoleMenu {
 			if (getPassword() == null) {
 				System.out.println();
 				System.out.println("Please enter new preferences password (Blank => Cancel)");
-				final char[] passwordArray = new PasswordConsoleInput().setPrompt(" > ").readInput();
+				final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
 				setPassword(passwordArray);
 			}
 			if (getPassword() != null) {
