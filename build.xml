@@ -271,15 +271,15 @@
 
 	<target name="download_dependencies" depends="get_commons_collections4, get_commons_compress, get_commons_io, get_commons_math3, get_jna, get_log4j_1_2_api, get_log4j_api, get_log4j_core, get_poi, get_poi_ooxml, get_poi_ooxml_full, get_xmlbeans, get_zip4j, get_kdbx, get_csv, get_json, get_vcf, get_proxyautoconfig, get_network, get_dbutilities, get_soderer_utilities, get_soderer_utilities_sources, get_hamcrest, get_hamcrest_core, get_junit" />
 
-	<property name="mariadb-java-client.version" value="3.3.3" />
-	<property name="mysql-connector-j.version" value="8.3.0" />
-	<property name="hsqldb.version" value="2.7.2" />
-	<property name="mssql-jdbc.version" value="12.4.1.jre11" />
-	<property name="postgresql.version" value="42.6.0" />
-	<property name="sqlite-jdbc.version" value="3.43.0.0" />
-	<property name="ojdbc11.version" value="23.3.0.23.09" />
-	<property name="orai18n.version" value="23.3.0.23.09" />
-	<property name="derby.version" value="10.16.1.1" />
+	<property name="mariadb-java-client.version" value="3.5.9" />
+	<property name="mysql-connector-j.version" value="9.7.0" />
+	<property name="hsqldb.version" value="2.7.4" />
+	<property name="mssql-jdbc.version" value="13.4.0.jre11" />
+	<property name="postgresql.version" value="42.7.13" />
+	<property name="sqlite-jdbc.version" value="3.53.2.1" />
+	<property name="ojdbc11.version" value="23.26.3.0.0" />
+	<property name="orai18n.version" value="23.26.3.0.0" />
+	<property name="derby.version" value="10.17.1.0" />
 
 	<available file="lib_db/mariadb-java-client-${mariadb-java-client.version}.jar" property="mariadb-java-client.available" />
 	<target name="get_mariadb_java_client" unless="mariadb-java-client.available">
