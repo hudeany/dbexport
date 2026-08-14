@@ -11,12 +11,6 @@
 	</tstamp>
 	<echo message="buildTime: ${buildTime}" />
 
-	<property name="projectsPath" value="${user.home}/git" />
-	<echo message="projectsPath: ${projectsPath}" />
-	
-	<property name="projectDir" location="." />
-	<echo message="projectDir: ${projectDir}" />
-
 	<property name="buildPath" value="build" />
 	<echo message="buildPath: ${buildPath}" />
 
