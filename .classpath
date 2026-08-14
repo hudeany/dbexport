@@ -21,7 +21,6 @@
 	<classpathentry kind="lib" path="lib_db/derbyshared-10.16.1.1.jar"/>
 	<classpathentry kind="lib" path="lib_db/derbytools-10.16.1.1.jar"/>
 	<classpathentry kind="lib" path="lib_db/hsqldb-2.7.2.jar"/>
-	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.2.0.jre11.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.6.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.43.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/json-26.2.1.jar"/>
@@ -44,5 +43,6 @@
 	<classpathentry kind="lib" path="lib_test/hamcrest-2.2.jar"/>
 	<classpathentry kind="lib" path="lib_test/hamcrest-core-2.2.jar"/>
 	<classpathentry kind="lib" path="lib_test/junit-4.13.2.jar"/>
+	<classpathentry kind="lib" path="lib_db/mssql-jdbc-12.4.1.jre11.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

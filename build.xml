@@ -24,69 +24,363 @@
 		<mkdir dir="${buildPath}/bin" />
 	</target>
 
-	<available file="lib" property="libsAvailable" />
-	<target name="download_dependencies" unless="libsAvailable">
+	<property name="commons-collections4.version" value="4.4" />
+	<property name="commons-compress.version" value="1.24.0" />
+	<property name="commons-io.version" value="2.14.0" />
+	<property name="commons-math3.version" value="3.6.1" />
+	<property name="jna.version" value="5.13.0" />
+	<property name="log4j.version" value="2.20.0" />
+	<property name="poi.version" value="5.2.4" />
+	<property name="xmlbeans.version" value="5.1.1" />
+	<property name="zip4j.version" value="2.11.5" />
+	<property name="kdbx.version" value="25.1.0" />
+	<property name="csv.version" value="26.1.1" />
+	<property name="json.version" value="26.2.1" />
+	<property name="vcf.version" value="26.1.0" />
+	<property name="proxyautoconfig.version" value="26.1.0" />
+	<property name="network.version" value="26.0.27" />
+	<property name="dbutilities.version" value="26.1.1" />
+	<property name="soderer-utilities.version" value="26.2.39" />
+	<property name="hamcrest.version" value="2.2" />
+	<property name="junit.version" value="4.13.2" />
+
+	<available file="lib/commons-collections4-${commons-collections4.version}.jar" property="commons-collections4.available" />
+	<target name="get_commons_collections4" unless="commons-collections4.available">
 		<mkdir dir="lib/" />
-		
-		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/commons-io/commons-io/2.14.0/commons-io-2.14.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-1.2-api/2.20.0/log4j-1.2-api-2.20.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi/5.2.4/poi-5.2.4.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml/5.2.4/poi-ooxml-5.2.4.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml-full/5.2.4/poi-ooxml-full-5.2.4.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/5.1.1/xmlbeans-5.1.1.jar" dest="lib/" />
-		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/2.11.5/zip4j-2.11.5.jar" dest="lib/" />
+		<delete>
+			<fileset dir="lib" includes="commons-collections4-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-collections4/${commons-collections4.version}/commons-collections4-${commons-collections4.version}.jar" dest="lib/" />
+	</target>
 
-		<get src="https://github.com/hudeany/kdbx/releases/download/25.1.0/kdbx-25.1.0.jar" dest="lib/" />
-		
+	<available file="lib/commons-compress-${commons-compress.version}.jar" property="commons-compress.available" />
+	<target name="get_commons_compress" unless="commons-compress.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="commons-compress-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-compress/${commons-compress.version}/commons-compress-${commons-compress.version}.jar" dest="lib/" />
+	</target>
 
-		<property name="csv.version" value="26.1.1" />
+	<available file="lib/commons-io-${commons-io.version}.jar" property="commons-io.available" />
+	<target name="get_commons_io" unless="commons-io.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="commons-io-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/commons-io/commons-io/${commons-io.version}/commons-io-${commons-io.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/commons-math3-${commons-math3.version}.jar" property="commons-math3.available" />
+	<target name="get_commons_math3" unless="commons-math3.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="commons-math3-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/commons/commons-math3/${commons-math3.version}/commons-math3-${commons-math3.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/jna-${jna.version}.jar" property="jna.available" />
+	<target name="get_jna" unless="jna.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="jna-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/net/java/dev/jna/jna/${jna.version}/jna-${jna.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/log4j-1.2-api-${log4j.version}.jar" property="log4j-1.2-api.available" />
+	<target name="get_log4j_1_2_api" unless="log4j-1.2-api.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="log4j-1.2-api-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-1.2-api/${log4j.version}/log4j-1.2-api-${log4j.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/log4j-api-${log4j.version}.jar" property="log4j-api.available" />
+	<target name="get_log4j_api" unless="log4j-api.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="log4j-api-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-api/${log4j.version}/log4j-api-${log4j.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/log4j-core-${log4j.version}.jar" property="log4j-core.available" />
+	<target name="get_log4j_core" unless="log4j-core.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="log4j-core-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/logging/log4j/log4j-core/${log4j.version}/log4j-core-${log4j.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/poi-${poi.version}.jar" property="poi.available" />
+	<target name="get_poi" unless="poi.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="poi-*.jar" excludes="poi-ooxml-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi/${poi.version}/poi-${poi.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/poi-ooxml-${poi.version}.jar" property="poi-ooxml.available" />
+	<target name="get_poi_ooxml" unless="poi-ooxml.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="poi-ooxml-*.jar" excludes="poi-ooxml-full-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml/${poi.version}/poi-ooxml-${poi.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/poi-ooxml-full-${poi.version}.jar" property="poi-ooxml-full.available" />
+	<target name="get_poi_ooxml_full" unless="poi-ooxml-full.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="poi-ooxml-full-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/poi/poi-ooxml-full/${poi.version}/poi-ooxml-full-${poi.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/xmlbeans-${xmlbeans.version}.jar" property="xmlbeans.available" />
+	<target name="get_xmlbeans" unless="xmlbeans.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="xmlbeans-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/${xmlbeans.version}/xmlbeans-${xmlbeans.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/zip4j-${zip4j.version}.jar" property="zip4j.available" />
+	<target name="get_zip4j" unless="zip4j.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="zip4j-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/net/lingala/zip4j/zip4j/${zip4j.version}/zip4j-${zip4j.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/kdbx-${kdbx.version}.jar" property="kdbx.available" />
+	<target name="get_kdbx" unless="kdbx.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="kdbx-*.jar" />
+		</delete>
+		<get src="https://github.com/hudeany/kdbx/releases/download/${kdbx.version}/kdbx-${kdbx.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/csv-${csv.version}.jar" property="csv.available" />
+	<target name="get_csv" unless="csv.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="csv-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/csv/releases/download/${csv.version}/csv-${csv.version}.jar" dest="lib/" />
-		<property name="json.version" value="26.2.1" />
+	</target>
+
+	<available file="lib/json-${json.version}.jar" property="json.available" />
+	<target name="get_json" unless="json.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="json-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/json/releases/download/${json.version}/json-${json.version}.jar" dest="lib/" />
-		<property name="vcf.version" value="26.1.0" />
+	</target>
+
+	<available file="lib/vcf-${vcf.version}.jar" property="vcf.available" />
+	<target name="get_vcf" unless="vcf.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="vcf-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/vcf/releases/download/${vcf.version}/vcf-${vcf.version}.jar" dest="lib/" />
-		<property name="proxyautoconfig.version" value="26.1.0" />
+	</target>
+
+	<available file="lib/proxyautoconfig-${proxyautoconfig.version}.jar" property="proxyautoconfig.available" />
+	<target name="get_proxyautoconfig" unless="proxyautoconfig.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="proxyautoconfig-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/ProxyAutoConfig/releases/download/${proxyautoconfig.version}/proxyautoconfig-${proxyautoconfig.version}.jar" dest="lib/" />
-		<property name="network.version" value="26.0.27" />
+	</target>
+
+	<available file="lib/network-${network.version}.jar" property="network.available" />
+	<target name="get_network" unless="network.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="network-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/network/releases/download/${network.version}/network-${network.version}.jar" dest="lib/" />
-		<property name="dbutilities.version" value="26.1.1" />
+	</target>
+
+	<available file="lib/dbutilities-${dbutilities.version}.jar" property="dbutilities.available" />
+	<target name="get_dbutilities" unless="dbutilities.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="dbutilities-*.jar" />
+		</delete>
 		<get src="https://github.com/hudeany/DbUtilities/releases/download/${dbutilities.version}/dbutilities-${dbutilities.version}.jar" dest="lib/" />
+	</target>
 
-		<property name="soderer-utilities.version" value="26.2.39" />
+	<available file="lib/soderer-utilities-${soderer-utilities.version}.jar" property="soderer-utilities.available" />
+	<target name="get_soderer_utilities" unless="soderer-utilities.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="soderer-utilities-*.jar" excludes="soderer-utilities-*-sources.jar" />
+		</delete>
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}.jar" dest="lib/" />
+	</target>
+
+	<available file="lib/soderer-utilities-${soderer-utilities.version}-sources.jar" property="soderer-utilities-sources.available" />
+	<target name="get_soderer_utilities_sources" unless="soderer-utilities-sources.available">
+		<mkdir dir="lib/" />
+		<delete>
+			<fileset dir="lib" includes="soderer-utilities-*-sources.jar" />
+		</delete>
 		<get src="https://soderer.de/maven2/de/soderer/JavaUtilities/${soderer-utilities.version}/soderer-utilities-${soderer-utilities.version}-sources.jar" dest="lib/" />
-		
+	</target>
+
+	<available file="lib_test/hamcrest-${hamcrest.version}.jar" property="hamcrest.available" />
+	<target name="get_hamcrest" unless="hamcrest.available">
 		<mkdir dir="lib_test/" />
-		
-		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar" dest="lib_test/" />
-		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar" dest="lib_test/" />
-		<get src="https://repo1.maven.org/maven2/junit/junit/4.13.2/junit-4.13.2.jar" dest="lib_test/" />
+		<delete>
+			<fileset dir="lib_test" includes="hamcrest-*.jar" excludes="hamcrest-core-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest/${hamcrest.version}/hamcrest-${hamcrest.version}.jar" dest="lib_test/" />
 	</target>
 
-	<available file="lib_db" property="dbConnectorsAvailable" />
-	<target name="download_dbconnectors" unless="dbConnectorsAvailable">
-		<mkdir dir="lib_db" />
-		
-		<get src="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.3.3/mariadb-java-client-3.3.3.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/org/hsqldb/hsqldb/2.7.2/hsqldb-2.7.2.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/12.4.1.jre11/mssql-jdbc-12.4.1.jre11.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/org/postgresql/postgresql/42.6.0/postgresql-42.6.0.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.43.0.0/sqlite-jdbc-3.43.0.0.jar" dest="lib_db/" />
-
-		<get src="https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc11/23.3.0.23.09/ojdbc11-23.3.0.23.09.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/com/oracle/database/nls/orai18n/23.3.0.23.09/orai18n-23.3.0.23.09.jar" dest="lib_db/" />
-		
-		<get src="https://repo1.maven.org/maven2/org/apache/derby/derby/10.16.1.1/derby-10.16.1.1.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbyshared/10.16.1.1/derbyshared-10.16.1.1.jar" dest="lib_db/" />
-		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbytools/10.16.1.1/derbytools-10.16.1.1.jar" dest="lib_db/" />
+	<available file="lib_test/hamcrest-core-${hamcrest.version}.jar" property="hamcrest-core.available" />
+	<target name="get_hamcrest_core" unless="hamcrest-core.available">
+		<mkdir dir="lib_test/" />
+		<delete>
+			<fileset dir="lib_test" includes="hamcrest-core-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/${hamcrest.version}/hamcrest-core-${hamcrest.version}.jar" dest="lib_test/" />
 	</target>
+
+	<available file="lib_test/junit-${junit.version}.jar" property="junit.available" />
+	<target name="get_junit" unless="junit.available">
+		<mkdir dir="lib_test/" />
+		<delete>
+			<fileset dir="lib_test" includes="junit-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/junit/junit/${junit.version}/junit-${junit.version}.jar" dest="lib_test/" />
+	</target>
+
+	<target name="download_dependencies" depends="get_commons_collections4, get_commons_compress, get_commons_io, get_commons_math3, get_jna, get_log4j_1_2_api, get_log4j_api, get_log4j_core, get_poi, get_poi_ooxml, get_poi_ooxml_full, get_xmlbeans, get_zip4j, get_kdbx, get_csv, get_json, get_vcf, get_proxyautoconfig, get_network, get_dbutilities, get_soderer_utilities, get_soderer_utilities_sources, get_hamcrest, get_hamcrest_core, get_junit" />
+
+	<property name="mariadb-java-client.version" value="3.3.3" />
+	<property name="mysql-connector-j.version" value="8.3.0" />
+	<property name="hsqldb.version" value="2.7.2" />
+	<property name="mssql-jdbc.version" value="12.4.1.jre11" />
+	<property name="postgresql.version" value="42.6.0" />
+	<property name="sqlite-jdbc.version" value="3.43.0.0" />
+	<property name="ojdbc11.version" value="23.3.0.23.09" />
+	<property name="orai18n.version" value="23.3.0.23.09" />
+	<property name="derby.version" value="10.16.1.1" />
+
+	<available file="lib_db/mariadb-java-client-${mariadb-java-client.version}.jar" property="mariadb-java-client.available" />
+	<target name="get_mariadb_java_client" unless="mariadb-java-client.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="mariadb-java-client-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/${mariadb-java-client.version}/mariadb-java-client-${mariadb-java-client.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/mysql-connector-j-${mysql-connector-j.version}.jar" property="mysql-connector-j.available" />
+	<target name="get_mysql_connector_j" unless="mysql-connector-j.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="mysql-connector-j-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/${mysql-connector-j.version}/mysql-connector-j-${mysql-connector-j.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/hsqldb-${hsqldb.version}.jar" property="hsqldb.available" />
+	<target name="get_hsqldb" unless="hsqldb.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="hsqldb-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/hsqldb/hsqldb/${hsqldb.version}/hsqldb-${hsqldb.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/mssql-jdbc-${mssql-jdbc.version}.jar" property="mssql-jdbc.available" />
+	<target name="get_mssql_jdbc" unless="mssql-jdbc.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="mssql-jdbc-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/${mssql-jdbc.version}/mssql-jdbc-${mssql-jdbc.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/postgresql-${postgresql.version}.jar" property="postgresql.available" />
+	<target name="get_postgresql" unless="postgresql.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="postgresql-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/postgresql/postgresql/${postgresql.version}/postgresql-${postgresql.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/sqlite-jdbc-${sqlite-jdbc.version}.jar" property="sqlite-jdbc.available" />
+	<target name="get_sqlite_jdbc" unless="sqlite-jdbc.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="sqlite-jdbc-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/${sqlite-jdbc.version}/sqlite-jdbc-${sqlite-jdbc.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/ojdbc11-${ojdbc11.version}.jar" property="ojdbc11.available" />
+	<target name="get_ojdbc11" unless="ojdbc11.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="ojdbc11-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc11/${ojdbc11.version}/ojdbc11-${ojdbc11.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/orai18n-${orai18n.version}.jar" property="orai18n.available" />
+	<target name="get_orai18n" unless="orai18n.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="orai18n-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/com/oracle/database/nls/orai18n/${orai18n.version}/orai18n-${orai18n.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/derby-${derby.version}.jar" property="derby.available" />
+	<target name="get_derby" unless="derby.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="derby-*.jar" excludes="derbyshared-*.jar, derbytools-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derby/${derby.version}/derby-${derby.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/derbyshared-${derby.version}.jar" property="derbyshared.available" />
+	<target name="get_derbyshared" unless="derbyshared.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="derbyshared-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbyshared/${derby.version}/derbyshared-${derby.version}.jar" dest="lib_db/" />
+	</target>
+
+	<available file="lib_db/derbytools-${derby.version}.jar" property="derbytools.available" />
+	<target name="get_derbytools" unless="derbytools.available">
+		<mkdir dir="lib_db/" />
+		<delete>
+			<fileset dir="lib_db" includes="derbytools-*.jar" />
+		</delete>
+		<get src="https://repo1.maven.org/maven2/org/apache/derby/derbytools/${derby.version}/derbytools-${derby.version}.jar" dest="lib_db/" />
+	</target>
+
+	<target name="download_dbconnectors" depends="get_mariadb_java_client, get_mysql_connector_j, get_hsqldb, get_mssql_jdbc, get_postgresql, get_sqlite_jdbc, get_ojdbc11, get_orai18n, get_derby, get_derbyshared, get_derbytools" />
 
 	<target name="compile" depends="download_dependencies, download_dbconnectors">
 		<path id="build.classpath">
