@@ -20,11 +20,11 @@
 	<classpathentry kind="lib" path="lib/json-26.2.1.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-26.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/csv-26.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/network-26.0.27.jar"/>
+	<classpathentry kind="lib" path="lib/network-26.0.30.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.39.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.47.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
