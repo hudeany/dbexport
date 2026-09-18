@@ -33,14 +33,14 @@
 	<property name="poi.version" value="5.2.4" />
 	<property name="xmlbeans.version" value="5.1.1" />
 	<property name="zip4j.version" value="2.11.5" />
-	<property name="kdbx.version" value="26.1.0" />
-	<property name="csv.version" value="26.1.1" />
-	<property name="json.version" value="26.2.1" />
-	<property name="vcf.version" value="26.1.0" />
-	<property name="proxyautoconfig.version" value="26.1.0" />
-	<property name="network.version" value="26.0.30" />
-	<property name="dbutilities.version" value="26.1.1" />
-	<property name="soderer-utilities.version" value="26.2.48" />
+	<property name="kdbx.version" value="26.1.1" />
+	<property name="csv.version" value="26.1.2" />
+	<property name="json.version" value="26.2.3" />
+	<property name="vcf.version" value="26.1.1" />
+	<property name="proxyautoconfig.version" value="26.1.1" />
+	<property name="network.version" value="26.0.31" />
+	<property name="dbutilities.version" value="26.1.2" />
+	<property name="soderer-utilities.version" value="26.2.52" />
 	<property name="hamcrest.version" value="2.2" />
 	<property name="junit.version" value="4.13.2" />
 

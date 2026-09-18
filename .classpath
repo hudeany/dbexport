@@ -17,14 +17,14 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.4.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/zip4j-2.11.5.jar"/>
-	<classpathentry kind="lib" path="lib/json-26.2.1.jar"/>
-	<classpathentry kind="lib" path="lib/kdbx-26.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/csv-26.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/network-26.0.30.jar"/>
-	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/vcf-26.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/dbutilities-26.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.48.jar"/>
+	<classpathentry kind="lib" path="lib/json-26.2.3.jar"/>
+	<classpathentry kind="lib" path="lib/kdbx-26.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/csv-26.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/network-26.0.31.jar"/>
+	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/vcf-26.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/dbutilities-26.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.52.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
