@@ -91,19 +91,19 @@
 	</target>
 
 	<target name="download_dependencies" depends="proxy">
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.commons" artifactId="commons-collections4" version="${commons-collections4.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.commons" artifactId="commons-compress" version="${commons-compress.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="commons-io" artifactId="commons-io" version="${commons-io.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.commons" artifactId="commons-math3" version="${commons-math3.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="net.java.dev.jna" artifactId="jna" version="${jna.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.logging.log4j" artifactId="log4j-1.2-api" version="${log4j.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.logging.log4j" artifactId="log4j-api" version="${log4j.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.logging.log4j" artifactId="log4j-core" version="${log4j.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.poi" artifactId="poi" version="${poi.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.poi" artifactId="poi-ooxml-full" version="${poi.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="org.apache.xmlbeans" artifactId="xmlbeans" version="${xmlbeans.version}" />
-		<getDependency url="https://repo1.maven.org/maven2" groupId="net.lingala.zip4j" artifactId="zip4j" version="${zip4j.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-collections4" version="${commons-collections4.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-compress" version="${commons-compress.version}" />
+		<getMavenDependency groupId="commons-io" artifactId="commons-io" version="${commons-io.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-math3" version="${commons-math3.version}" />
+		<getMavenDependency groupId="net.java.dev.jna" artifactId="jna" version="${jna.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-1.2-api" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-api" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-core" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml-full" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.xmlbeans" artifactId="xmlbeans" version="${xmlbeans.version}" />
+		<getMavenDependency groupId="net.lingala.zip4j" artifactId="zip4j" version="${zip4j.version}" />
 
 		<getDependency name="kdbx" version="${kdbx.version}" url="https://github.com/hudeany/kdbx/releases/download/{version}/kdbx-{version}.jar" />
 		<getDependency name="csv" version="${csv.version}" url="https://github.com/hudeany/csv/releases/download/{version}/csv-{version}.jar" />
@@ -113,26 +113,26 @@
 		<getDependency name="network" version="${network.version}" url="https://github.com/hudeany/network/releases/download/{version}/network-{version}.jar" />
 		<getDependency name="dbutilities" version="${dbutilities.version}" url="https://github.com/hudeany/DbUtilities/releases/download/{version}/dbutilities-{version}.jar" />
 
-		<getDependency url="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" />
-		<getDependency url="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" classifier="sources" />
+		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" />
+		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" classifier="sources" />
 
-		<getDependency libDir="lib_test" url="https://repo1.maven.org/maven2" groupId="org.hamcrest" artifactId="hamcrest" version="${hamcrest.version}" />
-		<getDependency libDir="lib_test" url="https://repo1.maven.org/maven2" groupId="org.hamcrest" artifactId="hamcrest-core" version="${hamcrest.version}" />
-		<getDependency libDir="lib_test" url="https://repo1.maven.org/maven2" groupId="junit" artifactId="junit" version="${junit.version}" />
+		<getMavenDependency libDir="lib_test" groupId="org.hamcrest" artifactId="hamcrest" version="${hamcrest.version}" />
+		<getMavenDependency libDir="lib_test" groupId="org.hamcrest" artifactId="hamcrest-core" version="${hamcrest.version}" />
+		<getMavenDependency libDir="lib_test" groupId="junit" artifactId="junit" version="${junit.version}" />
 	</target>
 
 	<target name="download_dbconnectors" depends="proxy">
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.mariadb.jdbc" artifactId="mariadb-java-client" version="${mariadb-java-client.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="com.mysql" artifactId="mysql-connector-j" version="${mysql-connector-j.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.hsqldb" artifactId="hsqldb" version="${hsqldb.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="com.microsoft.sqlserver" artifactId="mssql-jdbc" version="${mssql-jdbc.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.postgresql" artifactId="postgresql" version="${postgresql.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.xerial" artifactId="sqlite-jdbc" version="${sqlite-jdbc.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="com.oracle.database.jdbc" artifactId="ojdbc11" version="${ojdbc11.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="com.oracle.database.nls" artifactId="orai18n" version="${orai18n.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.apache.derby" artifactId="derby" version="${derby.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.apache.derby" artifactId="derbyshared" version="${derby.version}" />
-		<getDependency libDir="lib_db" url="https://repo1.maven.org/maven2" groupId="org.apache.derby" artifactId="derbytools" version="${derby.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.mariadb.jdbc" artifactId="mariadb-java-client" version="${mariadb-java-client.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.mysql" artifactId="mysql-connector-j" version="${mysql-connector-j.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.hsqldb" artifactId="hsqldb" version="${hsqldb.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.microsoft.sqlserver" artifactId="mssql-jdbc" version="${mssql-jdbc.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.postgresql" artifactId="postgresql" version="${postgresql.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.xerial" artifactId="sqlite-jdbc" version="${sqlite-jdbc.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.jdbc" artifactId="ojdbc11" version="${ojdbc11.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.nls" artifactId="orai18n" version="${orai18n.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derby" version="${derby.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbyshared" version="${derby.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbytools" version="${derby.version}" />
 	</target>
 
 	<target name="compile" depends="download_dependencies, download_dbconnectors">
