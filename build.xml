@@ -18,7 +18,7 @@
 	<property name="proxyautoconfig.version" value="26.1.1" />
 	<property name="network.version" value="26.0.31" />
 	<property name="dbutilities.version" value="26.1.2" />
-	<property name="soderer-utilities.version" value="26.2.73" />
+	<property name="soderer-utilities.version" value="26.2.75" />
 	<property name="hamcrest.version" value="2.2" />
 	<property name="junit.version" value="4.13.2" />
 
