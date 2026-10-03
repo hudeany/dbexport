@@ -178,7 +178,7 @@
 
 			<zipfileset file="${CaPublicKey}" />
 			<zipfileset file="${CaPublicKeyOld}" />
-			<zipfileset dir="lib" includes="*.jar" excludes="*sources.jar" />
+			<zipfileset dir="lib" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="src/main/resources" includes="DbExport_Icon.png" />
 			<zipfileset dir="src/main/resources" includes="DbExport.ico" />
@@ -195,7 +195,7 @@
 
 			<zipfileset file="${CaPublicKey}" />
 			<zipfileset file="${CaPublicKeyOld}" />
-			<zipfileset dir="lib" includes="*.jar" excludes="*sources.jar" />
+			<zipfileset dir="lib" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
 			<zipfileset dir="lib_db" includes="*.jar" />
 			<zipfileset dir="src/main/resources" includes="DbExport_Icon.png" />
 			<zipfileset dir="src/main/resources" includes="DbExport.ico" />
