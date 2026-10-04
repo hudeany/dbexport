@@ -24,7 +24,7 @@
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.3.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.3.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.4.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.92.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.93.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
