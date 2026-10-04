@@ -21,7 +21,7 @@
 	<classpathentry kind="lib" path="lib/kdbx-26.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/csv-26.1.8.jar"/>
 	<classpathentry kind="lib" path="lib/network-26.0.33.jar"/>
-	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.3.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.3.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.91.jar"/>
