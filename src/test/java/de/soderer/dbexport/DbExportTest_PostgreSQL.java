@@ -451,6 +451,7 @@ public class DbExportTest_PostgreSQL {
 					+ "						\"name\": \"id\",\n"
 					+ "						\"datatype\": \"Integer\",\n"
 					+ "						\"nullable\": false,\n"
+					+ "						\"defaultvalue\": \"nextval('test_tbl_id_seq'::regclass)\",\n"
 					+ "						\"databasevendorspecific_datatype\": \"integer\"\n"
 					+ "					},\n"
 					+ "					{\n"
