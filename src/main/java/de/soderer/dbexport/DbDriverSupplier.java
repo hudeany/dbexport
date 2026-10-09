@@ -18,10 +18,26 @@ import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.swing.QuestionDialog;
 import de.soderer.utilities.swing.SwingColor;
 
+/**
+ * Makes sure, that the JDBC driver of a database vendor is available.
+ *
+ * <p>
+ * If the driver is not on the class path, the driver jar file configured in the configuration file is loaded.
+ * If there is none, the user is asked for the driver jar file (via a file dialog in the GUI or on the console)
+ * and the chosen file is stored in the configuration file.
+ * </p>
+ */
 public class DbDriverSupplier {
 	private final Window parent;
 	private final DbVendor dbVendor;
 
+	/**
+	 * Creates a driver supplier.
+	 *
+	 * @param parent parent window for the dialogs, or null to ask on the console
+	 * @param dbVendor the database vendor, whose driver is needed
+	 * @throws Exception if no database vendor is given
+	 */
 	public DbDriverSupplier(final Window parent, final DbVendor dbVendor) throws Exception {
 		if (dbVendor == null) {
 			throw new Exception("Invalid empty database vendor");
@@ -31,6 +47,14 @@ public class DbDriverSupplier {
 		this.dbVendor = dbVendor;
 	}
 
+	/**
+	 * Makes the JDBC driver available, if it is not yet.
+	 *
+	 * @param applicationName application name shown in the dialogs
+	 * @param configurationFile configuration file, which contains the path of the driver jar file
+	 * @return true if the driver is available, false if the user canceled the selection of a driver file
+	 * @throws Exception if the configuration file cannot be read or written
+	 */
 	public boolean supplyDriver(final String applicationName, final File configurationFile) throws Exception {
 		if (checkDriverIsAvailable()) {
 			return true;
@@ -83,7 +107,7 @@ public class DbDriverSupplier {
 		try {
 			if (dbVendor == DbVendor.Derby) {
 				// Prevent creation of file "derby.log"
-				System.setProperty("derby.stream.error.field", "de.soderer.utilities.DbUtilities.DEV_NULL");
+				System.setProperty("derby.stream.error.field", "de.soderer.utilities.db.DbUtilities.DEV_NULL");
 			}
 
 			Class.forName(dbVendor.getDriverClassName());
@@ -123,6 +147,7 @@ public class DbDriverSupplier {
 	private String getDriverFilePathFromConfigFile(final File configurationFile) throws Exception {
 		final SectionedProperties configuration = new SectionedProperties(true);
 		if (!configurationFile.exists()) {
+			createParentDirectory(configurationFile);
 			// Create prefilled configuration file
 			for (final DbVendor vendorToCreate : DbVendor.values()) {
 				configuration.setValue(vendorToCreate.toString().toLowerCase(), "driver_location", "");
@@ -153,6 +178,16 @@ public class DbDriverSupplier {
 	}
 
 	/**
+	 * Creates the directory of the configuration file ("~/.DbExport"), which does not exist on a fresh installation.
+	 */
+	private static void createParentDirectory(final File configurationFile) throws Exception {
+		final File directory = configurationFile.getAbsoluteFile().getParentFile();
+		if (directory != null && !directory.isDirectory() && !directory.mkdirs()) {
+			throw new Exception("Cannot create directory '" + directory.getAbsolutePath() + "'");
+		}
+	}
+
+	/**
 	 * Save data to configuration file
 	 *
 	 * @param dbVendor
@@ -162,6 +197,7 @@ public class DbDriverSupplier {
 	private void writeDriverFilePathToConfigFile(final File configurationFile, final String driverFilePath) throws Exception {
 		final SectionedProperties configuration = new SectionedProperties(true);
 		if (!configurationFile.exists()) {
+			createParentDirectory(configurationFile);
 			// Create prefilled configuration file
 			for (final DbVendor vendorToCreate : DbVendor.values()) {
 				if (vendorToCreate == dbVendor) {

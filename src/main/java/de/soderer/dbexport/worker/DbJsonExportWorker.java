@@ -14,11 +14,23 @@ import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+/**
+ * Export worker for JSON data (an array of objects).
+ */
 public class DbJsonExportWorker extends AbstractDbExportWorker {
 	private JsonWriter jsonWriter = null;
 
 	private String indentation = "\t";
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbJsonExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 
@@ -26,6 +38,11 @@ public class DbJsonExportWorker extends AbstractDbExportWorker {
 		setDateTimeFormat(DateUtilities.ISO_8601_DATETIME_FORMAT_NO_TIMEZONE);
 	}
 
+	/**
+	 * Sets the indentation of beautified output. Default is a tab.
+	 *
+	 * @param indentation the indentation string
+	 */
 	public void setIndentation(final String indentation) {
 		this.indentation = indentation;
 	}

@@ -11,6 +11,8 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
@@ -18,6 +20,9 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+/**
+ * Export worker for SQL insert statements. The table name is taken from the FROM clause of the exported statement.
+ */
 public class DbSqlExportWorker extends AbstractDbExportWorker {
 	private Writer fileWriter = null;
 
@@ -27,6 +32,15 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 
 	private List<String> values = null;
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbSqlExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
@@ -70,14 +84,16 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	protected void startOutput(final Connection connection, final String sqlStatement, final List<String> columnNames) throws Exception {
-		fileWriter.write("--" + sqlStatement + "\n");
+		// Each line of the statement as comment (before, only the first line was commented out, so the further lines
+		// of a multi line statement were executed on import)
+		for (final String statementLine : sqlStatement.split("\r\n|\r|\n")) {
+			fileWriter.write("--" + statementLine + "\n");
+		}
 
-		final int fromIndex = sqlStatement.toUpperCase().indexOf(" FROM ");
-		if (fromIndex >= 0) {
-			tableName = sqlStatement.substring(fromIndex + 6).trim();
-			if (tableName.contains(" ")) {
-				tableName = tableName.substring(0, tableName.indexOf(" "));
-			}
+		// FROM may also be surrounded by line breaks or tabs
+		final Matcher fromMatcher = Pattern.compile("\\sFROM\\s+([^\\s,;()]+)", Pattern.CASE_INSENSITIVE).matcher(sqlStatement);
+		if (fromMatcher.find()) {
+			tableName = fromMatcher.group(1);
 		} else {
 			tableName = "export_tbl";
 		}

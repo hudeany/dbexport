@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingUtilities;
@@ -55,15 +56,24 @@ import de.soderer.utilities.worker.WorkerParentDual;
 public class DbExport extends UpdateableConsoleApplication implements WorkerParentDual {
 	/** The Constant APPLICATION_NAME. */
 	public static final String APPLICATION_NAME = "DbExport";
+	/**
+	 * Name of the startup class used for the application update.
+	 */
 	public static final String APPLICATION_STARTUPCLASS_NAME = "de-soderer-DbExport";
 
 	/** The Constant VERSION_RESOURCE_FILE, which contains version number and versioninfo download url. */
 	public static final String VERSION_RESOURCE_FILE = "/version.txt";
 
+	/**
+	 * Resource file containing the help text.
+	 */
 	public static final String HELP_RESOURCE_FILE = "/help.txt";
 
 	/** The Constant CONFIGURATION_FILE. */
 	public static final File CONFIGURATION_FILE = new File(System.getProperty("user.home") + File.separator + "." + APPLICATION_NAME + File.separator + "." + APPLICATION_NAME + ".config");
+	/**
+	 * Property name of the driver file path in the configuration file.
+	 */
 	public static final String CONFIGURATION_DRIVERLOCATIONPROPERTYNAME = "driver_location";
 
 	/** The Constant SECURE_PREFERENCES_FILE. */
@@ -85,12 +95,28 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	private static String getUsageMessage() {
 		try (InputStream helpInputStream = DbExport.class.getResourceAsStream(HELP_RESOURCE_FILE)) {
 			return "DbExport (by Andreas Soderer, mail: dbexport@soderer.de)\n"
-					+ "VERSION: " + VERSION.toString() + " (" + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, VERSION_BUILDTIME) + ")" + "\n\n"
+					+ "VERSION: " + VERSION.toString() + getBuildTimeText() + "\n\n"
 					+ new String(IoUtilities.toByteArray(helpInputStream), StandardCharsets.UTF_8);
 		} catch (@SuppressWarnings("unused") final Exception e) {
 			return "Help info is missing";
 		}
 	}
+
+	/**
+	 * Returns the build time for the version output, e.g. " (2026-10-07 10:50:48)".
+	 *
+	 * @return the formatted build time in brackets, or an empty string, if the version file contains no build time
+	 */
+	public static String getBuildTimeText() {
+		// The build time is optional in version.txt, so it must not break the help output
+		return VERSION_BUILDTIME == null ? "" : " (" + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, VERSION_BUILDTIME) + ")";
+	}
+
+	/** Lower case keywords for the help text, only recognized as single argument */
+	private static final Set<String> HELP_KEYWORDS = Set.of("help", "-help", "--help", "-h", "--h", "-?", "--?");
+
+	/** Lower case flags only known by the connection test parameters (see menu mode parsing in _main) */
+	private static final Set<String> CONNECTION_TEST_FLAGS = Set.of("-iter", "-sleep", "-check");
 
 	/** The database csv export definition. */
 	private DbExportDefinition dbExportDefinitionToExecute;
@@ -113,10 +139,10 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 	}
 
 	/**
-	 * Method used for main but with no System.exit call to make it junit testable
+	 * Method used for main but with no System.exit call to make it junit testable.
 	 *
-	 * @param arguments
-	 * @return
+	 * @param args the command line arguments
+	 * @return the exit code (0 for success, 1 for errors), or a negative value if the application keeps running (GUI)
 	 */
 	protected static int _main(final String[] args) {
 		ApplicationUpdateUtilities.removeUpdateLeftovers();
@@ -173,74 +199,41 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				} else {
 					openGui = true;
 				}
+			} else if (arguments.length == 1 && HELP_KEYWORDS.contains(arguments[0].toLowerCase(Locale.ROOT))) {
+				// Only as single argument, otherwise e.g. a table name, username or password "help" showed the help text
+				System.out.println(getUsageMessage());
+				return 1;
+			} else if (arguments.length == 1 && "ConsoleType".equalsIgnoreCase(arguments[0])) {
+				System.out.println("ConsoleType: " + ConsoleUtilities.getConsoleType());
+				return 1;
+			} else if (arguments.length == 1 && "version".equalsIgnoreCase(arguments[0])) {
+				System.out.println(VERSION);
+				return 1;
 			} else {
-				for (int i = 0; i < arguments.length; i++) {
-					if ("help".equalsIgnoreCase(arguments[i]) || "-help".equalsIgnoreCase(arguments[i]) || "--help".equalsIgnoreCase(arguments[i]) || "-h".equalsIgnoreCase(arguments[i]) || "--h".equalsIgnoreCase(arguments[i])
-							|| "-?".equalsIgnoreCase(arguments[i]) || "--?".equalsIgnoreCase(arguments[i])) {
-						System.out.println(getUsageMessage());
-						return 1;
-					} else if ("ConsoleType".equalsIgnoreCase(arguments[i])) {
-						System.out.println("ConsoleType: " + ConsoleUtilities.getConsoleType());
-						return 1;
-					} else if ("version".equalsIgnoreCase(arguments[i]) && arguments.length == 1) {
-						System.out.println(VERSION);
-						return 1;
-					} else if ("update".equalsIgnoreCase(arguments[i]) && i == 0 && arguments.length <= 3) {
-						if (arguments.length > i + 2) {
-							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], arguments[i + 2].toCharArray(), null, false, false);
-						} else if (arguments.length > i + 1) {
-							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, arguments[i + 1], null, null, false, false);
-						} else {
-							final DbExport dbExport = new DbExport();
-							ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, null, false, false);
-						}
-						return 1;
-					} else if ("gui".equalsIgnoreCase(arguments[i])) {
-						if (GraphicsEnvironment.isHeadless()) {
-							throw new DbExportException("GUI can only be shown on a non-headless environment");
-						}
-						openGui = true;
-						if (openMenu) {
-							throw new DbExportException("Only one of gui or menu can be opend at a time");
-						} else if (connectionTest) {
-							throw new DbExportException("Only one of gui or connection test can be used at a time");
-						} else if (createTrustStore) {
-							throw new DbExportException("Only one of gui or create truststore can be used at a time");
-						}
-						arguments = Utilities.removeItemAtIndex(arguments, i--);
-					} else if ("menu".equalsIgnoreCase(arguments[i])) {
-						openMenu = true;
-						if (openGui) {
-							throw new DbExportException("Only one of menu or gui can be opend at a time");
-						} else if (connectionTest) {
-							throw new DbExportException("Only one of menu or connection test can be used at a time");
-						} else if (createTrustStore) {
-							throw new DbExportException("Only one of menu or create truststore can be used at a time");
-						}
-						arguments = Utilities.removeItemAtIndex(arguments, i--);
-					} else if ("connectiontest".equalsIgnoreCase(arguments[i])) {
-						connectionTest = true;
-						if (openGui) {
-							throw new DbExportException("Only one of connection test or gui can be used at a time");
-						} else if (openMenu) {
-							throw new DbExportException("Only one of connection test or menu can be used at a time");
-						} else if (createTrustStore) {
-							throw new DbExportException("Only one of connection test or create truststore can be used at a time");
-						}
-						arguments = Utilities.removeItemAtIndex(arguments, i--);
-					} else if ("createtruststore".equalsIgnoreCase(arguments[i])) {
-						createTrustStore = true;
-						if (openGui) {
-							throw new DbExportException("Only one of create truststore or gui can be used at a time");
-						} else if (connectionTest) {
-							throw new DbExportException("Only one of create truststore or connection test can be used at a time");
-						} else if (openMenu) {
-							throw new DbExportException("Only one of create truststore or menu can be used at a time");
-						}
-						arguments = Utilities.removeItemAtIndex(arguments, i--);
+				// The mode keywords are only recognized as first argument. Before, they were recognized at any position,
+				// so e.g. a password, username or table name "menu" or "gui" changed the mode and was removed from the arguments.
+				final String modeKeyword = arguments[0].toLowerCase(Locale.ROOT);
+				if ("update".equals(modeKeyword) && arguments.length <= 3) {
+					final DbExport dbExport = new DbExport();
+					final String username = arguments.length > 1 ? arguments[1] : null;
+					final char[] password = arguments.length > 2 ? arguments[2].toCharArray() : null;
+					ApplicationUpdateUtilities.executeUpdate(dbExport, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, username, password, null, false, false);
+					return 1;
+				} else if ("gui".equals(modeKeyword)) {
+					if (GraphicsEnvironment.isHeadless()) {
+						throw new DbExportException("GUI can only be shown on a non-headless environment");
 					}
+					openGui = true;
+					arguments = Utilities.removeItemAtIndex(arguments, 0);
+				} else if ("menu".equals(modeKeyword)) {
+					openMenu = true;
+					arguments = Utilities.removeItemAtIndex(arguments, 0);
+				} else if ("connectiontest".equals(modeKeyword)) {
+					connectionTest = true;
+					arguments = Utilities.removeItemAtIndex(arguments, 0);
+				} else if ("createtruststore".equals(modeKeyword)) {
+					createTrustStore = true;
+					arguments = Utilities.removeItemAtIndex(arguments, 0);
 				}
 			}
 
@@ -251,7 +244,15 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			for (int i = 0; i < arguments.length; i++) {
 				boolean wasAllowedParam = createTrustStore;
 
+				// In menu mode the export and connection test parameters are both read from the same arguments.
+				// A flag handled by the export parameters (including its value, which advances "i") must not be taken
+				// as a positional parameter (vendor, host, ...) of the connection test parameters and vice versa.
+				final int startIndex = i;
+				final boolean isConnectionTestFlag = CONNECTION_TEST_FLAGS.contains(arguments[i].toLowerCase(Locale.ROOT));
+				boolean exportFlagHandled = false;
+
 				if (!connectionTest && !createTrustStore) {
+					boolean positionalParameter = false;
 					if ("-x".equalsIgnoreCase(arguments[i])) {
 						i++;
 						if (i >= arguments.length) {
@@ -493,7 +494,16 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 							dbExportDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
 						}
 						wasAllowedParam = true;
-					} else {
+					} else if ("-createOutputDirectoyIfNotExists".equalsIgnoreCase(arguments[i])) {
+						// Documented in help.txt and generated by toParamsString(), but was not accepted
+						dbExportDefinition.setCreateOutputDirectoyIfNotExists(true);
+						wasAllowedParam = true;
+					} else if ("-replaceAlreadyExistingFiles".equalsIgnoreCase(arguments[i])) {
+						// Documented in help.txt and generated by toParamsString(), but was not accepted
+						dbExportDefinition.setReplaceAlreadyExistingFiles(true);
+						wasAllowedParam = true;
+					} else if (!(openMenu && isConnectionTestFlag)) {
+						positionalParameter = true;
 						if (dbExportDefinition.getDbVendor() == null) {
 							dbExportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
@@ -511,14 +521,15 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 							wasAllowedParam = true;
 						}
 					}
+					exportFlagHandled = wasAllowedParam && !positionalParameter;
 				}
 
-				if (openMenu || connectionTest) {
+				if ((openMenu || connectionTest) && i == startIndex && !exportFlagHandled) {
 					if ("-iter".equalsIgnoreCase(arguments[i])) {
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter for connectiontest iterations");
-						} else if (!NumberUtilities.isInteger(arguments[i])) {
+						} else if (!NumberUtilities.isInteger(arguments[i]) || Integer.parseInt(arguments[i]) < 0) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for connectiontest iterations");
 						} else {
 							connectionTestDefinition.setIterations(Integer.parseInt(arguments[i]));
@@ -528,7 +539,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter for connectiontest sleep time");
-						} else if (!NumberUtilities.isInteger(arguments[i])) {
+						} else if (!NumberUtilities.isInteger(arguments[i]) || Integer.parseInt(arguments[i]) < 0) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for connectiontest sleep time");
 						} else {
 							connectionTestDefinition.setSleepTime(Integer.parseInt(arguments[i]));
@@ -587,7 +598,12 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			}
 
 			if (createTrustStore) {
-				TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null, null);
+				// The TrustStore password is optional (before, it failed with an ArrayIndexOutOfBoundsException without it)
+				if (arguments.length < 2 || arguments.length > 3) {
+					throw new ParameterException("createtruststore", "Expected parameters: hostname[:port] truststorefilePath [truststorepassword]");
+				}
+				final char[] trustStorePassword = arguments.length > 2 && Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null;
+				TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), trustStorePassword, null);
 				System.out.println();
 				System.out.println("Created TrustStore in file '" + arguments[1] + "'");
 				return 0;
@@ -602,18 +618,17 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				final ConsoleMenu mainMenu = new ConsoleMenu(APPLICATION_NAME + " (v" + VERSION.toString() + ")");
 				final ExportMenu exportMenu = new ExportMenu(mainMenu);
 				exportMenu.setDbExportDefinition(dbExportDefinition);
+				// Both menus edit the same definition, which is used below for the connection test (-2) and the TrustStore
+				// creation (-5). Before, it was only passed to them for "connectiontest"/"createtruststore", which cannot be
+				// combined with "menu", so both actions were executed with an empty definition.
 				final ConnectionTestMenu connectionTestMenu = new ConnectionTestMenu(mainMenu, exportMenu.getDbExportDefinition());
-				if (connectionTest) {
-					connectionTestMenu.setConnectionTestDefinition(connectionTestDefinition);
-				}
+				connectionTestMenu.setConnectionTestDefinition(connectionTestDefinition);
 
 				@SuppressWarnings("unused")
 				final PreferencesMenu preferencesMenu = new PreferencesMenu(mainMenu, exportMenu.getDbExportDefinition());
 
 				final CreateTrustStoreMenu createTrustStoreMenu = new CreateTrustStoreMenu(mainMenu, exportMenu.getDbExportDefinition());
-				if (createTrustStore) {
-					createTrustStoreMenu.setConnectionTestDefinition(connectionTestDefinition);
-				}
+				createTrustStoreMenu.setConnectionTestDefinition(connectionTestDefinition);
 				@SuppressWarnings("unused")
 				final UpdateMenu updateMenu = new UpdateMenu(mainMenu);
 				@SuppressWarnings("unused")
@@ -716,7 +731,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			System.err.println(getUsageMessage());
 			return 1;
 		} catch (final Exception e) {
-			System.err.println(e.getMessage());
+			System.err.println(e.getMessage() != null ? e.getMessage() : e.toString());
 			return 1;
 		}
 	}
@@ -743,7 +758,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			worker = dbExportDefinition.getConfiguredWorker(this);
 
 			if (dbExportDefinition.isVerbose()) {
-				System.out.println(worker.getConfigurationLogString(new File(dbExportDefinition.getOutputpath()).getName(), dbExportDefinition.getSqlStatementOrTablelist())
+				final String outputFileName = dbExportDefinition.getOutputpath() == null ? "" : new File(dbExportDefinition.getOutputpath()).getName();
+				System.out.println(worker.getConfigurationLogString(outputFileName, dbExportDefinition.getSqlStatementOrTablelist())
 						+ (Utilities.isNotBlank(dbExportDefinition.getDateFormat()) ? "DateFormatPattern: " + dbExportDefinition.getDateFormat() + "\n" : "")
 						+ (Utilities.isNotBlank(dbExportDefinition.getDateTimeFormat()) ? "DateTimeFormatPattern: " + dbExportDefinition.getDateTimeFormat() + "\n" : "")
 						+ (dbExportDefinition.getDatabaseTimeZone() != null && !dbExportDefinition.getDatabaseTimeZone().equals(dbExportDefinition.getExportDataTimeZone()) ? "DatabaseZoneId: " + dbExportDefinition.getDatabaseTimeZone() + "\nExportDataZoneId: " + dbExportDefinition.getExportDataTimeZone() + "\n" : ""));
@@ -862,28 +878,34 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		return returnCode;
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentSimple#showUnlimitedProgress()
+	/**
+	 * Signals progress with an unknown total amount. Nothing is shown on the console.
 	 */
 	@Override
 	public void receiveUnlimitedProgressSignal() {
 		// Do nothing
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentDual#showUnlimitedSubProgress()
+	/**
+	 * Signals sub progress with an unknown total amount. Nothing is shown on the console.
 	 */
 	@Override
 	public void receiveUnlimitedSubProgressSignal() {
 		// Do nothing
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentSimple#showProgress(java.util.Date, long, long)
+	/**
+	 * Shows the progress of the export on the console (verbose mode only): a progress bar for a single statement,
+	 * otherwise the number of the table being exported.
+	 *
+	 * @param start start time of the export
+	 * @param itemsToDo amount of data lines (single statement) or tables to export
+	 * @param itemsDone amount of data lines or tables exported so far
+	 * @param itemsUnitSign unit sign of the amounts, or null for data items
 	 */
 	@Override
 	public void receiveProgressSignal(final LocalDateTime start, final long itemsToDo, final long itemsDone, final String itemsUnitSign) {
-		if (dbExportDefinitionToExecute.isVerbose()) {
+		if (isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
@@ -921,8 +943,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentDual#showItemStart(java.lang.String)
+	/**
+	 * Shows the start of the export of a single table on the console.
+	 *
+	 * @param itemName name of the exported table
+	 * @param description description of the export (unused)
 	 */
 	@Override
 	public void receiveItemStartSignal(final String itemName, final String description) {
@@ -933,12 +958,17 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentDual#showItemProgress(java.util.Date, long, long)
+	/**
+	 * Shows the progress bar of the export of a single table on the console (verbose mode only).
+	 *
+	 * @param itemStart start time of the export of the table
+	 * @param subItemToDo amount of data lines to export from the table
+	 * @param subItemDone amount of data lines exported so far
+	 * @param itemsUnitSign unit sign of the amounts, or null for data lines
 	 */
 	@Override
 	public void receiveItemProgressSignal(final LocalDateTime itemStart, final long subItemToDo, final long subItemDone, final String itemsUnitSign) {
-		if (dbExportDefinitionToExecute.isVerbose()) {
+		if (isVerbose()) {
 			if (ConsoleUtilities.getConsoleType() == ConsoleType.ANSI) {
 				int currentTerminalWidth;
 				try {
@@ -967,9 +997,18 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
+	/**
+	 * Shows the summary of the export of a single table on the console (verbose mode only).
+	 *
+	 * @param itemStart start time of the export of the table
+	 * @param itemEnd end time of the export of the table
+	 * @param subItemsDone amount of exported data lines
+	 * @param itemsUnitSign unit sign of the amount, or null for data lines
+	 * @param resultText result text of the export of the table (unused)
+	 */
 	@Override
 	public void receiveItemDoneSignal(final LocalDateTime itemStart, final LocalDateTime itemEnd, final long subItemsDone, final String itemsUnitSign, final String resultText) {
-		if (dbExportDefinitionToExecute.isVerbose()) {
+		if (isVerbose()) {
 			int currentTerminalWidth;
 			try {
 				currentTerminalWidth = ConsoleUtilities.getTerminalSize().getWidth();
@@ -981,9 +1020,18 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
+	/**
+	 * Shows the summary of the export on the console (verbose mode only).
+	 *
+	 * @param start start time of the export
+	 * @param end end time of the export
+	 * @param itemsDone amount of exported data lines (single statement) or tables
+	 * @param itemsUnitSign unit sign of the amount, or null for data items
+	 * @param resultText result text of the export (unused)
+	 */
 	@Override
 	public void receiveDoneSignal(final LocalDateTime start, final LocalDateTime end, final long itemsDone, final String itemsUnitSign, final String resultText) {
-		if (dbExportDefinitionToExecute.isVerbose()) {
+		if (isVerbose()) {
 			if (dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select ")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\t")
 					|| dbExportDefinitionToExecute.getSqlStatementOrTablelist().toLowerCase().startsWith("select\n")
@@ -1005,8 +1053,18 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see de.soderer.utilities.WorkerParentSimple#cancel()
+	/**
+	 * The worker signals are also received while no export runs (e.g. as parent of the application update),
+	 * so the definition to execute may still be null.
+	 */
+	private boolean isVerbose() {
+		return dbExportDefinitionToExecute != null && dbExportDefinitionToExecute.isVerbose();
+	}
+
+	/**
+	 * Signals the cancellation of the export on the console.
+	 *
+	 * @return always true
 	 */
 	@Override
 	public boolean cancel() {
@@ -1014,6 +1072,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		return true;
 	}
 
+	/**
+	 * Title changes are not shown on the console.
+	 *
+	 * @param text the new title
+	 */
 	@Override
 	public void changeTitle(final String text) {
 		// Do nothing

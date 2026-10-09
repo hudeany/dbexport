@@ -3,10 +3,10 @@ package de.soderer.dbexport.console;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,21 +24,46 @@ import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
 import de.soderer.utilities.db.data.DbVendor;
 
+/**
+ * Console menu to configure and start a data export.
+ */
 public class ExportMenu extends ConsoleMenu {
 	private DbExportDefinition dbExportDefinition = new DbExportDefinition();
 
+	/**
+	 * Returns the export definition edited by this menu.
+	 *
+	 * @return the export definition
+	 */
 	public DbExportDefinition getDbExportDefinition() {
 		return dbExportDefinition;
 	}
 
+	/**
+	 * Sets the export definition to edit in this menu.
+	 *
+	 * @param dbExportDefinition the export definition
+	 */
 	public void setDbExportDefinition(final DbExportDefinition dbExportDefinition) {
 		this.dbExportDefinition = dbExportDefinition;
 	}
 
+	/**
+	 * Creates the menu.
+	 *
+	 * @param parentMenu the parent menu
+	 * @throws Exception if the menu cannot be created
+	 */
 	public ExportMenu(final ConsoleMenu parentMenu) throws Exception {
 		super(parentMenu, "Export data");
 	}
 
+	/**
+	 * Shows the menu in a loop until the user leaves it or starts the export.
+	 *
+	 * @return -1 to start the export, or 0 to return to the parent menu
+	 * @throws Exception if the console input or output fails
+	 */
 	@Override
 	public int show() throws Exception {
 		try {
@@ -163,7 +188,8 @@ public class ExportMenu extends ConsoleMenu {
 						return 0;
 					} else if (!"console".equalsIgnoreCase(choice) && new File(choice).exists() && new File(choice).isFile()) {
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Filepath already exist", TextColor.Light_red));
-					} else if (!"console".equalsIgnoreCase(choice) && !new File(choice).getParentFile().exists()) {
+					} else if (!"console".equalsIgnoreCase(choice) && !new File(choice).getAbsoluteFile().getParentFile().exists()) {
+						// Via the absolute file, a file name without directory has no parent and failed with a NullPointerException
 						System.out.println(ConsoleUtilities.getAnsiColoredText("Parent directory does not exist", TextColor.Light_red));
 					} else {
 						dbExportDefinition.setOutputpath(choice);
@@ -254,7 +280,8 @@ public class ExportMenu extends ConsoleMenu {
 				}
 				System.out.println("  " + Utilities.rightPad("e)", bulletSize) + " " + Utilities.rightPad("Output encoding:", nameSize) + dbExportDefinition.getEncoding());
 				autoCompletionStrings.add("e");
-				if (dbExportDefinition.getDataType() == DataType.CSV || dbExportDefinition.getDataType() == DataType.XML) {
+				// The CSV settings are only used for CSV (they were also offered for XML)
+				if (dbExportDefinition.getDataType() == DataType.CSV) {
 					System.out.println("  " + Utilities.rightPad("s)", bulletSize) + " " + Utilities.rightPad("CSV separator character:", nameSize) + dbExportDefinition.getSeparator());
 					autoCompletionStrings.add("s");
 					System.out.println("  " + Utilities.rightPad("q)", bulletSize) + " " + Utilities.rightPad("CSV string quote character:", nameSize) + dbExportDefinition.getStringQuote());
@@ -274,7 +301,7 @@ public class ExportMenu extends ConsoleMenu {
 				}
 				if (dbExportDefinition.getDataType() == DataType.KDBX) {
 					System.out.println("  " + Utilities.rightPad("kdbxpassword)", bulletSize) + " " + Utilities.rightPad("KDBX file password:", nameSize) + (dbExportDefinition.getKdbxPassword() == null ? "<empty>" : "***"));
-					autoCompletionStrings.add("Kdbxpassword");
+					autoCompletionStrings.add("kdbxpassword");
 				}
 				if (dbExportDefinition.getDbVendor() != DbVendor.SQLite) {
 					System.out.println("  " + Utilities.rightPad("f)", bulletSize) + " " + Utilities.rightPad("Number and datetime format locale:", nameSize) + dbExportDefinition.getDateFormatLocale());
@@ -284,7 +311,8 @@ public class ExportMenu extends ConsoleMenu {
 				autoCompletionStrings.add("blobfiles");
 				System.out.println("  " + Utilities.rightPad("clobfiles)", bulletSize) + " " + Utilities.rightPad("Create clob files:", nameSize) + dbExportDefinition.isCreateClobFiles());
 				autoCompletionStrings.add("clobfiles");
-				if (dbExportDefinition.getDataType() == DataType.CSV || dbExportDefinition.getDataType() == DataType.JSON) {
+				// Beautify is also supported for XML (see DbExportDefinition.checkParameters())
+				if (dbExportDefinition.getDataType() == DataType.CSV || dbExportDefinition.getDataType() == DataType.JSON || dbExportDefinition.getDataType() == DataType.XML) {
 					System.out.println("  " + Utilities.rightPad("beautify)", bulletSize) + " " + Utilities.rightPad("Beautify output:", nameSize) + dbExportDefinition.isBeautify());
 					autoCompletionStrings.add("beautify");
 				}
@@ -471,7 +499,8 @@ public class ExportMenu extends ConsoleMenu {
 					dbExportDefinition.setBeautify(!dbExportDefinition.isBeautify());
 				} else if ("structure".equalsIgnoreCase(choice)) {
 					if (dbExportDefinition.getExportStructureFilePath() == null) {
-						final String exportStructureFilePath = dbExportDefinition.getOutputpath() + File.separator + "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json";
+						// Only the file name, its directory is derived from the output path (see DbExportDefinition.getExportStructureFilePath())
+						final String exportStructureFilePath = "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json";
 						dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
 					} else {
 						dbExportDefinition.setExportStructureFilePath(null);
@@ -487,7 +516,8 @@ public class ExportMenu extends ConsoleMenu {
 							return 0;
 						} else {
 							try {
-								dbExportDefinition.setDatabaseTimeZone(TimeZone.getTimeZone(dbtzString).getID());
+								// TimeZone.getTimeZone() silently returns "GMT" for unknown IDs, ZoneId.of() rejects them
+								dbExportDefinition.setDatabaseTimeZone(ZoneId.of(dbtzString).getId());
 								break;
 							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + dbtzString, TextColor.Light_red));
@@ -505,7 +535,7 @@ public class ExportMenu extends ConsoleMenu {
 							return 0;
 						} else {
 							try {
-								dbExportDefinition.setExportDataTimeZone(TimeZone.getTimeZone(edtzString).getID());
+								dbExportDefinition.setExportDataTimeZone(ZoneId.of(edtzString).getId());
 								break;
 							} catch (@SuppressWarnings("unused") final Exception e) {
 								System.out.println(ConsoleUtilities.getAnsiColoredText("Unsupported timezone: " + edtzString, TextColor.Light_red));

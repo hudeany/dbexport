@@ -16,10 +16,22 @@ import de.soderer.utilities.vcf.VcfCard;
 import de.soderer.utilities.vcf.VcfWriter;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+/**
+ * Export worker for vCard data (VCF format). Each data line becomes a vCard.
+ */
 public class DbVcfExportWorker extends AbstractDbExportWorker {
 	private VcfWriter vcfWriter = null;
 	private Map<String, Object> currentVcfCardMap = null;
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbVcfExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 

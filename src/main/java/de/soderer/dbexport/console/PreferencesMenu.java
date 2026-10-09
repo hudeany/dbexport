@@ -15,18 +15,34 @@ import de.soderer.utilities.console.ConsoleUtilities;
 import de.soderer.utilities.console.PasswordConsoleInput;
 import de.soderer.utilities.console.SimpleConsoleInput;
 
+/**
+ * Console menu to load and store the connection parameters as preferences in the encrypted preferences file.
+ */
 public class PreferencesMenu extends ConsoleMenu {
 	private final ConnectionTestDefinition connectionTestDefinition = new ConnectionTestDefinition();
 	private DbExportDefinition dbExportDefinitionCache = null;
 	private SecureDataStore secureDataStore = null;
 	private char[] latestPassword = null;
 
+	/**
+	 * Creates the menu.
+	 *
+	 * @param parentMenu the parent menu
+	 * @param dbExportDefinitionCache export definition, whose connection parameters are stored or overwritten by loaded preferences
+	 * @throws Exception if the menu cannot be created
+	 */
 	public PreferencesMenu(final ConsoleMenu parentMenu, final DbExportDefinition dbExportDefinitionCache) throws Exception {
 		super(parentMenu, "Preferences");
 
 		this.dbExportDefinitionCache = dbExportDefinitionCache;
 	}
 
+	/**
+	 * Shows the menu in a loop until the user leaves it.
+	 *
+	 * @return 0 to return to the parent menu
+	 * @throws Exception if the console input or output fails
+	 */
 	@Override
 	public int show() throws Exception {
 		try {
@@ -157,6 +173,11 @@ public class PreferencesMenu extends ConsoleMenu {
 		}
 	}
 
+	/**
+	 * Returns the password of the preferences file entered last.
+	 *
+	 * @return a copy of the password, or null if none was entered yet
+	 */
 	public char[] getPassword() {
 		if (latestPassword == null) {
 			return null;
@@ -165,6 +186,11 @@ public class PreferencesMenu extends ConsoleMenu {
 		}
 	}
 
+	/**
+	 * Sets the password of the preferences file, so it does not need to be entered again.
+	 *
+	 * @param password the password of the preferences file
+	 */
 	public void setPassword(final char[] password) {
 		latestPassword = password;
 	}

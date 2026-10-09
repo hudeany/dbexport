@@ -15,12 +15,25 @@ import de.soderer.utilities.kdbx.KdbxWriter;
 import de.soderer.utilities.kdbx.data.KdbxEntry;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+/**
+ * Export worker for KeePass database files (KDBX format). Each data line becomes an entry of the database.
+ */
 public class DbKdbxExportWorker extends AbstractDbExportWorker {
 	private char[] kdbxPassword = null;
 	private KdbxWriter kdbxWriter = null;
 	private KdbxDatabase kdbxDatabase = null;
 	private KdbxEntry kdbxEntry = null;
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 * @param kdbxPassword the password of the KeePass database
+	 */
 	public DbKdbxExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath, final char[] kdbxPassword) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 

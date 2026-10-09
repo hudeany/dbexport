@@ -21,18 +21,56 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
+/**
+ * Loader for executable "jar in jar" files.
+ *
+ * <p>
+ * Adds the library jars embedded in the running jar file to a new class loader and starts the main class
+ * named in the manifest attribute "Rsrc-Main-Class". The embedded jars are taken from the manifest
+ * attribute "Rsrc-Class-Path" or, if that is missing, all embedded jars are used (SWT jars only for the
+ * current operating system and architecture).
+ * </p>
+ */
 public class JarInJarLoader {
+	/**
+	 * Name of the system property that is set to the absolute path of the currently running jar file.
+	 */
 	public static final String SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR = "process.jar";
+
+	/**
+	 * Only for subclasses acting as application specific launcher class, all functionality is static.
+	 */
+	protected JarInJarLoader() {
+		// Nothing to initialize
+	}
 
 	private static class ManifestInfo {
 		String mainClass;
 		String[] classPath;
 	}
 
+	/**
+	 * Starts the main class configured in the manifest of the running jar file.
+	 *
+	 * @param args command line arguments, passed on unchanged to the started main class
+	 * @throws Exception if the manifest attributes are missing or the main class cannot be loaded or started
+	 */
 	public static void main(final String[] args) throws Exception {
 		jarInJarLoaderStart(args);
 	}
 
+	/**
+	 * Sets up the class loader for the embedded library jars and invokes the main method of the main class
+	 * configured in the manifest ("Rsrc-Main-Class").
+	 *
+	 * @param args command line arguments, passed on unchanged to the started main class
+	 * @throws IOException if the manifest cannot be read or contains no main class
+	 * @throws MalformedURLException if a class path entry results in an invalid URL
+	 * @throws InvocationTargetException if the started main method throws an exception
+	 * @throws IllegalAccessException if the main method is not accessible
+	 * @throws ClassNotFoundException if the main class cannot be found
+	 * @throws NoSuchMethodException if the main class has no main method
+	 */
 	protected static void jarInJarLoaderStart(final String[] args) throws IOException, MalformedURLException,
 	InvocationTargetException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException {
 		// Fill an environment variable with the path of the executed jar file

@@ -23,6 +23,9 @@ import de.soderer.utilities.csv.CsvWriter;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
+/**
+ * Export worker for CSV data.
+ */
 public class DbCsvExportWorker extends AbstractDbExportWorker {
 	// Default optional parameters
 	private char separator = ';';
@@ -42,34 +45,78 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 
 	private List<String> values = null;
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbCsvExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 
+	/**
+	 * Sets the value separator. Default is ';'.
+	 *
+	 * @param separator the value separator
+	 */
 	public void setSeparator(final char separator) {
 		this.separator = separator;
 	}
 
+	/**
+	 * Sets the string quote character. Default is '"'.
+	 *
+	 * @param stringQuote the string quote character
+	 */
 	public void setStringQuote(final char stringQuote) {
 		this.stringQuote = stringQuote;
 	}
 
+	/**
+	 * Sets the character to escape the string quote within quoted values. Default is '"'.
+	 *
+	 * @param stringQuoteEscapeCharacter the escape character
+	 */
 	public void setStringQuoteEscapeCharacter(final char stringQuoteEscapeCharacter) {
 		this.stringQuoteEscapeCharacter = stringQuoteEscapeCharacter;
 	}
 
+	/**
+	 * Sets whether line breaks and tabs in string values are written as escape sequences like \n or \t (default: true).
+	 *
+	 * @param interpretEscapeSequences true if line breaks and tabs in string values are written as escape sequences like \n or \t
+	 */
 	public void setInterpretEscapeSequences(final boolean interpretEscapeSequences) {
 		this.interpretEscapeSequences = interpretEscapeSequences;
 	}
 
+	/**
+	 * Sets whether all values are quoted (default: false).
+	 *
+	 * @param alwaysQuote true if all values are quoted
+	 */
 	public void setAlwaysQuote(final boolean alwaysQuote) {
 		this.alwaysQuote = alwaysQuote;
 	}
 
+	/**
+	 * Sets whether the header line with the column names is omitted (default: false).
+	 *
+	 * @param noHeaders true if the header line with the column names is omitted
+	 */
 	public void setNoHeaders(final boolean noHeaders) {
 		this.noHeaders = noHeaders;
 	}
 
+	/**
+	 * Sets the text for null values. Default is an empty text.
+	 *
+	 * @param nullValueText the text for null values
+	 */
 	public void setNullValueText(final String nullValueText) {
 		this.nullValueText = nullValueText;
 	}
@@ -117,7 +164,9 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 		if (beautify) {
 			temporaryUglifiedFile = File.createTempFile("DbExport_Uglified", ".csv", new File(System.getProperty("java.io.tmpdir")));
 			csvWriter = new CsvWriter(new FileOutputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
-			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withEscapeLineBreaks(interpretEscapeSequences));
+			// Same format as the temporary file (the escape character and the quote mode were missing, so values with a
+			// separate escape character were read wrong and "always quote" was lost)
+			beautifiedCsvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
 		} else {
 			csvWriter = new CsvWriter(outputStream, encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences).withQuoteMode(alwaysQuote ? QuoteMode.QUOTE_ALL_DATA : QuoteMode.QUOTE_IF_NEEDED));
 		}
@@ -229,7 +278,7 @@ public class DbCsvExportWorker extends AbstractDbExportWorker {
 			try {
 				beautifiedCsvWriter.setColumnPaddings(columnPaddings);
 				beautifiedCsvWriter.setMinimumColumnSizes(minimumColumnSizes);
-				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withEscapeLineBreaks(interpretEscapeSequences));
+				csvReaderFinal = new CsvReader(new FileInputStream(temporaryUglifiedFile), encoding, new CsvFormat().withSeparator(separator).withStringQuote(stringQuote).withStringQuoteEscapeCharacter(stringQuoteEscapeCharacter).withEscapeLineBreaks(interpretEscapeSequences));
 				List<String> nextLine;
 				while ((nextLine = csvReaderFinal.readNextCsvLine()) != null) {
 					beautifiedCsvWriter.writeValues(nextLine);

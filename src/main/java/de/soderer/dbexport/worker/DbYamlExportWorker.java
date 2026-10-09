@@ -15,10 +15,22 @@ import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.yaml.YamlWriter;
 import de.soderer.yaml.data.YamlMapping;
 
+/**
+ * Export worker for YAML data (a list of mappings).
+ */
 public class DbYamlExportWorker extends AbstractDbExportWorker {
 	private YamlWriter yamlWriter = null;
 	private YamlMapping nextLineYamlMapping = null;
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbYamlExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 

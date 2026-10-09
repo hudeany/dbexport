@@ -1,9 +1,7 @@
 Usage: java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname username -export exportdata -output outputpath [password]
 
-Simple usage: java -jar DbExport.jar dbtype hostname username dbname 'statement or list of tablepatterns' outputpath
-
 Mandatory parameters for database export
-	dbtype: mysql | mariadb | oracle | postgresql | firebird | sqlite | derby | hsql | cassandra
+	dbtype: mysql | mariadb | oracle | postgresql | mssql | firebird | sqlite | derby | hsql | cassandra
 	hostname: With optional port (Not needed for sqlite, hsql and derby)
 	dbname: Dbname or filepath for sqlite database or derby database (for Oracle servicename use "/<servicename>", optional use Oracle TNS description)
 	username: Username (Not needed for sqlite and derby)
@@ -58,13 +56,13 @@ Optional parameters for database export
 
 Global standalone parameters
 	help: Show this help manual
-	gui: Open a GUI (Other parameters may also be preconfigured)
-	menu: Open a Console menu (Other parameters may also be preconfigured)
+	gui: Open a GUI (only as first parameter, other parameters may also be preconfigured)
+	menu: Open a Console menu (only as first parameter, other parameters may also be preconfigured)
 	version: Show current local version of this tool
-	update: Check for online update and ask, whether an available update shell be installed;
+	update: Check for online update and ask, whether an available update should be installed. [username [password]]
 
 Connection test:
-	Usage: java -jar DbImport.jar connectiontest dbtype hostname[:port] dbname username [-iter n] [-sleep n] [-check checksql] [password]
+	Usage: java -jar DbExport.jar connectiontest dbtype hostname[:port] dbname username [-iter n] [-sleep n] [-check checksql] [password]
 	
 	-iter n: Iterations to execute. Default = 1, 0 = unlimited
 	-sleep n: Sleep for n seconds after each check. Default = 1
@@ -72,7 +70,7 @@ Connection test:
 	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
 
 Create TrustStore:
-	Usage: java -jar DbImport.jar createtruststore hostname:port truststorefilePath [truststorepassword]
+	Usage: java -jar DbExport.jar createtruststore hostname:port truststorefilePath [truststorepassword]
 	
 	truststorefilePath: Filepath to create the TrustStore file in 
 	truststorepassword: Optional password for the created TrustStore (JKS, JavaKeyStore)

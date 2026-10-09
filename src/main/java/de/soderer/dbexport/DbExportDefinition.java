@@ -23,23 +23,58 @@ import de.soderer.utilities.db.exception.DbDefinitionException;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 /**
- * The Class DbExportDefinition.
+ * All parameters of a data export, as given on the command line, in the console menu or in the GUI.
+ *
+ * <p>
+ * {@link #getConfiguredWorker(WorkerParentDual)} creates the export worker for these parameters.
+ * </p>
  */
 public class DbExportDefinition extends DbConnectionDefinition {
+	/**
+	 * Command line keyword of the database connection test.
+	 */
 	public static final String CONNECTIONTEST_SIGN = "connectiontest";
 
 	/**
-	 * The Enum DataType.
+	 * Supported export data formats.
 	 */
 	public enum DataType {
+		/**
+		 * Comma (or other character) separated values
+		 */
 		CSV,
+		/**
+		 * JSON array of objects
+		 */
 		JSON,
+		/**
+		 * YAML list of objects
+		 */
 		YAML,
+		/**
+		 * vCard file
+		 */
 		VCF,
+		/**
+		 * XML elements
+		 */
 		XML,
+		/**
+		 * SQL insert statements
+		 */
 		SQL,
+		/**
+		 * KeePass database file
+		 */
 		KDBX;
 
+		/**
+		 * Returns the data type for its name.
+		 *
+		 * @param dataTypeString the name of the data type (case insensitive)
+		 * @return the data type
+		 * @throws RuntimeException if there is no data type with this name
+		 */
 		public static DataType getFromString(final String dataTypeString) {
 			for (final DataType dataType : DataType.values()) {
 				if (dataType.toString().equalsIgnoreCase(dataTypeString)) {
@@ -143,6 +178,13 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	private boolean createOutputDirectoyIfNotExists = false;
 
 	/**
+	 * Creates a definition with the default values, the parameters are set via the setter methods.
+	 */
+	public DbExportDefinition() {
+		// Nothing to initialize
+	}
+
+	/**
 	 * Sets the data type.
 	 *
 	 * @param dataType
@@ -168,8 +210,9 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	}
 
 	/**
-	 * Read statement or tablepattern from file
-	 * @param useStatementFile
+	 * Sets whether the export data is read from a text file, whose path is given as statement or table list (default: false).
+	 *
+	 * @param statementFile true if the export data is read from a text file, whose path is given as statement or table list
 	 */
 	public void setStatementFile(final boolean statementFile) {
 		this.statementFile = statementFile;
@@ -196,9 +239,9 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	}
 
 	/**
-	 * Sets the zip password.
+	 * Sets the password of a zip output file.
 	 *
-	 * @param zip password
+	 * @param zipPassword the zip password, or null for an unencrypted zip file
 	 */
 	public void setZipPassword(final char[] zipPassword) {
 		this.zipPassword = zipPassword;
@@ -215,18 +258,28 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	}
 
 	/**
-	 * Sets the kdbx password.
+	 * Sets the password of a KeePass output file (mandatory for the KDBX format).
 	 *
-	 * @param kdbx password
+	 * @param kdbxPassword the KeePass password
 	 */
 	public void setKdbxPassword(final char[] kdbxPassword) {
 		this.kdbxPassword = kdbxPassword;
 	}
 
+	/**
+	 * Returns the time zone of the database.
+	 *
+	 * @return the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public String getDatabaseTimeZone() {
 		return databaseTimeZone;
 	}
 
+	/**
+	 * Sets the time zone of the database. Null means the system's default time zone.
+	 *
+	 * @param databaseTimeZone the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public void setDatabaseTimeZone(final String databaseTimeZone) {
 		this.databaseTimeZone = databaseTimeZone;
 		if (this.databaseTimeZone == null) {
@@ -234,10 +287,20 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		}
 	}
 
+	/**
+	 * Returns the time zone of the exported date values.
+	 *
+	 * @return the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public String getExportDataTimeZone() {
 		return exportDataTimeZone;
 	}
 
+	/**
+	 * Sets the time zone of the exported date values. Null means the system's default time zone.
+	 *
+	 * @param exportDataTimeZone the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public void setExportDataTimeZone(final String exportDataTimeZone) {
 		this.exportDataTimeZone = exportDataTimeZone;
 		if (this.exportDataTimeZone == null) {
@@ -276,18 +339,18 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	}
 
 	/**
-	 * Sets the string quote escape character.
+	 * Sets the character to escape the CSV string quote within quoted values. Default is '"'.
 	 *
-	 * @param stringQuoteEscapeCharacter
+	 * @param stringQuoteEscapeCharacter the escape character
 	 */
 	public void setStringQuoteEscapeCharacter(final char stringQuoteEscapeCharacter) {
 		this.stringQuoteEscapeCharacter = stringQuoteEscapeCharacter;
 	}
 
 	/**
-	 * Sets whether escape sequences (e.g. \n, \t) are used when writing csv string values.
+	 * Sets whether line breaks and tabs in CSV string values are written as escape sequences like \n or \t (default: true).
 	 *
-	 * @param interpretEscapeSequences
+	 * @param interpretEscapeSequences true if line breaks and tabs in CSV string values are written as escape sequences like \n or \t
 	 */
 	public void setInterpretEscapeSequences(final boolean interpretEscapeSequences) {
 		this.interpretEscapeSequences = interpretEscapeSequences;
@@ -355,7 +418,9 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (dateFormatLocale == null) {
 			this.dateFormatLocale = Locale.getDefault().getLanguage();
 		} else {
-			this.dateFormatLocale = dateFormatLocale.toString();
+			// Language tag ("de-DE"), because getDateFormatLocale() parses it with Locale.forLanguageTag(), which does
+			// not understand Locale.toString() ("de_DE") and returned the root locale for it
+			this.dateFormatLocale = dateFormatLocale.toLanguageTag();
 		}
 	}
 
@@ -561,26 +626,56 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		}
 	}
 
+	/**
+	 * Returns the date format pattern, which overrides the format of the locale.
+	 *
+	 * @return the date format pattern, or null
+	 */
 	public String getDateFormat() {
 		return dateFormat;
 	}
 
+	/**
+	 * Sets the date format pattern (Java format characters), which overrides the format of the locale.
+	 *
+	 * @param dateFormat the date format pattern, or null
+	 */
 	public void setDateFormat(final String dateFormat) {
 		this.dateFormat = dateFormat;
 	}
 
+	/**
+	 * Returns the date time format pattern, which overrides the format of the locale.
+	 *
+	 * @return the date time format pattern, or null
+	 */
 	public String getDateTimeFormat() {
 		return dateTimeFormat;
 	}
 
+	/**
+	 * Sets the date time format pattern (Java format characters), which overrides the format of the locale.
+	 *
+	 * @param dateTimeFormat the date time format pattern, or null
+	 */
 	public void setDateTimeFormat(final String dateTimeFormat) {
 		this.dateTimeFormat = dateTimeFormat;
 	}
 
+	/**
+	 * Returns the decimal separator, which overrides the one of the locale.
+	 *
+	 * @return the decimal separator, or null
+	 */
 	public Character getDecimalSeparator() {
 		return decimalSeparator;
 	}
 
+	/**
+	 * Sets the decimal separator, which overrides the one of the locale.
+	 *
+	 * @param decimalSeparator the decimal separator ('.' or ','), or null
+	 */
 	public void setDecimalSeparator(final Character decimalSeparator) {
 		this.decimalSeparator = decimalSeparator;
 	}
@@ -617,10 +712,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			} else if (GraphicsEnvironment.isHeadless()) {
 				throw new DbExportException("GUI output only works on non-headless systems");
 			}
-		} else if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
+		} else if (outputpath != null && sqlStatementOrTablelist != null && (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\n")
-				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r")) {
+				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\r"))) {
 			if (new File(outputpath).exists() && !new File(outputpath).isDirectory() && ! replaceAlreadyExistingFiles) {
 				throw new DbExportException("Outputpath file already exists: " + outputpath);
 			}
@@ -723,10 +818,21 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		return nullValueString;
 	}
 
+	/**
+	 * Sets the JSON file to export the structure of the selected tables to. If set, only the structure is exported,
+	 * no data. A file name without directory is placed in the output directory (or next to the output file).
+	 *
+	 * @param exportStructureFilePath the structure file path, "console", or null for a data export
+	 */
 	public void setExportStructureFilePath(final String exportStructureFilePath) {
 		this.exportStructureFilePath = exportStructureFilePath;
 	}
 
+	/**
+	 * Returns the absolute path of the structure file (see {@link #setExportStructureFilePath(String)}).
+	 *
+	 * @return the structure file path, "console", or null for a data export
+	 */
 	public String getExportStructureFilePath() {
 		if (exportStructureFilePath == null) {
 			return null;
@@ -735,7 +841,12 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		} else if (outputpath != null) {
 			File exportStructureFile = new File(exportStructureFilePath);
 			if (exportStructureFile.getParentFile() == null) {
-				exportStructureFile = new File(outputpath, exportStructureFilePath);
+				// The output path is a file for a single statement export. Before, the structure file was always created
+				// within the output path, which failed for an output file ("export.csv/dbstructure_....json").
+				final File outputFile = new File(outputpath);
+				final boolean outputIsDirectory = outputFile.isDirectory() || (!outputFile.exists() && !isSingleStatementExport());
+				final File baseDirectory = outputIsDirectory ? outputFile : outputFile.getAbsoluteFile().getParentFile();
+				exportStructureFile = new File(baseDirectory, exportStructureFilePath);
 			}
 			return exportStructureFile.getAbsolutePath();
 		} else {
@@ -743,18 +854,38 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		}
 	}
 
+	/**
+	 * Returns whether already existing output files are replaced.
+	 *
+	 * @return true if already existing output files are replaced
+	 */
 	public boolean isReplaceAlreadyExistingFiles() {
 		return replaceAlreadyExistingFiles;
 	}
 
+	/**
+	 * Sets whether already existing output files are replaced (default: false).
+	 *
+	 * @param replaceAlreadyExistingFiles true if already existing output files are replaced
+	 */
 	public void setReplaceAlreadyExistingFiles(final boolean replaceAlreadyExistingFiles) {
 		this.replaceAlreadyExistingFiles = replaceAlreadyExistingFiles;
 	}
 
+	/**
+	 * Returns whether a missing output directory is created.
+	 *
+	 * @return true if a missing output directory is created
+	 */
 	public boolean isCreateOutputDirectoyIfNotExists() {
 		return createOutputDirectoyIfNotExists;
 	}
 
+	/**
+	 * Sets whether a missing output directory is created (default: false).
+	 *
+	 * @param createOutputDirectoyIfNotExists true if a missing output directory is created
+	 */
 	public void setCreateOutputDirectoyIfNotExists(final boolean createOutputDirectoyIfNotExists) {
 		this.createOutputDirectoyIfNotExists = createOutputDirectoyIfNotExists;
 	}
@@ -764,6 +895,24 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	 *
 	 * @param parent
 	 * @return
+	 */
+	/**
+	 * Checks whether the export data is a single SQL statement (and not a table list).
+	 */
+	private boolean isSingleStatementExport() {
+		if (sqlStatementOrTablelist == null || statementFile) {
+			return false;
+		} else {
+			final String lowerCaseStatement = sqlStatementOrTablelist.toLowerCase(Locale.ROOT);
+			return lowerCaseStatement.startsWith("select ") || lowerCaseStatement.startsWith("select\t") || lowerCaseStatement.startsWith("select\n") || lowerCaseStatement.startsWith("select\r");
+		}
+	}
+
+	/**
+	 * Creates and configures the worker for the export format according to the current configuration.
+	 *
+	 * @param parent parent to signal the progress to, or null if it is set later
+	 * @return the configured worker
 	 */
 	public AbstractDbExportWorker getConfiguredWorker(final WorkerParentDual parent) {
 		AbstractDbExportWorker worker;
@@ -882,6 +1031,11 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		return worker;
 	}
 
+	/**
+	 * Returns the command line parameters for this export, e.g. to show them in the console menu.
+	 *
+	 * @return the command line parameters
+	 */
 	public String toParamsString() {
 		String params = "";
 		params += getDbVendor().name();
@@ -895,7 +1049,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			}
 		}
 		params += " -export '" + getSqlStatementOrTablelist().replace("'", "\\'") + "'";
-		params += " -output '" + getOutputpath().replace("'", "\\'") + "'";
+		if (getOutputpath() != null) {
+			// Not set for a structure only export
+			params += " -output '" + getOutputpath().replace("'", "\\'") + "'";
+		}
 		if (getPassword() != null) {
 			params += " '" + new String(getPassword()).replace("'", "\\'") + "'";
 		}
@@ -913,7 +1070,8 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			params += " " + "-v";
 		}
 		if (getCompression() != null) {
-			params += " " + "-compression " + getCompression().name();
+			// The command line parameter is "-compress" ("-compression" was rejected as invalid parameter)
+			params += " " + "-compress " + getCompression().name();
 		}
 		if (getZipPassword() != null) {
 			params += " " + "-zippassword" + " '" + new String(getZipPassword()).replace("'", "\\'") + "'";
@@ -957,26 +1115,32 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (isCreateClobFiles()) {
 			params += " " + "-clobfiles";
 		}
-		if (!Locale.getDefault().equals(getDateFormatLocale())) {
+		// Only the language is stored by "-f", so compare the languages (the default locale also has a country)
+		if (!Locale.getDefault().getLanguage().equals(getDateFormatLocale().getLanguage())) {
 			params += " " + "-f" + " " + getDateFormatLocale().getLanguage();
 		}
+		// Quoted, because date patterns usually contain blanks ("dd.MM.yyyy HH:mm:ss")
 		if (Utilities.isNotBlank(getDateFormat())) {
-			params += " " + "-dateFormat" + " " + getDateFormat();
+			params += " " + "-dateFormat" + " '" + getDateFormat().replace("'", "\\'") + "'";
 		}
 		if (Utilities.isNotBlank(getDateTimeFormat())) {
-			params += " " + "-dateTimeFormat" + " " + getDateTimeFormat();
+			params += " " + "-dateTimeFormat" + " '" + getDateTimeFormat().replace("'", "\\'") + "'";
+		}
+		if (getDecimalSeparator() != null) {
+			params += " " + "-decimalSeparator" + " '" + getDecimalSeparator() + "'";
 		}
 		if (isBeautify()) {
-			params += " " + "-b";
+			// The command line parameter is "-beautify" ("-b" was rejected as invalid parameter)
+			params += " " + "-beautify";
 		}
 		if (isNoHeaders()) {
 			params += " " + "-noheaders";
 		}
 		if (getExportStructureFilePath() != null) {
-			params += " " + "-structure \"" + getExportStructureFilePath() + "\"";
+			params += " " + "-structure '" + getExportStructureFilePath().replace("'", "\\'") + "'";
 		}
 		if (!"".equals(getNullValueString())) {
-			params += " " + "-n" + " '" + getNullValueString() + "'";
+			params += " " + "-n" + " '" + getNullValueString().replace("'", "\\'") + "'";
 		}
 		if (isCreateOutputDirectoyIfNotExists()) {
 			params += " " + "-createOutputDirectoyIfNotExists";
@@ -987,6 +1151,12 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		return params;
 	}
 
+	/**
+	 * Takes over the parameters of another definition. The export parameters are only taken over from another
+	 * {@link DbExportDefinition}, otherwise only the connection parameters.
+	 *
+	 * @param otherDbConnectionDefinition the definition to take over the parameters from, or null to reset all parameters
+	 */
 	@Override
 	public void importParameters(final DbConnectionDefinition otherDbConnectionDefinition) {
 		super.importParameters(otherDbConnectionDefinition);
@@ -1049,7 +1219,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			if (otherDbExportDefinition.getDateFormatLocale() == null) {
 				dateFormatLocale = null;
 			} else {
-				dateFormatLocale = otherDbExportDefinition.getDateFormatLocale().getLanguage();
+				dateFormatLocale = otherDbExportDefinition.getDateFormatLocale().toLanguageTag();
 			}
 			dateFormat = otherDbExportDefinition.getDateFormat();
 			dateTimeFormat = otherDbExportDefinition.getDateTimeFormat();

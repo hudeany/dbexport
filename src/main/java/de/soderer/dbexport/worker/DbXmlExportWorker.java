@@ -18,24 +18,51 @@ import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 import de.soderer.utilities.xml.IndentedXMLStreamWriter;
 
+/**
+ * Export worker for XML data (a "table" element with a "line" element per data line).
+ */
 public class DbXmlExportWorker extends AbstractDbExportWorker {
 	private XMLStreamWriter xmlWriter = null;
 
 	private String indentation = "\t";
 	private String nullValueText = "";
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public DbXmlExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent, dbDefinition, isStatementFile, sqlStatementOrTablelist, outputpath);
 	}
 
+	/**
+	 * Sets the indentation of beautified output. Default is a tab.
+	 *
+	 * @param indentation the indentation string
+	 */
 	public void setIndentation(final String indentation) {
 		this.indentation = indentation;
 	}
 
+	/**
+	 * Sets the indentation of beautified output to a single character.
+	 *
+	 * @param indentationCharacter the indentation character
+	 */
 	public void setIndentation(final char indentationCharacter) {
 		indentation = Character.toString(indentationCharacter);
 	}
 
+	/**
+	 * Sets the text for null values. Default is an empty text.
+	 *
+	 * @param nullValueText the text for null values
+	 */
 	public void setNullValueText(final String nullValueText) {
 		this.nullValueText = nullValueText;
 	}

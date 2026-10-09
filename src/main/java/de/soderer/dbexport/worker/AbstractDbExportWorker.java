@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
@@ -67,8 +68,25 @@ import de.soderer.utilities.zip.TarGzUtilities;
 import de.soderer.utilities.zip.Zip4jUtilities;
 import de.soderer.utilities.zip.ZipUtilities;
 
+/**
+ * Base class of the export workers for the supported export formats.
+ *
+ * <p>
+ * Exports the result of a single SQL select statement into one output file, or each table of a table list
+ * (table name patterns with the wildcards "*" and "?", "!" excludes tables) into a separate file in the output
+ * directory. The output may be compressed, written to the console ("console") or kept in memory ("gui").
+ * Alternatively only the structure of the tables is exported as JSON file.
+ * </p>
+ *
+ * <p>
+ * Subclasses write the data in their format via the methods called for the output, each table line and each column.
+ * </p>
+ */
 public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	// Mandatory parameters
+	/**
+	 * The connection parameters of the database.
+	 */
 	protected DbConnectionDefinition dbDefinition = null;
 	private boolean isStatementFile = false;
 	private String sqlStatementOrTablelist;
@@ -76,21 +94,69 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	private ByteArrayOutputStream guiOutputStream = null;
 
 	// Default optional parameters
+	/**
+	 * Whether the export information is logged in a log file next to the output file.
+	 */
 	protected boolean log = false;
+	/**
+	 * Compression of the output files, or null for uncompressed files.
+	 */
 	protected FileCompressionType compression = null;
+	/**
+	 * Password of zip output files, or null.
+	 */
 	protected char[] zipPassword = null;
+	/**
+	 * Whether zip files are encrypted with the weak ZipCrypto method instead of AES.
+	 */
 	protected boolean useZipCrypto = false;
+	/**
+	 * Character encoding of the output.
+	 */
 	protected Charset encoding = StandardCharsets.UTF_8;
+	/**
+	 * Whether blobs are exported as separate files instead of base64 encoded values.
+	 */
 	protected boolean createBlobFiles = false;
+	/**
+	 * Whether clobs are exported as separate files instead of text values.
+	 */
 	protected boolean createClobFiles = false;
+	/**
+	 * Locale of the date and number formats.
+	 */
 	protected Locale dateFormatLocale = Locale.getDefault();
+	/**
+	 * Date format pattern, which overrides the format of the locale, or null.
+	 */
 	protected String dateFormatPattern;
+	/**
+	 * Date time format pattern, which overrides the format of the locale, or null.
+	 */
 	protected String dateTimeFormatPattern;
+	/**
+	 * Number format of the locale (without grouping).
+	 */
 	protected NumberFormat decimalFormat ;
+	/**
+	 * Decimal separator, which overrides the one of the locale, or null.
+	 */
 	protected Character decimalSeparator;
+	/**
+	 * Whether the output is beautified (format dependent, e.g. aligned CSV columns or indented JSON).
+	 */
 	protected boolean beautify = false;
+	/**
+	 * JSON file to export the table structure to instead of the data, or null.
+	 */
 	protected String exportStructureFilePath = null;
+	/**
+	 * Whether already existing output files are replaced.
+	 */
 	protected boolean replaceAlreadyExistingFiles = false;
+	/**
+	 * Whether a missing output directory is created.
+	 */
 	protected boolean createOutputDirectoyIfNotExists = false;
 
 	private int overallExportedLines = 0;
@@ -108,6 +174,15 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
+	/**
+	 * Creates the worker.
+	 *
+	 * @param parent parent to signal the progress to
+	 * @param dbDefinition the connection parameters of the database
+	 * @param isStatementFile true if sqlStatementOrTablelist is the path of a file containing the statement or table list
+	 * @param sqlStatementOrTablelist SQL select statement, or comma separated table name patterns
+	 * @param outputpath output file (single statement) or directory (table list), or "console" or "gui"
+	 */
 	public AbstractDbExportWorker(final WorkerParentDual parent, final DbConnectionDefinition dbDefinition, final boolean isStatementFile, final String sqlStatementOrTablelist, final String outputpath) {
 		super(parent);
 		this.dbDefinition = dbDefinition;
@@ -116,22 +191,47 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		this.outputpath = outputpath;
 	}
 
+	/**
+	 * Sets whether the export information is logged in a log file next to the output file (default: false).
+	 *
+	 * @param log true if the export information is logged in a log file next to the output file
+	 */
 	public void setLog(final boolean log) {
 		this.log = log;
 	}
 
+	/**
+	 * Sets the compression of the output files.
+	 *
+	 * @param compression the compression, or null for uncompressed files
+	 */
 	public void setCompression(final FileCompressionType compression) {
 		this.compression = compression;
 	}
 
+	/**
+	 * Sets the password of zip output files.
+	 *
+	 * @param zipPassword the zip password, or null for unencrypted zip files
+	 */
 	public void setZipPassword(final char[] zipPassword) {
 		this.zipPassword = zipPassword;
 	}
 
+	/**
+	 * Sets whether zip files are encrypted with the weak ZipCrypto method (supported by Windows) instead of AES (default: false).
+	 *
+	 * @param useZipCrypto true if zip files are encrypted with the weak ZipCrypto method (supported by Windows) instead of AES
+	 */
 	public void setUseZipCrypto(final boolean useZipCrypto) {
 		this.useZipCrypto = useZipCrypto;
 	}
 
+	/**
+	 * Sets the time zone of the database. Null means the system's default time zone.
+	 *
+	 * @param databaseTimeZone the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public void setDatabaseTimeZone(final String databaseTimeZone) {
 		this.databaseTimeZone = databaseTimeZone;
 		if (this.databaseTimeZone == null) {
@@ -139,6 +239,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
+	/**
+	 * Sets the time zone of the exported date values. Null means the system's default time zone.
+	 *
+	 * @param exportDataTimeZone the time zone ID, e.g. "Europe/Berlin"
+	 */
 	public void setExportDataTimeZone(final String exportDataTimeZone) {
 		this.exportDataTimeZone = exportDataTimeZone;
 		if (this.exportDataTimeZone == null) {
@@ -146,18 +251,38 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
+	/**
+	 * Sets the character encoding of the output. Default is UTF-8.
+	 *
+	 * @param encoding the character encoding
+	 */
 	public void setEncoding(final Charset encoding) {
 		this.encoding = encoding;
 	}
 
+	/**
+	 * Sets whether blobs are exported as separate files instead of base64 encoded values (default: false).
+	 *
+	 * @param createBlobFiles true if blobs are exported as separate files instead of base64 encoded values
+	 */
 	public void setCreateBlobFiles(final boolean createBlobFiles) {
 		this.createBlobFiles = createBlobFiles;
 	}
 
+	/**
+	 * Sets whether clobs are exported as separate files instead of text values (default: false).
+	 *
+	 * @param createClobFiles true if clobs are exported as separate files instead of text values
+	 */
 	public void setCreateClobFiles(final boolean createClobFiles) {
 		this.createClobFiles = createClobFiles;
 	}
 
+	/**
+	 * Sets the locale of the date and number formats.
+	 *
+	 * @param dateFormatLocale the locale, or null for the system's default locale
+	 */
 	public void setDateFormatLocale(final Locale dateFormatLocale) {
 		this.dateFormatLocale = dateFormatLocale == null ? Locale.getDefault() : dateFormatLocale;
 		dateFormatterCache = null;
@@ -166,22 +291,47 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		decimalFormat.setGroupingUsed(false);
 	}
 
+	/**
+	 * Sets whether the output is beautified (format dependent) (default: false).
+	 *
+	 * @param beautify true if the output is beautified (format dependent)
+	 */
 	public void setBeautify(final boolean beautify) {
 		this.beautify = beautify;
 	}
 
+	/**
+	 * Sets the JSON file to export the table structure to. If set, no data is exported.
+	 *
+	 * @param exportStructureFilePath the structure file path, "console", "gui", or null for a data export
+	 */
 	public void setExportStructureFilePath(final String exportStructureFilePath) {
 		this.exportStructureFilePath = exportStructureFilePath;
 	}
 
+	/**
+	 * Sets whether a missing output directory is created (default: false).
+	 *
+	 * @param createOutputDirectoyIfNotExists true if a missing output directory is created
+	 */
 	public void setCreateOutputDirectoyIfNotExists(final boolean createOutputDirectoyIfNotExists) {
 		this.createOutputDirectoyIfNotExists = createOutputDirectoyIfNotExists;
 	}
 
+	/**
+	 * Sets whether already existing output files are replaced (default: false).
+	 *
+	 * @param replaceAlreadyExistingFiles true if already existing output files are replaced
+	 */
 	public void setReplaceAlreadyExistingFiles(final boolean replaceAlreadyExistingFiles) {
 		this.replaceAlreadyExistingFiles = replaceAlreadyExistingFiles;
 	}
 
+	/**
+	 * Sets the date format pattern (Java format characters), which overrides the format of the locale.
+	 *
+	 * @param dateFormat the date format pattern (null is ignored)
+	 */
 	public void setDateFormat(final String dateFormat) {
 		if (dateFormat != null) {
 			dateFormatPattern = dateFormat;
@@ -189,6 +339,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
+	/**
+	 * Sets the date time format pattern (Java format characters), which overrides the format of the locale.
+	 *
+	 * @param dateTimeFormat the date time format pattern (null is ignored)
+	 */
 	public void setDateTimeFormat(final String dateTimeFormat) {
 		if (dateTimeFormat != null) {
 			dateTimeFormatPattern = dateTimeFormat;
@@ -196,6 +351,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
+	/**
+	 * Sets the decimal separator, which overrides the one of the locale.
+	 *
+	 * @param decimalSeparator the decimal separator (null is ignored)
+	 */
 	public void setDecimalSeparator(final Character decimalSeparator) {
 		if (decimalSeparator != null) {
 			this.decimalSeparator = decimalSeparator;
@@ -203,6 +363,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	private DateTimeFormatter dateFormatterCache = null;
+	/**
+	 * Returns the formatter for date values (default pattern "yyyy-MM-dd").
+	 *
+	 * @return the date formatter
+	 */
 	protected DateTimeFormatter getDateFormatter() {
 		if (dateFormatterCache == null) {
 			DateTimeFormatter formatter;
@@ -220,6 +385,11 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	private DateTimeFormatter dateTimeFormatterCache = null;
+	/**
+	 * Returns the formatter for date time values (default pattern "yyyy-MM-dd'T'HH:mm:ss").
+	 *
+	 * @return the date time formatter
+	 */
 	protected DateTimeFormatter getDateTimeFormatter() {
 		if (dateTimeFormatterCache == null) {
 			DateTimeFormatter formatter;
@@ -236,6 +406,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return dateTimeFormatterCache;
 	}
 
+	/**
+	 * Returns whether the export creates a single output, i.e. for a select statement or a single table name
+	 * without wildcards.
+	 *
+	 * @return true for a single output
+	 */
 	public boolean isSingleExport() {
 		if (sqlStatementOrTablelist.toLowerCase().startsWith("select ")
 				|| sqlStatementOrTablelist.toLowerCase().startsWith("select\t")
@@ -262,6 +438,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 	}
 
+	/**
+	 * Executes the export.
+	 *
+	 * @return true if the export was not canceled
+	 * @throws Exception if the parameters are invalid, the database access fails or the output cannot be written
+	 */
 	@Override
 	public Boolean work() throws Exception {
 		overallExportedLines = 0;
@@ -361,8 +543,9 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 				if (tablesToExport.size() == 0) {
 					throw new DbExportException("No table found for export");
-				} else if (tablesToExport.size() > 1 && exportStructureFilePath == null) {
-					// Multi export
+				} else if (tablesToExport.size() > 1 && exportStructureFilePath == null && !"console".equalsIgnoreCase(outputpath) && !"gui".equalsIgnoreCase(outputpath)) {
+					// Multi export (console and gui output need no directory, before an export of several tables to
+					// "console" failed with "Outputpath 'console' does not exist" or even created such a directory)
 					final String basicOutputFilePath = outputpath;
 					// Create directory if missing
 					final File outputBaseDirecory = new File(basicOutputFilePath);
@@ -457,7 +640,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
-				outputStream = System.out;
+				outputStream = new NonClosingOutputStream(System.out);
 			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
@@ -682,7 +865,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
-				outputStream = System.out;
+				outputStream = new NonClosingOutputStream(System.out);
 			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
@@ -812,7 +995,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		long exportedLines = 0;
 		try {
 			if ("console".equalsIgnoreCase(outputFilePath)) {
-				outputStream = System.out;
+				// The writers close their stream, which closed System.out for all further output (e.g. the next table)
+				outputStream = new NonClosingOutputStream(System.out);
 			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
 				guiOutputStream = new ByteArrayOutputStream();
 				outputStream = guiOutputStream;
@@ -861,14 +1045,16 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 					}
 				}
 
-				if (!new File(outputFilePath).getParentFile().exists()) {
+				// Via the absolute file, a file name without directory has no parent and failed with a NullPointerException
+				final File outputDirectory = new File(outputFilePath).getAbsoluteFile().getParentFile();
+				if (!outputDirectory.exists()) {
 					if (createOutputDirectoyIfNotExists) {
-						new File(outputFilePath).getParentFile().mkdirs();
+						outputDirectory.mkdirs();
 					} else {
-						throw new DbExportException("Outputfile parent directory does not exist: " + new File(outputFilePath).getParent());
+						throw new DbExportException("Outputfile parent directory does not exist: " + outputDirectory.getAbsolutePath());
 					}
-				} else if (!new File(outputFilePath).getParentFile().isDirectory()) {
-					throw new DbExportException("Outputfile parent is not a directory: " + new File(outputFilePath).getParent());
+				} else if (!outputDirectory.isDirectory()) {
+					throw new DbExportException("Outputfile parent is not a directory: " + outputDirectory.getAbsolutePath());
 				}
 
 				if (log) {
@@ -1105,6 +1291,15 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else if (cancel && fileWasCreated && new File(outputFilePath).exists()) {
 				new File(outputFilePath).delete();
 			}
+			// The temporary file of a tar.gz/tgz export is only needed for the compression below
+			if ((errorOccurred || cancel) && tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+			}
+		}
+
+		if (cancel || "console".equalsIgnoreCase(outputFilePath) || "gui".equalsIgnoreCase(outputFilePath)) {
+			// The output file was deleted on cancel (the compression below failed on the missing file)
+			return;
 		}
 
 		if (compression == FileCompressionType.ZIP) {
@@ -1121,6 +1316,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				entryFileName = entryFileName.substring(0, entryFileName.length() - 7);
 			}
 			TarGzUtilities.compress(new File(outputFilePath), tempFile, entryFileName);
+			// The temporary file was never deleted before
+			tempFile.delete();
 			overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize(new File(outputFilePath));
 			overallExportedDataAmountCompressed += new File(outputFilePath).length();
 		} else if (compression == FileCompressionType.TGZ) {
@@ -1129,10 +1326,42 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				entryFileName = entryFileName.substring(0, entryFileName.length() - 4);
 			}
 			TarGzUtilities.compress(new File(outputFilePath), tempFile, entryFileName);
+			tempFile.delete();
 			overallExportedDataAmountRaw += TarGzUtilities.getUncompressedSize(new File(outputFilePath));
 			overallExportedDataAmountCompressed += new File(outputFilePath).length();
 		} else {
 			overallExportedDataAmountRaw += new File(outputFilePath).length();
+		}
+	}
+
+	/**
+	 * Output stream for System.out, which is only flushed but not closed, when the writers close their stream.
+	 */
+	private static class NonClosingOutputStream extends OutputStream {
+		private final OutputStream delegate;
+
+		NonClosingOutputStream(final OutputStream delegate) {
+			this.delegate = delegate;
+		}
+
+		@Override
+		public void write(final int b) throws IOException {
+			delegate.write(b);
+		}
+
+		@Override
+		public void write(final byte[] data, final int offset, final int length) throws IOException {
+			delegate.write(data, offset, length);
+		}
+
+		@Override
+		public void flush() throws IOException {
+			delegate.flush();
+		}
+
+		@Override
+		public void close() throws IOException {
+			delegate.flush();
 		}
 	}
 
@@ -1142,43 +1371,137 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
+	/**
+	 * Returns the number of exported data lines of all tables.
+	 *
+	 * @return the number of exported data lines
+	 */
 	public int getOverallExportedLines() {
 		return overallExportedLines;
 	}
 
+	/**
+	 * Returns the amount of exported (uncompressed) data.
+	 *
+	 * @return the amount of exported data in bytes
+	 */
 	public long getOverallExportedDataAmountRaw() {
 		return overallExportedDataAmountRaw;
 	}
 
+	/**
+	 * Returns the amount of exported compressed data.
+	 *
+	 * @return the size of the compressed output files in bytes
+	 */
 	public long getOverallExportedDataAmountCompressed() {
 		return overallExportedDataAmountCompressed;
 	}
 
+	/**
+	 * Returns the output of an export to "gui".
+	 *
+	 * @return the output, or null if the output path is not "gui"
+	 */
 	public ByteArrayOutputStream getGuiOutputStream() {
 		return guiOutputStream;
 	}
 
+	/**
+	 * Returns the configuration of this export for the log.
+	 *
+	 * @param fileName the name of the output file
+	 * @param sqlStatement the exported statement
+	 * @return the configuration as text with one line per parameter
+	 */
 	public abstract String getConfigurationLogString(String fileName, String sqlStatement);
 
+	/**
+	 * Returns the file extension of the export format.
+	 *
+	 * @return the file extension without dot, e.g. "csv"
+	 */
 	protected abstract String getFileExtension();
 
+	/**
+	 * Opens the writer of the export format.
+	 *
+	 * @param outputStream the stream to write to (closed by {@link #closeWriter()})
+	 * @throws Exception if the writer cannot be opened
+	 */
 	protected abstract void openWriter(OutputStream outputStream) throws Exception;
 
+	/**
+	 * Starts the output of an exported statement, e.g. writes the CSV header.
+	 *
+	 * @param connection the database connection
+	 * @param sqlStatement the exported statement
+	 * @param columnNames the column names of the result
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void startOutput(Connection connection, String sqlStatement, List<String> columnNames) throws Exception;
 
+	/**
+	 * Starts a new data line.
+	 *
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void startTableLine() throws Exception;
 
+	/**
+	 * Writes a value of the current data line.
+	 *
+	 * @param columnName the column name
+	 * @param value the value (String, Number, Boolean, or file name of a lob file), or null
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void writeColumn(String columnName, Object value) throws Exception;
 
+	/**
+	 * Writes a date value of the current data line.
+	 *
+	 * @param columnName the column name
+	 * @param value the date value
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void writeDateColumn(String columnName, LocalDate value) throws Exception;
 
+	/**
+	 * Writes a date time value of the current data line.
+	 *
+	 * @param columnName the column name
+	 * @param value the date time value (in the export data time zone)
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void writeDateTimeColumn(String columnName, LocalDateTime value) throws Exception;
 
+	/**
+	 * Writes a date time value with time zone of the current data line.
+	 *
+	 * @param columnName the column name
+	 * @param value the date time value (in the export data time zone)
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void writeDateTimeColumn(String columnName, ZonedDateTime value) throws Exception;
 
+	/**
+	 * Ends the current data line.
+	 *
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void endTableLine() throws Exception;
 
+	/**
+	 * Ends the output of an exported statement.
+	 *
+	 * @throws Exception if the output cannot be written
+	 */
 	protected abstract void endOutput() throws Exception;
 
+	/**
+	 * Closes the writer and its output stream. May be called several times.
+	 *
+	 * @throws Exception if the writer cannot be closed
+	 */
 	protected abstract void closeWriter() throws Exception;
 }

@@ -3,9 +3,17 @@ package de.soderer.dbexport.utilities.jarinjarloader;
 import java.io.IOException;
 import java.net.URL;
 
+/**
+ * URLStreamHandler for the "rsrc:" protocol, which opens a {@link JarInJarURLConnection}.
+ */
 public class JarInJarURLStreamHandler extends java.net.URLStreamHandler {
 	private final ClassLoader classLoader;
 
+	/**
+	 * Creates the handler.
+	 *
+	 * @param classLoader class loader used to read the addressed resources
+	 */
 	public JarInJarURLStreamHandler(final ClassLoader classLoader) {
 		this.classLoader = classLoader;
 	}

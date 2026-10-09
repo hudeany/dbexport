@@ -16,24 +16,50 @@ import de.soderer.utilities.console.SimpleConsoleInput;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
 
+/**
+ * Console menu to create a TrustStore file with the certificates of a database server.
+ */
 public class CreateTrustStoreMenu extends ConsoleMenu {
 	private ConnectionTestDefinition connectionTestDefinition = new ConnectionTestDefinition();
 	private DbConnectionDefinition dbDefinitionCache = null;
 
+	/**
+	 * Returns the definition with the server and TrustStore parameters edited by this menu.
+	 *
+	 * @return the definition with the server and TrustStore parameters
+	 */
 	public ConnectionTestDefinition getConnectionTestDefinition() {
 		return connectionTestDefinition;
 	}
 
+	/**
+	 * Sets the definition with the server and TrustStore parameters to edit in this menu.
+	 *
+	 * @param connectionTestDefinition the definition with the server and TrustStore parameters
+	 */
 	public void setConnectionTestDefinition(final ConnectionTestDefinition connectionTestDefinition) {
 		this.connectionTestDefinition = connectionTestDefinition;
 	}
 
+	/**
+	 * Creates the menu.
+	 *
+	 * @param parentMenu the parent menu
+	 * @param dbDefinitionCache connection parameters already entered in other menus, used as default values
+	 * @throws Exception if the menu cannot be created
+	 */
 	public CreateTrustStoreMenu(final ConsoleMenu parentMenu, final DbConnectionDefinition dbDefinitionCache) throws Exception {
 		super(parentMenu, "Create TrustStore");
 
 		this.dbDefinitionCache = dbDefinitionCache;
 	}
 
+	/**
+	 * Shows the menu in a loop until the user leaves it or starts the TrustStore creation.
+	 *
+	 * @return -5 to start the TrustStore creation, or 0 to return to the parent menu
+	 * @throws Exception if the console input or output fails
+	 */
 	@Override
 	public int show() throws Exception {
 		try {

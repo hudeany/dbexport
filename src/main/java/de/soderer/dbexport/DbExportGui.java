@@ -66,11 +66,16 @@ import de.soderer.utilities.swing.UpdateableGuiApplication;
 
 /**
  * The GUI for DbExport.
+ *
+ * @serial exclude
  */
 public class DbExportGui extends UpdateableGuiApplication {
 	/** The Constant serialVersionUID. */
 	private static final long serialVersionUID = 5969613637206441880L;
 
+	/**
+	 * KeyStore file of the application in the user's configuration directory.
+	 */
 	public static final File KEYSTORE_FILE = new File(System.getProperty("user.home") + File.separator + "." + DbExport.APPLICATION_NAME + File.separator + "." + DbExport.APPLICATION_NAME + ".keystore");
 
 	private final ConfigurationProperties applicationConfiguration;
@@ -945,6 +950,10 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setDbName(dbNameField.getText());
 		dbExportDefinition.setUsername(userField.isEnabled() ? userField.getText() : null);
 		dbExportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
+		// The secure connection settings were missing, so the GUI always used an unencrypted connection
+		dbExportDefinition.setSecureConnection(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected());
+		dbExportDefinition.setTrustStoreFile(trustStoreFilePathField.isEnabled() && Utilities.isNotBlank(trustStoreFilePathField.getText()) ? new File(trustStoreFilePathField.getText()) : null);
+		dbExportDefinition.setTrustStorePassword(trustStorePasswordField.isEnabled() && trustStorePasswordField.getPassword().length > 0 ? trustStorePasswordField.getPassword() : null);
 		dbExportDefinition.setOutputpath(outputpathField.getText());
 		dbExportDefinition.setSqlStatementOrTablelist(statementField.getText());
 
@@ -966,7 +975,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
 		dbExportDefinition.setCreateClobFiles(clobfilesBox.isSelected());
 		dbExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
-		final String exportStructureFilePath = exportStructureBox.isSelected() ? (outputpathField.getText() + File.separator + "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json") : null;
+		// Only the file name, its directory is derived from the output path (see DbExportDefinition.getExportStructureFilePath()).
+		// Before, it was always created within the output path, which failed for an output file.
+		final String exportStructureFilePath = exportStructureBox.isSelected() ? ("dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json") : null;
 		dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
 		dbExportDefinition.setNoHeaders(noHeadersBox.isEnabled() ? noHeadersBox.isSelected() : false);
 		dbExportDefinition.setEncoding(Charset.forName(encodingCombo.getText()));
@@ -1026,6 +1037,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbNameField.setText(dbExportDefinition.getDbName());
 		userField.setText(dbExportDefinition.getUsername());
 		passwordField.setText(dbExportDefinition.getPassword() == null ? "" : new String(dbExportDefinition.getPassword()));
+		secureConnectionBox.setSelected(dbExportDefinition.isSecureConnection());
+		trustStoreFilePathField.setText(dbExportDefinition.getTrustStoreFile() == null ? "" : dbExportDefinition.getTrustStoreFile().getAbsolutePath());
+		trustStorePasswordField.setText(dbExportDefinition.getTrustStorePassword() == null ? "" : new String(dbExportDefinition.getTrustStorePassword()));
 		outputpathField.setText(dbExportDefinition.getOutputpath());
 		statementField.setText(dbExportDefinition.getSqlStatementOrTablelist());
 
@@ -1156,6 +1170,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 			hostField.setEnabled(false);
 			userField.setEnabled(false);
 			passwordField.setEnabled(false);
+			// File based databases have no secure connection (the checkbox kept the state of the previous vendor)
+			secureConnectionBox.setEnabled(false);
 			trustStoreFilePathField.setEnabled(false);
 			trustStoreFileButton.setEnabled(false);
 			createTrustStoreFileButton.setEnabled(false);
@@ -1227,16 +1243,17 @@ public class DbExportGui extends UpdateableGuiApplication {
 				localeCombo.setEnabled(true);
 				break;
 			case KDBX:
+				// KDBX uses none of the formatting settings, beautify was even rejected by DbExportDefinition.checkParameters()
 				separatorCombo.setEnabled(false);
 				stringQuoteCombo.setEnabled(false);
 				alwaysQuoteBox.setEnabled(false);
 				interpretEscapeSequencesBox.setEnabled(false);
 				noHeadersBox.setEnabled(false);
-				beautifyBox.setEnabled(true);
-				indentationCombo.setEnabled(true);
-				nullValueStringCombo.setEnabled(true);
+				beautifyBox.setEnabled(false);
+				indentationCombo.setEnabled(false);
+				nullValueStringCombo.setEnabled(false);
 				kdbxPasswordField.setEnabled(true);
-				localeCombo.setEnabled(true);
+				localeCombo.setEnabled(false);
 				break;
 			case SQL:
 				separatorCombo.setEnabled(false);
@@ -1361,10 +1378,20 @@ public class DbExportGui extends UpdateableGuiApplication {
 		}
 	}
 
+	/**
+	 * Sets up the default values of the application configuration.
+	 *
+	 * @param applicationConfiguration the application configuration
+	 */
 	public static void setupDefaultConfig(final ConfigurationProperties applicationConfiguration) {
 		applicationConfiguration.setupDefaultConfig();
 	}
 
+	/**
+	 * Activates or deactivates the daily update check and schedules the next check for tomorrow.
+	 *
+	 * @param checkboxStatus true to activate the daily update check
+	 */
 	@Override
 	protected void setDailyUpdateCheckStatus(final boolean checkboxStatus) {
 		applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK, checkboxStatus);
@@ -1372,11 +1399,21 @@ public class DbExportGui extends UpdateableGuiApplication {
 		applicationConfiguration.save();
 	}
 
+	/**
+	 * Returns whether the daily update check is activated.
+	 *
+	 * @return true if the daily update check is activated
+	 */
 	@Override
 	protected Boolean isDailyUpdateCheckActivated() {
 		return applicationConfiguration.getBoolean(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK);
 	}
 
+	/**
+	 * Returns whether the daily update check is activated, due and a network connection is available.
+	 *
+	 * @return true if the daily update check should be executed now
+	 */
 	protected boolean dailyUpdateCheckIsPending() {
 		return applicationConfiguration.getBoolean(ConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK)
 				&& (applicationConfiguration.getDate(ConfigurationProperties.CONFIG_KEY_NEXT_DAILY_UPDATE_CHECK) == null || applicationConfiguration.getDate(ConfigurationProperties.CONFIG_KEY_NEXT_DAILY_UPDATE_CHECK).isBefore(LocalDateTime.now()))
