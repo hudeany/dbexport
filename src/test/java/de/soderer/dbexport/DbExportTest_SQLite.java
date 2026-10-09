@@ -1,5 +1,8 @@
 package de.soderer.dbexport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -10,7 +13,6 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -129,10 +131,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsvSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "SELECT column_text FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "SELECT column_text FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"column_text\n"
 						+ "\"<test_text>\"\n"
 						+ "\"<test_text>\"\n",
@@ -141,16 +143,16 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsv() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"sqlite", SQLITE_DB_FILE,
 				"-export", "*",
 				"-output", "~" + File.separator + "temp" + File.separator + "",
 				"-dateFormat", "dd.MM.YYYY",
 				"-dateTimeFormat", "dd.MM.YYYY HH:mm:ss"}));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		assertTrue(OUTPUTFILE_CSV.exists());
 
-		Assertions.assertEquals(
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;01.02.2003;1;1,124;\"<test_text>\";01.02.2003 04:05:06\n"
 						+ "2;<test_text_base64>;01.02.2003;2;2,124;\"<test_text>\";01.02.2003 04:05:06\n"
@@ -160,14 +162,14 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsvWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"sqlite", SQLITE_DB_FILE,
 				"-export", "*",
 				"-output", "~" + File.separator + "temp" + File.separator + "",
 				"-n", "NULL" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 						+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T04:05:06\n"
@@ -177,10 +179,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsvWithTimeZone() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", "-dbtz", "Europe/Sofia", "-edtz", "Europe/Dublin" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", "-dbtz", "Europe/Sofia", "-edtz", "Europe/Dublin" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T02:05:06\n"
 						+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T02:05:06\n"
@@ -190,10 +192,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsvBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob                                                                                                                                                                     ;column_date;column_integer;column_real;column_text                                                                                                          ;column_timestamp   \n"
 						+ " 1;<test_text_base64>;2003-02-01 ;             1;      1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 						+ " 2;<test_text_base64>;2003-02-01 ;             2;      2,124;\"<test_text>\";2003-02-01T04:05:06\n"
@@ -203,10 +205,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testCsvZipped() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-z" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-z" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;2003-02-01;1;1,124;\"<test_text>\";2003-02-01T04:05:06\n"
 						+ "2;<test_text_base64>;2003-02-01;2;2,124;\"<test_text>\";2003-02-01T04:05:06\n"
@@ -216,10 +218,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testJsonBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify" }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"[\n"
 						+ "	{\n"
 						+ "		\"id\": 1,\n"
@@ -256,10 +258,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testJson() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json" }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"["
 						+ "{\"id\":1,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01\",\"column_integer\":1,\"column_real\":1.1237,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06\"},"
 						+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01\",\"column_integer\":2,\"column_real\":2.1237,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06\"},"
@@ -272,10 +274,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testXmlBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify" }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						+ "<table statement=\"SELECT id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp FROM test_tbl ORDER BY id\">\n"
 						+ "	<line>\n"
@@ -311,10 +313,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testXmlWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL" }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp FROM test_tbl ORDER BY id\">"
 						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>2003-02-01</column_date><column_integer>1</column_integer><column_real>1,124</column_real><column_text><test_text></column_text><column_timestamp>2003-02-01T04:05:06</column_timestamp></line>"
@@ -326,10 +328,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testXml() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "*", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml" }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp FROM test_tbl ORDER BY id\"><line>"
 						+ "<id>1</id><column_blob><test_text_base64></column_blob><column_date>2003-02-01</column_date><column_integer>1</column_integer><column_real>1,124</column_real><column_text><test_text></column_text><column_timestamp>2003-02-01T04:05:06</column_timestamp></line>"
@@ -341,7 +343,7 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testSql() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"sqlite",
 				SQLITE_DB_FILE,
 				"-export", "*",
@@ -349,8 +351,8 @@ public class DbExportTest_SQLite {
 				"-x", "sql"
 		}));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp FROM test_tbl ORDER BY id\n"
 						+ "INSERT INTO test_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (1, '<test_text_base64>', '2003-02-01', 1, 1.1237, '<test_text>', '2003-02-01 04:05:06');\n"
 						+ "INSERT INTO test_tbl (id, column_blob, column_date, column_integer, column_real, column_text, column_timestamp) VALUES (2, '<test_text_base64>', '2003-02-01', 2, 2.1237, '<test_text>', '2003-02-01 04:05:06');\n"
@@ -360,10 +362,10 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testSqlSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "SELECT column_text FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql" }));
+		assertEquals(0, DbExport._main(new String[] { "sqlite", SQLITE_DB_FILE, "-export", "SELECT column_text FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql" }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT column_text FROM test_tbl WHERE 1 = 1\n"
 						+ "INSERT INTO test_tbl (column_text) VALUES ('<test_text>');\n"
 						+ "INSERT INTO test_tbl (column_text) VALUES ('<test_text>');\n"
@@ -373,7 +375,7 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testSqlWithFormats() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"sqlite", SQLITE_DB_FILE,
 				"-export",
 				"*",
@@ -384,8 +386,8 @@ public class DbExportTest_SQLite {
 				"-decimalSeparator", ",",
 				"-x", "csv" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;01.02.2003;1;1,1237;\"<test_text>\";01.02.2003 04:05:06\n"
 						+ "2;<test_text_base64>;01.02.2003;2;2,1237;\"<test_text>\";01.02.2003 04:05:06\n"
@@ -395,7 +397,7 @@ public class DbExportTest_SQLite {
 
 	@Test
 	public void testSqlWithDefaultFormats() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"sqlite", SQLITE_DB_FILE,
 				"-export",
 				"*",
@@ -403,8 +405,8 @@ public class DbExportTest_SQLite {
 				"-decimalSeparator", ",",
 				"-x", "csv" }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_integer;column_real;column_text;column_timestamp\n"
 						+ "1;<test_text_base64>;2003-02-01;1;1,1237;\"<test_text>\";2003-02-01T04:05:06\n"
 						+ "2;<test_text_base64>;2003-02-01;2;2,1237;\"<test_text>\";2003-02-01T04:05:06\n"

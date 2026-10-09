@@ -1,5 +1,8 @@
 package de.soderer.dbexport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +16,6 @@ import java.util.Date;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -149,10 +151,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testCsvSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"COLUMN_VARCHAR\n"
 						+ "\"<test_text>\"\n"
 						+ "\"<test_text>\"\n",
@@ -161,10 +163,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testCsv() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
 						+ "1;<test_text_base64>;\"<test_text>\";1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -174,10 +176,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testCsvWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
 						+ "1;<test_text_base64>;\"<test_text>\";1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -187,10 +189,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testCsvBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"ID;COLUMN_BLOB                                                                                                                                                                     ;COLUMN_CLOB                                                                                                         ;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP   ;COLUMN_VARCHAR                                                                                                      \n"
 						+ " 1;<test_text_base64>;\"<test_text>\";        1,123;             1;01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ " 2;<test_text_base64>;\"<test_text>\";        2,123;             2;01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -200,10 +202,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testCsvZipped() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-z", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-z", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
+		assertEquals(
 				"ID;COLUMN_BLOB;COLUMN_CLOB;COLUMN_DOUBLE;COLUMN_INTEGER;COLUMN_TIMESTAMP;COLUMN_VARCHAR\n"
 						+ "1;<test_text_base64>;\"<test_text>\";1,123;1;01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2,123;2;01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -213,10 +215,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testJsonBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"[\n"
 						+ "	{\n"
 						+ "		\"ID\": 1,\n"
@@ -251,10 +253,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testJson() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"["
 						+ "{\"ID\":1,\"COLUMN_BLOB\":\"<test_text_base64>\",\"COLUMN_CLOB\":\"<test_text>\",\"COLUMN_DOUBLE\":1.123,\"COLUMN_INTEGER\":1,\"COLUMN_TIMESTAMP\":\"2003-02-01T04:05:06+01\",\"COLUMN_VARCHAR\":\"<test_text>\"},"
 						+ "{\"ID\":2,\"COLUMN_BLOB\":\"<test_text_base64>\",\"COLUMN_CLOB\":\"<test_text>\",\"COLUMN_DOUBLE\":2.123,\"COLUMN_INTEGER\":2,\"COLUMN_TIMESTAMP\":\"2003-02-01T04:05:06+01\",\"COLUMN_VARCHAR\":\"<test_text>\"},"
@@ -265,10 +267,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testXmlBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						+ "<table statement=\"SELECT ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR FROM TEST_TBL ORDER BY ID\">\n"
 						+ "	<line>\n"
@@ -304,10 +306,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testXmlWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR FROM TEST_TBL ORDER BY ID\">"
 						+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
@@ -319,10 +321,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testXml() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR FROM TEST_TBL ORDER BY ID\">"
 						+ "<line><ID>1</ID><COLUMN_BLOB><test_text_base64></COLUMN_BLOB><COLUMN_CLOB><test_text></COLUMN_CLOB><COLUMN_DOUBLE>1,123</COLUMN_DOUBLE><COLUMN_INTEGER>1</COLUMN_INTEGER><COLUMN_TIMESTAMP>01.02.2003 04:05:06</COLUMN_TIMESTAMP><COLUMN_VARCHAR><test_text></COLUMN_VARCHAR></line>"
@@ -334,10 +336,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testSql() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "sql", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "sql", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR FROM TEST_TBL ORDER BY ID\n"
 						+ "INSERT INTO export_tbl (ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR) VALUES (1, '<test_text_base64>', '<test_text>', 1.123, 1, '2003-02-01 04:05:06', '<test_text>');\n"
 						+ "INSERT INTO export_tbl (ID, COLUMN_BLOB, COLUMN_CLOB, COLUMN_DOUBLE, COLUMN_INTEGER, COLUMN_TIMESTAMP, COLUMN_VARCHAR) VALUES (2, '<test_text_base64>', '<test_text>', 2.123, 2, '2003-02-01 04:05:06', '<test_text>');\n"
@@ -347,10 +349,10 @@ public class DbExportTest_Firebird {
 
 	@Test
 	public void testSqlSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "firebird", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
 						+ "INSERT INTO export_tbl (COLUMN_VARCHAR) VALUES ('<test_text>');\n"
 						+ "INSERT INTO export_tbl (COLUMN_VARCHAR) VALUES ('<test_text>');\n"

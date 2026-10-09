@@ -1,5 +1,9 @@
 package de.soderer.dbexport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -12,7 +16,6 @@ import java.util.Date;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -159,20 +162,20 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testCsvSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"column_varchar\n\"<test_text>\"\n\"<test_text>\"\n",
 				FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 	}
 
 	@Test
 	public void testCsv() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
@@ -182,10 +185,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testCsvWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-n", "NULL", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
@@ -195,10 +198,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testCsvBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob                                                                                                                                                                     ;column_clob                                                                                                          ;column_date;column_double;column_integer;column_timestamp   ;column_varchar                                                                                                       \n"
 						+ " 1;<test_text_base64>;\"<test_text>\";2003-02-01 ;        1,123;             1;2003-02-01T04:05:06;\"<test_text>\"\n"
 						+ " 2;<test_text_base64>;\"<test_text>\";2003-02-01 ;        2,123;             2;2003-02-01T04:05:06;\"<test_text>\"\n"
@@ -208,10 +211,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testCsvZipped() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-z", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-z", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
+		assertEquals(
 				"id;column_blob;column_clob;column_date;column_double;column_integer;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;\"<test_text>\";2003-02-01;1,123;1;2003-02-01T04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;\"<test_text>\";2003-02-01;2,123;2;2003-02-01T04:05:06;\"<test_text>\"\n"
@@ -221,10 +224,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testJsonBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"[\n"
 						+ "	{\n"
 						+ "		\"id\": 1,\n"
@@ -264,10 +267,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testJson() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "json", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"["
 						+ "{\"id\":1,\"column_blob\":\"<test_text_base64>\",\"column_clob\":\"<test_text>\",\"column_date\":\"2003-02-01\",\"column_double\":1.123,\"column_integer\":1,\"column_timestamp\":\"2003-02-01T04:05:06\",\"column_varchar\":\"<test_text>\"},"
 						+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_clob\":\"<test_text>\",\"column_date\":\"2003-02-01\",\"column_double\":2.123,\"column_integer\":2,\"column_timestamp\":\"2003-02-01T04:05:06\",\"column_varchar\":\"<test_text>\"},"
@@ -280,10 +283,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testXmlBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-beautify", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						+ "<table statement=\"SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">\n"
 						+ "	<line>\n"
@@ -322,10 +325,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testXmlWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", "-n", "NULL", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
 						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_clob><test_text></column_clob><column_date>2003-02-01</column_date><column_double>1,123</column_double><column_integer>1</column_integer><column_timestamp>2003-02-01T04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
@@ -337,10 +340,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testXml() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "xml", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 						+ "<table statement=\"SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
 						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_clob><test_text></column_clob><column_date>2003-02-01</column_date><column_double>1,123</column_double><column_integer>1</column_integer><column_timestamp>2003-02-01T04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
@@ -352,10 +355,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testSql() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "sql", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator + "", "-x", "sql", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar FROM test_tbl ORDER BY id\n"
 						+ "INSERT INTO test_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '<test_text>', '2003-02-01', 1.123, 1, '2003-02-01 04:05:06', '<test_text>');\n"
 						+ "INSERT INTO test_tbl (id, column_blob, column_clob, column_date, column_double, column_integer, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '<test_text>', '2003-02-01', 2.123, 2, '2003-02-01 04:05:06', '<test_text>');\n"
@@ -365,10 +368,10 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testSqlSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql", PASSWORD }));
+		assertEquals(0, DbExport._main(new String[] { "postgresql", HOSTNAME, DBNAME, USERNAME, "-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql", PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
 						+ "INSERT INTO test_tbl (column_varchar) VALUES ('<test_text>');\n"
 						+ "INSERT INTO test_tbl (column_varchar) VALUES ('<test_text>');\n"
@@ -378,7 +381,7 @@ public class DbExportTest_PostgreSQL {
 
 	@Test
 	public void testDbStructure() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql",
+		assertEquals(0, DbExport._main(new String[] { "postgresql",
 				HOSTNAME,
 				DBNAME,
 				USERNAME,
@@ -386,8 +389,8 @@ public class DbExportTest_PostgreSQL {
 				"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath(),
 				PASSWORD }));
 
-		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
-		Assertions.assertTrue(OUTPUTFILE_STRUCTURE.exists());
+		assertFalse(OUTPUTFILE_CSV.exists());
+		assertTrue(OUTPUTFILE_STRUCTURE.exists());
 		final String expectedContent = "{\n"
 				+ "	\"test_tbl\":\n"
 				+ "		{\n"
@@ -538,12 +541,12 @@ public class DbExportTest_PostgreSQL {
 				+ "				]\n"
 				+ "		}\n"
 				+ "}";
-		Assertions.assertEquals(expectedContent.replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""));
+		assertEquals(expectedContent.replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceAll("\".*_1_not_null\"", "\"name\": \"test_tbl_id_not_null\""));
 	}
 
 	@Test
 	public void testDbStructureWithSchema() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] { "postgresql",
+		assertEquals(0, DbExport._main(new String[] { "postgresql",
 				HOSTNAME,
 				DBNAME,
 				USERNAME,
@@ -551,8 +554,8 @@ public class DbExportTest_PostgreSQL {
 				"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath(),
 				PASSWORD }));
 
-		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
-		Assertions.assertTrue(OUTPUTFILE_STRUCTURE.exists());
+		assertFalse(OUTPUTFILE_CSV.exists());
+		assertTrue(OUTPUTFILE_STRUCTURE.exists());
 		final String expectedStructureContent = "{\n"
 				+ "	\"testschema.test_in_schema_tbl\":\n"
 				+ "		{\n"
@@ -629,6 +632,6 @@ public class DbExportTest_PostgreSQL {
 				+ "				]\n"
 				+ "		}\n"
 				+ "}";
-		Assertions.assertEquals(expectedStructureContent.replaceFirst("\".*_1_not_null\"", "\"name\": \"test_in_schema_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""));
+		assertEquals(expectedStructureContent.replaceFirst("\".*_1_not_null\"", "\"name\": \"test_in_schema_tbl_id_not_null\""), FileUtilities.readFileToString(OUTPUTFILE_STRUCTURE, StandardCharsets.UTF_8).replaceFirst("\".*_1_not_null\"", "\"checkid_not_null\""));
 	}
 }

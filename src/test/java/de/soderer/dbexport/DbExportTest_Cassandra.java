@@ -1,5 +1,9 @@
 package de.soderer.dbexport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
@@ -12,7 +16,6 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -164,12 +167,12 @@ public class DbExportTest_Cassandra {
 				valueFound = true;
 			}
 		}
-		Assertions.assertTrue(valueFound, logData);
+		assertTrue(valueFound, logData);
 	}
 
 	@Test
 	public void testCsvSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -179,8 +182,8 @@ public class DbExportTest_Cassandra {
 				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"column_varchar\n"
 						+ "\"<test_text>\"\n"
 						+ "\"<test_text>\"\n",
@@ -199,7 +202,7 @@ public class DbExportTest_Cassandra {
 				filePath.delete();
 			}
 
-			Assertions.assertEquals(0, DbExport._main(new String[] {
+			assertEquals(0, DbExport._main(new String[] {
 					"cassandra",
 					HOSTNAME,
 					DBNAME,
@@ -210,7 +213,7 @@ public class DbExportTest_Cassandra {
 					"-output", "~" + File.separator + "temp" + File.separator + "",
 					PASSWORD }));
 
-			Assertions.assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false).size() == 1);
+			assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false).size() == 1);
 		} finally {
 			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
@@ -225,7 +228,7 @@ public class DbExportTest_Cassandra {
 			output.write("SELECT column_varchar FROM test_tbl WHERE id < 3".getBytes(StandardCharsets.UTF_8));
 		}
 
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -236,8 +239,8 @@ public class DbExportTest_Cassandra {
 				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"column_varchar\n"
 						+ "\"<test_text>\"\n"
 						+ "\"<test_text>\"\n",
@@ -251,7 +254,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testCsv() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -261,8 +264,8 @@ public class DbExportTest_Cassandra {
 				"-output", "~" + File.separator + "temp" + File.separator + "",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -277,7 +280,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testCsvWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -288,8 +291,8 @@ public class DbExportTest_Cassandra {
 				"-n", "NULL",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -304,7 +307,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testCsvBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -315,8 +318,8 @@ public class DbExportTest_Cassandra {
 				"-beautify",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV.exists());
+		assertEquals(
 				"id;column_blob                                                                                                                                                                     ;column_date        ;column_double;column_int;column_text                                                                                                         ;column_timestamp   ;column_varchar                                                                                                      \n"
 						+ " 1;<test_text_base64>;01.02.2003 00:00:00;        1,123;         1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ " 2;<test_text_base64>;01.02.2003 00:00:00;        2,123;         2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -331,7 +334,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testCsvZipped() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -342,8 +345,8 @@ public class DbExportTest_Cassandra {
 				"-z",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
+		assertEquals(
 				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
 						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
 						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
@@ -358,7 +361,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testJsonBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -370,8 +373,8 @@ public class DbExportTest_Cassandra {
 				"-beautify",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"[\n"
 						+ "	{\n"
 						+ "		\"id\": 1,\n"
@@ -414,7 +417,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testJson() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -425,8 +428,8 @@ public class DbExportTest_Cassandra {
 				"-x", "json",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_JSON.exists());
+		assertEquals(
 				"["
 						+ "{\"id\":1,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":1.123,\"column_int\":1,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
 						+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":2.123,\"column_int\":2,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
@@ -442,7 +445,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testXmlBeautified() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -454,8 +457,8 @@ public class DbExportTest_Cassandra {
 				"-beautify",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 						+ "<table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">\n"
 						+ "	<line>\n"
@@ -499,7 +502,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testXmlWithNullString() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -511,8 +514,8 @@ public class DbExportTest_Cassandra {
 				"-n", "NULL",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
 						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
 						+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
@@ -528,7 +531,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testXml() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -539,8 +542,8 @@ public class DbExportTest_Cassandra {
 				"-x", "xml",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_XML.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_XML.exists());
+		assertEquals(
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
 						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
 						+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
@@ -555,7 +558,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testSql() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -566,8 +569,8 @@ public class DbExportTest_Cassandra {
 				"-x", "sql",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\n"
 						+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '2003-02-01 00:00:00', 1.123, 1, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
 						+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '2003-02-01 00:00:00', 2.123, 2, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
@@ -582,7 +585,7 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testSqlSelect() throws Exception {
-		Assertions.assertEquals(0, DbExport._main(new String[] {
+		assertEquals(0, DbExport._main(new String[] {
 				"cassandra",
 				HOSTNAME,
 				DBNAME,
@@ -593,8 +596,8 @@ public class DbExportTest_Cassandra {
 				"-x", "sql",
 				PASSWORD }));
 
-		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
-		Assertions.assertEquals(
+		assertTrue(OUTPUTFILE_SQL.exists());
+		assertEquals(
 				"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
 						+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
 						+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
@@ -619,7 +622,7 @@ public class DbExportTest_Cassandra {
 		}
 
 		try {
-			Assertions.assertEquals(0, DbExport._main(new String[] {
+			assertEquals(0, DbExport._main(new String[] {
 					"cassandra",
 					HOSTNAME,
 					DBNAME,
@@ -629,8 +632,8 @@ public class DbExportTest_Cassandra {
 					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
 					PASSWORD }));
 
-			Assertions.assertTrue(OUTPUTFILE_CSV.exists());
-			Assertions.assertEquals(
+			assertTrue(OUTPUTFILE_CSV.exists());
+			assertEquals(
 					"column_int\n"
 							+ "1234567\n"
 							+ "2\n"
@@ -665,8 +668,8 @@ public class DbExportTest_Cassandra {
 				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
 				PASSWORD });
 
-		Assertions.assertEquals(1, returnCode);
-		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
+		assertEquals(1, returnCode);
+		assertFalse(OUTPUTFILE_CSV.exists());
 	}
 
 	@Test
@@ -681,8 +684,8 @@ public class DbExportTest_Cassandra {
 				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
 				PASSWORD });
 
-		Assertions.assertEquals(1, returnCode);
-		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
+		assertEquals(1, returnCode);
+		assertFalse(OUTPUTFILE_CSV.exists());
 	}
 
 	@Test
@@ -695,7 +698,7 @@ public class DbExportTest_Cassandra {
 				"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
 				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv"});
 
-		Assertions.assertEquals(1, returnCode);
-		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
+		assertEquals(1, returnCode);
+		assertFalse(OUTPUTFILE_CSV.exists());
 	}
 }
