@@ -200,7 +200,10 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testCsvSelect() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
@@ -216,7 +219,10 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testCsvSelectErroneousSql() {
 		try {
-			Assert.assertEquals(1, DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3 ORDER BY not_existing_column", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv", null }));
+			Assert.assertEquals(1, DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "SELECT COLUMN_VARCHAR FROM test_tbl WHERE id < 3 ORDER BY not_existing_column",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv" }));
 
 			Assert.assertFalse(OUTPUTFILE_CSV.exists());
 		} catch (final Exception e) {
@@ -227,7 +233,10 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testCsv() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator });
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
@@ -244,7 +253,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testCsvWithNullString() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-n", "NULL", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-n", "NULL" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
@@ -261,7 +274,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testCsvBeautified() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-beautify", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-beautify" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(
@@ -280,7 +297,12 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testJsonBeautified() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "json", "-beautify", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "json",
+				"-beautify" });
 
 			Assert.assertTrue(OUTPUTFILE_JSON.exists());
 			Assert.assertEquals(
@@ -327,7 +349,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testJson() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "json", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "json" });
 
 			Assert.assertTrue(OUTPUTFILE_JSON.exists());
 			Assert.assertEquals(
@@ -347,7 +373,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testYaml() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "yaml", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "yaml" });
 
 			Assert.assertTrue(OUTPUTFILE_YAML.exists());
 			Assert.assertEquals(""
@@ -384,7 +414,12 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testXmlBeautified() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "xml", "-beautify", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "xml",
+				"-beautify" });
 
 			Assert.assertTrue(OUTPUTFILE_XML.exists());
 			Assert.assertEquals(
@@ -430,7 +465,12 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testXmlWithNullString() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "xml", "-n", "NULL", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "xml",
+				"-n", "NULL" });
 
 			Assert.assertTrue(OUTPUTFILE_XML.exists());
 			Assert.assertEquals(
@@ -449,7 +489,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testXml() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "xml", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "xml" });
 
 			Assert.assertTrue(OUTPUTFILE_XML.exists());
 			Assert.assertEquals(
@@ -468,7 +512,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testSql() {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "sql", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "sql" });
 
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
@@ -485,7 +533,11 @@ public class DbExportTest_HSQL {
 	@Test
 	public void testSqlSelect() throws Exception {
 		try {
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1", "-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql", "-x", "sql", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql",
+				"-x", "sql" });
 
 			Assert.assertTrue(OUTPUTFILE_SQL.exists());
 			Assert.assertEquals(
@@ -504,15 +556,10 @@ public class DbExportTest_HSQL {
 	public void testCsvZipped() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-z",
-					null
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-z" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
 			Assert.assertEquals(
@@ -530,15 +577,10 @@ public class DbExportTest_HSQL {
 	public void testCsvCompressZipped() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-compress", "ZIP",
-					null
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-compress", "ZIP" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
 			Assert.assertEquals(
@@ -556,15 +598,10 @@ public class DbExportTest_HSQL {
 	public void testCsvCompressTarGz() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-compress", "TARGZ",
-					null
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-compress", "TARGZ" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_TARGZ.exists());
 			try (InputStream inputStream = TarGzUtilities.openCompressedFile(OUTPUTFILE_CSV_TARGZ, "test_tbl.csv")) {
@@ -585,15 +622,10 @@ public class DbExportTest_HSQL {
 	public void testCsvCompressTgz() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-compress", "TGZ",
-					null
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-compress", "TGZ" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_TGZ.exists());
 			try (InputStream inputStream = TarGzUtilities.openCompressedFile(OUTPUTFILE_CSV_TGZ, "test_tbl.csv")) {
@@ -614,15 +646,10 @@ public class DbExportTest_HSQL {
 	public void testCsvCompressGz() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-compress", "GZ",
-					null
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-compress", "GZ" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_GZ.exists());
 			try (InputStream inputStream = new GZIPInputStream(new FileInputStream(OUTPUTFILE_CSV_GZ))) {
@@ -643,15 +670,11 @@ public class DbExportTest_HSQL {
 	public void testCsvZippedWithPasswordWithAES256() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-z", null,
-					"-zippassword", "abc123"
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-z",
+				"-zippassword", "abc123" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
 			final ZipFile zipFile = new ZipFile(OUTPUTFILE_CSV_ZIPPED, "abc123".toCharArray());
@@ -675,16 +698,12 @@ public class DbExportTest_HSQL {
 	public void testCsvZippedWithPasswordWithZipCrypto() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-z", null,
-					"-zippassword", "abc123",
-					"-useZipCrypto"
-			});
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-z",
+				"-zippassword", "abc123",
+				"-useZipCrypto" });
 
 			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
 			final ZipFile zipFile = new ZipFile(OUTPUTFILE_CSV_ZIPPED, "abc123".toCharArray());
@@ -762,7 +781,11 @@ public class DbExportTest_HSQL {
 				throw e;
 			}
 
-			DbExport._main(new String[] { "hsql", "", HSQL_DB_FILE, "", "-export", "test_big_tbl", "-output", "~" + File.separator + "temp" + File.separator, "-x", "csv", null });
+			DbExport._main(new String[] {
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_big_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-x", "csv" });
 
 			Assert.assertTrue(BIG_OUTPUTFILE_CSV.exists());
 			Assert.assertEquals(10001, FileUtilities.getLineCount(BIG_OUTPUTFILE_CSV));
@@ -779,13 +802,10 @@ public class DbExportTest_HSQL {
 	public void testStructureExport() {
 		try {
 			DbExport._main(new String[] {
-					"hsql",
-					"",
-					HSQL_DB_FILE,
-					"",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator,
-					"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath()
+				"hsql", "", HSQL_DB_FILE, "",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator,
+				"-structure", OUTPUTFILE_STRUCTURE.getAbsolutePath()
 			});
 
 			Assert.assertFalse(OUTPUTFILE_CSV.exists());
