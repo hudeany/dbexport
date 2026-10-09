@@ -2,10 +2,11 @@ Usage: java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbnam
 
 Mandatory parameters for database export
 	dbtype: mysql | mariadb | oracle | postgresql | mssql | firebird | sqlite | derby | hsql | cassandra
-	hostname: With optional port (Not needed for sqlite, hsql and derby)
-	dbname: Dbname or filepath for sqlite database or derby database (for Oracle servicename use "/<servicename>", optional use Oracle TNS description)
+	hostname: With optional port (Not needed for sqlite and derby, for hsql only needed for a server database:
+		a hsql file database path must contain a path separator or start with '.' or '~', e.g. ./mydb)
+	dbname: Dbname or filepath for sqlite, derby or hsql file database (for Oracle servicename use "/<servicename>", optional use Oracle TNS description)
 	username: Username (Not needed for sqlite and derby)
-	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
+	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, derby and hsql file databases)
 	
 	-export exportdata: SQL statement (Encapsulate by ', escape sequence is '')
 						or comma-separated list of tablenames with wildcards *? and !(= not, use as tablename prefix)
@@ -43,9 +44,10 @@ Optional parameters for database export
 	-blobfiles: Create a file (.blob or .blob.zip) for each blob instead of base64 encoding
 	-clobfiles: Create a file (.clob or .clob.zip) for each clob instead of data in csv file
 	-beautify: Beautify csv output to make column values equal length (Takes extra time)
-		or beautify json output to make it human readable with linebreak and indention
+		or beautify json and xml output to make it human readable with linebreak and indention
 	-noheaders: Don't export csv header line
-	-structure <structurefilename>: Export the structure of selected tables with their column names and datatypes into a JSON file
+	-structure <structurefilename>: Export the structure of selected tables with their column names and datatypes into a JSON file (instead of the data)
+		a filename without directory is created in the output directory or next to the output file
 	-dbtz '<databaseTimeZone>': Use a DatabaseTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-edtz '<exportDataTimeZone>': Use a ExportDataTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-secure: Use TLS/SSL for secure communication with database
@@ -67,7 +69,7 @@ Connection test:
 	-iter n: Iterations to execute. Default = 1, 0 = unlimited
 	-sleep n: Sleep for n seconds after each check. Default = 1
 	-check checksql: SQL statement to check or the keyword "vendor" for the vendors default check statement
-	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, hsql or derby)
+	password: Is asked interactivly, if not given as parameter (Not needed for sqlite, derby and hsql file databases)
 
 Create TrustStore:
 	Usage: java -jar DbExport.jar createtruststore hostname:port truststorefilePath [truststorepassword]

@@ -1,5 +1,7 @@
 package de.soderer.dbexport;
 
+import java.io.File;
+
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
@@ -113,10 +115,21 @@ public class ConnectionTestDefinition extends DbConnectionDefinition {
 	public String toParamsString() {
 		String params = "connectiontest";
 		params += " " + getDbVendor().name();
-		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.HSQL && getDbVendor() != DbVendor.Derby) {
-			params += " " + getHostnameAndPort();
+		if (getDbVendor() == DbVendor.HSQL) {
+			// HSQL: hostname only for a server database. A file database path is marked by a path separator, so it is
+			// not taken as hostname when the parameters are read again (see DbExport.isHsqlFileDatabasePath()).
+			if (Utilities.isNotBlank(getHostnameAndPort())) {
+				params += " " + getHostnameAndPort();
+				params += " " + getDbName();
+			} else {
+				params += " " + (DbExport.isHsqlFileDatabasePath(getDbName()) ? getDbName() : "." + File.separator + getDbName());
+			}
+		} else {
+			if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
+				params += " " + getHostnameAndPort();
+			}
+			params += " " + getDbName();
 		}
-		params += " " + getDbName();
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
 			if (getUsername() != null) {
 				params += " " + getUsername();

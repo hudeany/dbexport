@@ -199,7 +199,7 @@ public class DbExportTest_Cassandra {
 	@Test
 	public void testCsvSelectWithStructure() {
 		try {
-			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.txt", false)) {
+			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
 			}
 
@@ -209,16 +209,16 @@ public class DbExportTest_Cassandra {
 					DBNAME,
 					USERNAME,
 					"-l",
-					"-structure",
+					"-structure", "dbstructure_test.json",
 					"-export", "test_tbl",
 					"-output", "~" + File.separator + "temp" + File.separator + "",
 					PASSWORD });
 
-			Assert.assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.txt", false).size() == 1);
+			Assert.assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false).size() == 1);
 		} catch (final Exception e) {
 			Assert.fail(e.getMessage());
 		} finally {
-			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.txt", false)) {
+			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
 			}
 		}

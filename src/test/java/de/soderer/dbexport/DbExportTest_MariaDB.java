@@ -197,7 +197,7 @@ public class DbExportTest_MariaDB {
 	@Test
 	public void testCsvSelectWithStructure() {
 		try {
-			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.txt", false)) {
+			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
 			}
 
@@ -207,7 +207,7 @@ public class DbExportTest_MariaDB {
 					DBNAME,
 					USERNAME,
 					"-l",
-					"-structure",
+					"-structure", "dbstructure_test.json",
 					"-export", "test_tbl",
 					"-output", "~" + File.separator + "temp" + File.separator + "",
 					PASSWORD });

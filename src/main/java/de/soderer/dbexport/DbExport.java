@@ -112,6 +112,17 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		return VERSION_BUILDTIME == null ? "" : " (" + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, VERSION_BUILDTIME) + ")";
 	}
 
+	/**
+	 * Checks whether a command line value for a HSQL database is the path of a file database instead of a hostname.
+	 * A file database path contains a path separator or starts with "~" or ".", e.g. "./mydb" or "~/data/mydb".
+	 *
+	 * @param value the command line value
+	 * @return true if the value is a file database path, false if it is a hostname (optionally with port)
+	 */
+	public static boolean isHsqlFileDatabasePath(final String value) {
+		return value != null && (value.contains("/") || value.contains("\\") || value.startsWith("~") || value.startsWith("."));
+	}
+
 	/** Lower case keywords for the help text, only recognized as single argument */
 	private static final Set<String> HELP_KEYWORDS = Set.of("help", "-help", "--help", "-h", "--h", "-?", "--?");
 
@@ -507,7 +518,9 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (dbExportDefinition.getDbVendor() == null) {
 							dbExportDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (dbExportDefinition.getHostnameAndPort() == null && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby) {
+						} else if (dbExportDefinition.getHostnameAndPort() == null && dbExportDefinition.getDbVendor() != DbVendor.SQLite && dbExportDefinition.getDbVendor() != DbVendor.Derby
+								&& !(dbExportDefinition.getDbVendor() == DbVendor.HSQL && isHsqlFileDatabasePath(arguments[i]))) {
+							// HSQL needs no hostname for a file database (before, its path was taken as hostname)
 							dbExportDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (dbExportDefinition.getDbName() == null) {
@@ -576,7 +589,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (connectionTestDefinition.getDbVendor() == null) {
 							connectionTestDefinition.setDbVendor(DbVendor.getDbVendorByName(arguments[i]));
 							wasAllowedParam = true;
-						} else if (connectionTestDefinition.getHostnameAndPort() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby) {
+						} else if (connectionTestDefinition.getHostnameAndPort() == null && connectionTestDefinition.getDbVendor() != DbVendor.SQLite && connectionTestDefinition.getDbVendor() != DbVendor.Derby
+								&& !(connectionTestDefinition.getDbVendor() == DbVendor.HSQL && isHsqlFileDatabasePath(arguments[i]))) {
 							connectionTestDefinition.setHostnameAndPort(arguments[i]);
 							wasAllowedParam = true;
 						} else if (connectionTestDefinition.getDbName() == null) {
@@ -691,10 +705,12 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				}
 			} else if (connectionTest) {
 				// If started without GUI we may enter the missing password via the terminal
+				// Not for a HSQL file database, which needs no password (see help)
 				if (Utilities.isNotBlank(connectionTestDefinition.getUsername()) && connectionTestDefinition.getPassword() == null
 						&& connectionTestDefinition.getDbVendor() != DbVendor.SQLite
 						&& connectionTestDefinition.getDbVendor() != DbVendor.Derby
-						&& connectionTestDefinition.getDbVendor() != DbVendor.Cassandra) {
+						&& connectionTestDefinition.getDbVendor() != DbVendor.Cassandra
+						&& !(connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort()))) {
 					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					connectionTestDefinition.setPassword(passwordArray);
 				}
@@ -702,10 +718,12 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				return connectionTest(connectionTestDefinition);
 			} else {
 				// If started without GUI we may enter the missing password via the terminal
+				// Not for a HSQL file database, which needs no password (see help)
 				if (Utilities.isNotBlank(dbExportDefinition.getUsername()) && dbExportDefinition.getPassword() == null
 						&& dbExportDefinition.getDbVendor() != DbVendor.SQLite
 						&& dbExportDefinition.getDbVendor() != DbVendor.Derby
-						&& dbExportDefinition.getDbVendor() != DbVendor.Cassandra) {
+						&& dbExportDefinition.getDbVendor() != DbVendor.Cassandra
+						&& !(dbExportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbExportDefinition.getHostnameAndPort()))) {
 					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					dbExportDefinition.setPassword(passwordArray);
 				}
