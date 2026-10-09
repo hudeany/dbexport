@@ -118,7 +118,7 @@
 
 		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" />
 		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" classifier="sources" />
-		
+
 		<getMavenDependency libDir="lib_test" groupId="org.hamcrest" artifactId="hamcrest" version="${hamcrest.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.jupiter" artifactId="junit-jupiter-api" version="${junit.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.jupiter" artifactId="junit-jupiter-engine" version="${junit.version}" />
