@@ -130,7 +130,6 @@
 		<getMavenDependency libDir="lib_test" groupId="org.apiguardian" artifactId="apiguardian-api" version="${apiguardian.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.platform" artifactId="junit-platform-suite-api" version="${junit.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.platform" artifactId="junit-platform-suite-engine" version="${junit.version}" />
-		<getMavenDependency libDir="lib_test" groupId="org.junit.platform" artifactId="junit-platform-suite-commons" version="${junit.version}" />
 	</target>
 
 	<target name="download_dbconnectors" depends="proxy">
