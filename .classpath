@@ -30,9 +30,6 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib_test/hamcrest-2.2.jar"/>
-	<classpathentry kind="lib" path="lib_test/hamcrest-core-2.2.jar"/>
-	<classpathentry kind="lib" path="lib_test/junit-4.13.2.jar"/>
 	<classpathentry kind="lib" path="lib_db/derby-10.17.1.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/derbyshared-10.17.1.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/derbytools-10.17.1.0.jar"/>
@@ -44,5 +41,6 @@
 	<classpathentry kind="lib" path="lib_db/orai18n-23.26.3.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.7.13.jar"/>
 	<classpathentry kind="lib" path="lib_db/sqlite-jdbc-3.53.2.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/6"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

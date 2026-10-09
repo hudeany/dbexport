@@ -1,16 +1,14 @@
 package de.soderer.dbexport;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Suite.class)
-
-@Suite.SuiteClasses({
+@Suite
+@SelectClasses({
 	DbExportTest_Derby.class,
 	DbExportTest_HSQL.class,
 	DbExportTest_SQLite.class
 })
-
 public class NoInstallNeededExportTestSuite {
-
+	// Only the annotations are used
 }

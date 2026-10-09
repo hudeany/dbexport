@@ -10,12 +10,12 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
@@ -44,7 +44,7 @@ public class DbExportTest_Cassandra {
 	public static File OUTPUTFILE_JSON = new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test_tbl.json"));
 	public static File OUTPUTFILE_SQL = new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test_tbl.sql"));
 
-	@BeforeClass
+	@BeforeAll
 	public static void setupTestClass() throws Exception {
 		TEST_DATETIME = DateUtilities.parseLocalDateTime(DateUtilities.DD_MM_YYYY_HH_MM_SS, "01.02.2003 04:05:06");
 		TEST_DATE = DateUtilities.parseLocalDate(DateUtilities.DD_MM_YYYY, "01.02.2003");
@@ -101,7 +101,7 @@ public class DbExportTest_Cassandra {
 		}
 	}
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		OUTPUTFILE_CSV.delete();
 		OUTPUTFILE_CSV_ZIPPED.delete();
@@ -119,7 +119,7 @@ public class DbExportTest_Cassandra {
 		deleteLogFiles();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() {
 		OUTPUTFILE_CSV.delete();
 		OUTPUTFILE_CSV_ZIPPED.delete();
@@ -128,7 +128,7 @@ public class DbExportTest_Cassandra {
 		OUTPUTFILE_SQL.delete();
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDownTestClass() throws Exception {
 		try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
 				Statement statement = connection.createStatement()) {
@@ -164,46 +164,42 @@ public class DbExportTest_Cassandra {
 				valueFound = true;
 			}
 		}
-		Assert.assertTrue(logData, valueFound);
+		Assertions.assertTrue(valueFound, logData);
 	}
 
 	@Test
-	public void testCsvSelect() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "SELECT column_varchar FROM test_tbl WHERE id < 3",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
-					PASSWORD });
+	public void testCsvSelect() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "SELECT column_varchar FROM test_tbl WHERE id < 3",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
-					"column_varchar\n"
-							+ "\"<test_text>\"\n"
-							+ "\"<test_text>\"\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		Assertions.assertEquals(
+				"column_varchar\n"
+						+ "\"<test_text>\"\n"
+						+ "\"<test_text>\"\n",
+						FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "2");
-			assertLogContains(logData, "Exported lines", "2");
-			assertLogContains(logData, "Exported data amount", "287 Byte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "2");
+		assertLogContains(logData, "Exported lines", "2");
+		assertLogContains(logData, "Exported data amount", "287 Byte");
 	}
 
 	@Test
-	public void testCsvSelectWithStructure() {
+	public void testCsvSelectWithStructure() throws Exception {
 		try {
 			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
 			}
 
-			DbExport._main(new String[] {
+			Assertions.assertEquals(0, DbExport._main(new String[] {
 					"cassandra",
 					HOSTNAME,
 					DBNAME,
@@ -212,11 +208,9 @@ public class DbExportTest_Cassandra {
 					"-structure", "dbstructure_test.json",
 					"-export", "test_tbl",
 					"-output", "~" + File.separator + "temp" + File.separator + "",
-					PASSWORD });
+					PASSWORD }));
 
-			Assert.assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false).size() == 1);
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
+			Assertions.assertTrue(FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false).size() == 1);
 		} finally {
 			for (final File filePath : FileUtilities.getFilesWithWildcards(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "")), "dbstructure_*.json", false)) {
 				filePath.delete();
@@ -225,441 +219,392 @@ public class DbExportTest_Cassandra {
 	}
 
 	@Test
-	public void testCsvSelectWithStatementfile() {
-		try {
-			new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test.sql")).delete();
-			try (FileOutputStream output = new FileOutputStream(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test.sql")))) {
-				output.write("SELECT column_varchar FROM test_tbl WHERE id < 3".getBytes(StandardCharsets.UTF_8));
-			}
-
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-file",
-					"-l",
-					"-export", "~" + File.separator + "temp" + File.separator + "test.sql",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
-					PASSWORD });
-
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
-					"column_varchar\n"
-							+ "\"<test_text>\"\n"
-							+ "\"<test_text>\"\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
-
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "2");
-			assertLogContains(logData, "Exported lines", "2");
-			assertLogContains(logData, "Exported data amount", "287 Byte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
+	public void testCsvSelectWithStatementfile() throws Exception {
+		new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test.sql")).delete();
+		try (FileOutputStream output = new FileOutputStream(new File(Utilities.replaceUsersHome("~" + File.separator + "temp" + File.separator + "test.sql")))) {
+			output.write("SELECT column_varchar FROM test_tbl WHERE id < 3".getBytes(StandardCharsets.UTF_8));
 		}
+
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-file",
+				"-l",
+				"-export", "~" + File.separator + "temp" + File.separator + "test.sql",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
+				PASSWORD }));
+
+		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		Assertions.assertEquals(
+				"column_varchar\n"
+						+ "\"<test_text>\"\n"
+						+ "\"<test_text>\"\n",
+						FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "2");
+		assertLogContains(logData, "Exported lines", "2");
+		assertLogContains(logData, "Exported data amount", "287 Byte");
 	}
 
 	@Test
-	public void testCsv() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					PASSWORD });
+	public void testCsv() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
-					"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
-							+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "3;;;;;;;\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		Assertions.assertEquals(
+				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
+						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "3;;;;;;;\n",
+						FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,0771 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,0771 KiByte");
 	}
 
 	@Test
-	public void testCsvWithNullString() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-n", "NULL",
-					PASSWORD });
+	public void testCsvWithNullString() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-n", "NULL",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
-					"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
-							+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "3;NULL;NULL;NULL;NULL;NULL;NULL;NULL\n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		Assertions.assertEquals(
+				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
+						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "3;NULL;NULL;NULL;NULL;NULL;NULL;NULL\n",
+						FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,1045 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,1045 KiByte");
 	}
 
 	@Test
-	public void testCsvBeautified() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-beautify",
-					PASSWORD });
+	public void testCsvBeautified() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-beautify",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
-					"id;column_blob                                                                                                                                                                     ;column_date        ;column_double;column_int;column_text                                                                                                         ;column_timestamp   ;column_varchar                                                                                                      \n"
-							+ " 1;<test_text_base64>;01.02.2003 00:00:00;        1,123;         1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ " 2;<test_text_base64>;01.02.2003 00:00:00;        2,123;         2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ " 3;                                                                                                                                                                                ;                   ;             ;          ;                                                                                                                    ;                   ;                                                                                                                    \n",
-							FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+		Assertions.assertEquals(
+				"id;column_blob                                                                                                                                                                     ;column_date        ;column_double;column_int;column_text                                                                                                         ;column_timestamp   ;column_varchar                                                                                                      \n"
+						+ " 1;<test_text_base64>;01.02.2003 00:00:00;        1,123;         1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ " 2;<test_text_base64>;01.02.2003 00:00:00;        2,123;         2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ " 3;                                                                                                                                                                                ;                   ;             ;          ;                                                                                                                    ;                   ;                                                                                                                    \n",
+						FileUtilities.readFileToString(OUTPUTFILE_CSV, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,9453 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,9453 KiByte");
 	}
 
 	@Test
-	public void testCsvZipped() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-z",
-					PASSWORD });
+	public void testCsvZipped() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-z",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
-			Assert.assertEquals(
-					"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
-							+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
-							+ "3;;;;;;;\n",
-							new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_CSV_ZIPPED.exists());
+		Assertions.assertEquals(
+				"id;column_blob;column_date;column_double;column_int;column_text;column_timestamp;column_varchar\n"
+						+ "1;<test_text_base64>;01.02.2003 00:00:00;1,123;1;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "2;<test_text_base64>;01.02.2003 00:00:00;2,123;2;\"<test_text>\";01.02.2003 04:05:06;\"<test_text>\"\n"
+						+ "3;;;;;;;\n",
+						new String(ZipUtilities.readExistingZipFile(OUTPUTFILE_CSV_ZIPPED).get("test_tbl.csv"), StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\"", "\"\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "568 Byte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "568 Byte");
 	}
 
 	@Test
-	public void testJsonBeautified() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "json",
-					"-beautify",
-					PASSWORD });
+	public void testJsonBeautified() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "json",
+				"-beautify",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_JSON.exists());
-			Assert.assertEquals(
-					"[\n"
-							+ "	{\n"
-							+ "		\"id\": 1,\n"
-							+ "		\"column_blob\": \"<test_text_base64>\",\n"
-							+ "		\"column_date\": \"2003-02-01T00:00:00+01\",\n"
-							+ "		\"column_double\": 1.123,\n"
-							+ "		\"column_int\": 1,\n"
-							+ "		\"column_text\": \"<test_text>\",\n"
-							+ "		\"column_timestamp\": \"2003-02-01T04:05:06+01\",\n"
-							+ "		\"column_varchar\": \"<test_text>\"\n"
-							+ "	},\n"
-							+ "	{\n"
-							+ "		\"id\": 2,\n"
-							+ "		\"column_blob\": \"<test_text_base64>\",\n"
-							+ "		\"column_date\": \"2003-02-01T00:00:00+01\",\n"
-							+ "		\"column_double\": 2.123,\n"
-							+ "		\"column_int\": 2,\n"
-							+ "		\"column_text\": \"<test_text>\",\n"
-							+ "		\"column_timestamp\": \"2003-02-01T04:05:06+01\",\n"
-							+ "		\"column_varchar\": \"<test_text>\"\n"
-							+ "	},\n"
-							+ "	{\n"
-							+ "		\"id\": 3,\n"
-							+ "		\"column_blob\": null,\n"
-							+ "		\"column_date\": null,\n"
-							+ "		\"column_double\": null,\n"
-							+ "		\"column_int\": null,\n"
-							+ "		\"column_text\": null,\n"
-							+ "		\"column_timestamp\": null,\n"
-							+ "		\"column_varchar\": null\n"
-							+ "	}\n"
-							+ "]",
-							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("/", "\\/").replace("\"", "\\\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
+		Assertions.assertEquals(
+				"[\n"
+						+ "	{\n"
+						+ "		\"id\": 1,\n"
+						+ "		\"column_blob\": \"<test_text_base64>\",\n"
+						+ "		\"column_date\": \"2003-02-01T00:00:00+01\",\n"
+						+ "		\"column_double\": 1.123,\n"
+						+ "		\"column_int\": 1,\n"
+						+ "		\"column_text\": \"<test_text>\",\n"
+						+ "		\"column_timestamp\": \"2003-02-01T04:05:06+01\",\n"
+						+ "		\"column_varchar\": \"<test_text>\"\n"
+						+ "	},\n"
+						+ "	{\n"
+						+ "		\"id\": 2,\n"
+						+ "		\"column_blob\": \"<test_text_base64>\",\n"
+						+ "		\"column_date\": \"2003-02-01T00:00:00+01\",\n"
+						+ "		\"column_double\": 2.123,\n"
+						+ "		\"column_int\": 2,\n"
+						+ "		\"column_text\": \"<test_text>\",\n"
+						+ "		\"column_timestamp\": \"2003-02-01T04:05:06+01\",\n"
+						+ "		\"column_varchar\": \"<test_text>\"\n"
+						+ "	},\n"
+						+ "	{\n"
+						+ "		\"id\": 3,\n"
+						+ "		\"column_blob\": null,\n"
+						+ "		\"column_date\": null,\n"
+						+ "		\"column_double\": null,\n"
+						+ "		\"column_int\": null,\n"
+						+ "		\"column_text\": null,\n"
+						+ "		\"column_timestamp\": null,\n"
+						+ "		\"column_varchar\": null\n"
+						+ "	}\n"
+						+ "]",
+						FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("/", "\\/").replace("\"", "\\\""), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,4873 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,4873 KiByte");
 	}
 
 	@Test
-	public void testJson() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "json",
-					PASSWORD });
+	public void testJson() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "json",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_JSON.exists());
-			Assert.assertEquals(
-					"["
-							+ "{\"id\":1,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":1.123,\"column_int\":1,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
-							+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":2.123,\"column_int\":2,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
-							+ "{\"id\":3,\"column_blob\":null,\"column_date\":null,\"column_double\":null,\"column_int\":null,\"column_text\":null,\"column_timestamp\":null,\"column_varchar\":null}"
-							+ "]",
-							FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\"").replace("/", "\\/"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_JSON.exists());
+		Assertions.assertEquals(
+				"["
+						+ "{\"id\":1,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":1.123,\"column_int\":1,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
+						+ "{\"id\":2,\"column_blob\":\"<test_text_base64>\",\"column_date\":\"2003-02-01T00:00:00+01\",\"column_double\":2.123,\"column_int\":2,\"column_text\":\"<test_text>\",\"column_timestamp\":\"2003-02-01T04:05:06+01\",\"column_varchar\":\"<test_text>\"},"
+						+ "{\"id\":3,\"column_blob\":null,\"column_date\":null,\"column_double\":null,\"column_int\":null,\"column_text\":null,\"column_timestamp\":null,\"column_varchar\":null}"
+						+ "]",
+						FileUtilities.readFileToString(OUTPUTFILE_JSON, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("\\", "\\\\").replace("\"", "\\\"").replace("/", "\\/"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)).replace("/", "\\/"), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,3809 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,3809 KiByte");
 	}
 
 	@Test
-	public void testXmlBeautified() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "xml",
-					"-beautify",
-					PASSWORD });
+	public void testXmlBeautified() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "xml",
+				"-beautify",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_XML.exists());
-			Assert.assertEquals(
-					"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-							+ "<table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">\n"
-							+ "	<line>\n"
-							+ "		<id>1</id>\n"
-							+ "		<column_blob><test_text_base64></column_blob>\n"
-							+ "		<column_date>01.02.2003 00:00:00</column_date>\n"
-							+ "		<column_double>1,123</column_double>\n"
-							+ "		<column_int>1</column_int>\n"
-							+ "		<column_text><test_text></column_text>\n"
-							+ "		<column_timestamp>01.02.2003 04:05:06</column_timestamp>\n"
-							+ "		<column_varchar><test_text></column_varchar>\n"
-							+ "	</line>\n"
-							+ "	<line>\n"
-							+ "		<id>2</id>\n"
-							+ "		<column_blob><test_text_base64></column_blob>\n"
-							+ "		<column_date>01.02.2003 00:00:00</column_date>\n"
-							+ "		<column_double>2,123</column_double>\n"
-							+ "		<column_int>2</column_int>\n"
-							+ "		<column_text><test_text></column_text>\n"
-							+ "		<column_timestamp>01.02.2003 04:05:06</column_timestamp>\n"
-							+ "		<column_varchar><test_text></column_varchar>\n"
-							+ "	</line>\n"
-							+ "	<line>\n"
-							+ "		<id>3</id>\n"
-							+ "		<column_blob></column_blob>\n"
-							+ "		<column_date></column_date>\n"
-							+ "		<column_double></column_double>\n"
-							+ "		<column_int></column_int>\n"
-							+ "		<column_text></column_text>\n"
-							+ "		<column_timestamp></column_timestamp>\n"
-							+ "		<column_varchar></column_varchar>\n"
-							+ "	</line>\n"
-							+ "</table>\n",
-							FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_XML.exists());
+		Assertions.assertEquals(
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+						+ "<table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">\n"
+						+ "	<line>\n"
+						+ "		<id>1</id>\n"
+						+ "		<column_blob><test_text_base64></column_blob>\n"
+						+ "		<column_date>01.02.2003 00:00:00</column_date>\n"
+						+ "		<column_double>1,123</column_double>\n"
+						+ "		<column_int>1</column_int>\n"
+						+ "		<column_text><test_text></column_text>\n"
+						+ "		<column_timestamp>01.02.2003 04:05:06</column_timestamp>\n"
+						+ "		<column_varchar><test_text></column_varchar>\n"
+						+ "	</line>\n"
+						+ "	<line>\n"
+						+ "		<id>2</id>\n"
+						+ "		<column_blob><test_text_base64></column_blob>\n"
+						+ "		<column_date>01.02.2003 00:00:00</column_date>\n"
+						+ "		<column_double>2,123</column_double>\n"
+						+ "		<column_int>2</column_int>\n"
+						+ "		<column_text><test_text></column_text>\n"
+						+ "		<column_timestamp>01.02.2003 04:05:06</column_timestamp>\n"
+						+ "		<column_varchar><test_text></column_varchar>\n"
+						+ "	</line>\n"
+						+ "	<line>\n"
+						+ "		<id>3</id>\n"
+						+ "		<column_blob></column_blob>\n"
+						+ "		<column_date></column_date>\n"
+						+ "		<column_double></column_double>\n"
+						+ "		<column_int></column_int>\n"
+						+ "		<column_text></column_text>\n"
+						+ "		<column_timestamp></column_timestamp>\n"
+						+ "		<column_varchar></column_varchar>\n"
+						+ "	</line>\n"
+						+ "</table>\n",
+						FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,9395 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,9395 KiByte");
 	}
 
 	@Test
-	public void testXmlWithNullString() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "xml",
-					"-n", "NULL",
-					PASSWORD });
+	public void testXmlWithNullString() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "xml",
+				"-n", "NULL",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_XML.exists());
-			Assert.assertEquals(
-					"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
-							+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
-							+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
-							+ "<line><id>3</id><column_blob>NULL</column_blob><column_date>NULL</column_date><column_double>NULL</column_double><column_int>NULL</column_int><column_text>NULL</column_text><column_timestamp>NULL</column_timestamp><column_varchar>NULL</column_varchar></line>"
-							+ "</table>",
-							FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_XML.exists());
+		Assertions.assertEquals(
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
+						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
+						+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
+						+ "<line><id>3</id><column_blob>NULL</column_blob><column_date>NULL</column_date><column_double>NULL</column_double><column_int>NULL</column_int><column_text>NULL</column_text><column_timestamp>NULL</column_timestamp><column_varchar>NULL</column_varchar></line>"
+						+ "</table>",
+						FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,8818 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,8818 KiByte");
 	}
 
 	@Test
-	public void testXml() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "xml",
-					PASSWORD });
+	public void testXml() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "xml",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_XML.exists());
-			Assert.assertEquals(
-					"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
-							+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
-							+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
-							+ "<line><id>3</id><column_blob></column_blob><column_date></column_date><column_double></column_double><column_int></column_int><column_text></column_text><column_timestamp></column_timestamp><column_varchar></column_varchar></line></table>",
-							FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_XML.exists());
+		Assertions.assertEquals(
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?><table statement=\"SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\">"
+						+ "<line><id>1</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>1,123</column_double><column_int>1</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
+						+ "<line><id>2</id><column_blob><test_text_base64></column_blob><column_date>01.02.2003 00:00:00</column_date><column_double>2,123</column_double><column_int>2</column_int><column_text><test_text></column_text><column_timestamp>01.02.2003 04:05:06</column_timestamp><column_varchar><test_text></column_varchar></line>"
+						+ "<line><id>3</id><column_blob></column_blob><column_date></column_date><column_double></column_double><column_int></column_int><column_text></column_text><column_timestamp></column_timestamp><column_varchar></column_varchar></line></table>",
+						FileUtilities.readFileToString(OUTPUTFILE_XML, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,8545 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,8545 KiByte");
 	}
 
 	@Test
-	public void testSql() {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "test_tbl",
-					"-output", "~" + File.separator + "temp" + File.separator + "",
-					"-x", "sql",
-					PASSWORD });
+	public void testSql() throws Exception {
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "test_tbl",
+				"-output", "~" + File.separator + "temp" + File.separator + "",
+				"-x", "sql",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_SQL.exists());
-			Assert.assertEquals(
-					"--SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '2003-02-01 00:00:00', 1.123, 1, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '2003-02-01 00:00:00', 2.123, 2, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
-							+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL, NULL);\n",
-							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
+		Assertions.assertEquals(
+				"--SELECT id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar FROM test_tbl ORDER BY id\n"
+						+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (1, '<test_text_base64>', '2003-02-01 00:00:00', 1.123, 1, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
+						+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (2, '<test_text_base64>', '2003-02-01 00:00:00', 2.123, 2, '<test_text>', '2003-02-01 04:05:06', '<test_text>');\n"
+						+ "INSERT INTO export_tbl (id, column_blob, column_date, column_double, column_int, column_text, column_timestamp, column_varchar) VALUES (3, NULL, NULL, NULL, NULL, NULL, NULL, NULL);\n",
+						FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "1,5820 KiByte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "1,5820 KiByte");
 	}
 
 	@Test
 	public void testSqlSelect() throws Exception {
-		try {
-			DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql",
-					"-x", "sql",
-					PASSWORD });
+		Assertions.assertEquals(0, DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "SELECT column_varchar FROM test_tbl WHERE 1 = 1",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.sql",
+				"-x", "sql",
+				PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_SQL.exists());
-			Assert.assertEquals(
-					"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
-							+ "INSERT INTO export_tbl (column_varchar) VALUES (NULL);\n",
-							FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
+		Assertions.assertTrue(OUTPUTFILE_SQL.exists());
+		Assertions.assertEquals(
+				"--SELECT column_varchar FROM test_tbl WHERE 1 = 1\n"
+						+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
+						+ "INSERT INTO export_tbl (column_varchar) VALUES ('<test_text>');\n"
+						+ "INSERT INTO export_tbl (column_varchar) VALUES (NULL);\n",
+						FileUtilities.readFileToString(OUTPUTFILE_SQL, StandardCharsets.UTF_8).replace(TextUtilities.GERMAN_TEST_STRING.replace("'", "''"), "<test_text>").replace(Utilities.encodeBase64(TextUtilities.GERMAN_TEST_STRING.getBytes(StandardCharsets.UTF_8)), "<test_text_base64>"));
 
-			final String logData = getLogFileData();
-			assertLogContains(logData, "Lines to export", "3");
-			assertLogContains(logData, "Exported lines", "3");
-			assertLogContains(logData, "Exported data amount", "477 Byte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-			throw e;
-		}
+		final String logData = getLogFileData();
+		assertLogContains(logData, "Lines to export", "3");
+		assertLogContains(logData, "Exported lines", "3");
+		assertLogContains(logData, "Exported data amount", "477 Byte");
 	}
 
 	@Test
@@ -674,7 +619,7 @@ public class DbExportTest_Cassandra {
 		}
 
 		try {
-			DbExport._main(new String[] {
+			Assertions.assertEquals(0, DbExport._main(new String[] {
 					"cassandra",
 					HOSTNAME,
 					DBNAME,
@@ -682,10 +627,10 @@ public class DbExportTest_Cassandra {
 					"-l",
 					"-export", "SELECT column_int FROM test_tbl",
 					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
-					PASSWORD });
+					PASSWORD }));
 
-			Assert.assertTrue(OUTPUTFILE_CSV.exists());
-			Assert.assertEquals(
+			Assertions.assertTrue(OUTPUTFILE_CSV.exists());
+			Assertions.assertEquals(
 					"column_int\n"
 							+ "1234567\n"
 							+ "2\n"
@@ -696,9 +641,6 @@ public class DbExportTest_Cassandra {
 			assertLogContains(logData, "Lines to export", "3");
 			assertLogContains(logData, "Exported lines", "3");
 			assertLogContains(logData, "Exported data amount", "22 Byte");
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-			throw e;
 		} finally {
 			// Revert database data changes
 			try (Connection connection = DbUtilities.createConnection(new DbConnectionDefinition(DbVendor.Cassandra, HOSTNAME, DBNAME, USERNAME, PASSWORD == null ? null : PASSWORD.toCharArray()), false);
@@ -713,62 +655,47 @@ public class DbExportTest_Cassandra {
 
 	@Test
 	public void testConnectionHostnameError() throws Exception {
-		try {
-			final int returnCode = DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME + "x",
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
-					PASSWORD });
+		final int returnCode = DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME + "x",
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
+				PASSWORD });
 
-			Assert.assertEquals(1, returnCode);
-			Assert.assertFalse(OUTPUTFILE_CSV.exists());
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-			throw e;
-		}
+		Assertions.assertEquals(1, returnCode);
+		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
 	}
 
 	@Test
 	public void testConnectionPortError() throws Exception {
-		try {
-			final int returnCode = DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME + ":9999",
-					DBNAME,
-					USERNAME,
-					"-l",
-					"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
-					PASSWORD });
+		final int returnCode = DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME + ":9999",
+				DBNAME,
+				USERNAME,
+				"-l",
+				"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv",
+				PASSWORD });
 
-			Assert.assertEquals(1, returnCode);
-			Assert.assertFalse(OUTPUTFILE_CSV.exists());
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-			throw e;
-		}
+		Assertions.assertEquals(1, returnCode);
+		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
 	}
 
 	@Test
 	public void testConnectionError() throws Exception {
-		try {
-			final int returnCode = DbExport._main(new String[] {
-					"cassandra",
-					HOSTNAME,
-					DBNAME + "x",
-					"-l",
-					"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
-					"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv"});
+		final int returnCode = DbExport._main(new String[] {
+				"cassandra",
+				HOSTNAME,
+				DBNAME + "x",
+				"-l",
+				"-export", "SELECT column_int AS column_int FROM test_tbl WHERE 1 = 1",
+				"-output", "~" + File.separator + "temp" + File.separator + "test_tbl.csv"});
 
-			Assert.assertEquals(1, returnCode);
-			Assert.assertFalse(OUTPUTFILE_CSV.exists());
-		} catch (final Exception e) {
-			Assert.fail(e.getMessage());
-			throw e;
-		}
+		Assertions.assertEquals(1, returnCode);
+		Assertions.assertFalse(OUTPUTFILE_CSV.exists());
 	}
 }
