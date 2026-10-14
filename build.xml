@@ -18,7 +18,7 @@
 	<property name="proxyautoconfig.version" value="26.1.4" />
 	<property name="network.version" value="26.0.37" />
 	<property name="dbutilities.version" value="26.1.5" />
-	<property name="soderer-utilities.version" value="26.2.100" />
+	<property name="soderer-utilities.version" value="26.2.105" />
 
 	<property name="mariadb-java-client.version" value="3.5.9" />
 	<property name="mysql-connector-j.version" value="9.7.0" />
