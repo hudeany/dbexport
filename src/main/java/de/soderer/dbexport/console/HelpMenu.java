@@ -3,10 +3,10 @@ package de.soderer.dbexport.console;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import de.soderer.console.ConsoleMenu;
+import de.soderer.console.ConsoleUtilities;
 import de.soderer.dbexport.DbExport;
 import de.soderer.utilities.IoUtilities;
-import de.soderer.utilities.console.ConsoleMenu;
-import de.soderer.utilities.console.ConsoleUtilities;
 
 /**
  * Console menu entry, which prints the help text and exits the application.

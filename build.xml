@@ -18,7 +18,10 @@
 	<property name="proxyautoconfig.version" value="26.1.4" />
 	<property name="network.version" value="26.0.37" />
 	<property name="dbutilities.version" value="26.1.5" />
-	<property name="soderer-utilities.version" value="26.2.99" />
+	<property name="soderer-console.version" value="26.0.0" />
+	<property name="soderer-swing.version" value="26.0.1" />
+	<property name="soderer-applicationbase.version" value="26.0.0" />
+	<property name="soderer-utilities.version" value="26.2.104" />
 
 	<property name="mariadb-java-client.version" value="3.5.9" />
 	<property name="mysql-connector-j.version" value="9.7.0" />
@@ -115,9 +118,10 @@
 		<getDependency name="proxyautoconfig" version="${proxyautoconfig.version}" url="https://github.com/hudeany/ProxyAutoConfig/releases/download/{version}/proxyautoconfig-{version}.jar" />
 		<getDependency name="network" version="${network.version}" url="https://github.com/hudeany/network/releases/download/{version}/network-{version}.jar" />
 		<getDependency name="dbutilities" version="${dbutilities.version}" url="https://github.com/hudeany/DbUtilities/releases/download/{version}/dbutilities-{version}.jar" />
-
-		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" />
-		<getMavenDependency repositoryUrl="https://soderer.de/maven2" groupId="de.soderer" artifactId="soderer-utilities" version="${soderer-utilities.version}" classifier="sources" />
+		<getDependency name="soderer-console" version="${soderer-console.version}" url="https://github.com/hudeany/Console/releases/download/{version}/soderer-console-{version}.jar" />
+		<getDependency name="soderer-swing" version="${soderer-swing.version}" url="https://github.com/hudeany/Swing/releases/download/{version}/soderer-swing-{version}.jar" />
+		<getDependency name="soderer-applicationbase" version="${soderer-applicationbase.version}" url="https://github.com/hudeany/ApplicationBase/releases/download/{version}/soderer-applicationbase-{version}.jar" />
+		<getDependency name="soderer-utilities" version="${soderer-utilities.version}" url="https://github.com/hudeany/Utilities/releases/download/{version}/soderer-utilities-{version}.jar" />
 
 		<getMavenDependency libDir="lib_test" groupId="org.hamcrest" artifactId="hamcrest" version="${hamcrest.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.jupiter" artifactId="junit-jupiter-api" version="${junit.version}" />

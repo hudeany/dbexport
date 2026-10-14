@@ -1,8 +1,8 @@
 package de.soderer.dbexport.console;
 
+import de.soderer.console.ConsoleMenu;
+import de.soderer.console.ConsoleUtilities;
 import de.soderer.dbexport.DbExport;
-import de.soderer.utilities.console.ConsoleMenu;
-import de.soderer.utilities.console.ConsoleUtilities;
 
 /**
  * Console menu entry, which starts the application update.

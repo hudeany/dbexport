@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import de.soderer.console.ConsoleMenu;
+import de.soderer.console.ConsoleUtilities;
+import de.soderer.console.PasswordConsoleInput;
+import de.soderer.console.SimpleConsoleInput;
 import de.soderer.dbexport.ConnectionTestDefinition;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
 import de.soderer.utilities.SecureDataStore;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WrongPasswordException;
-import de.soderer.utilities.console.ConsoleMenu;
-import de.soderer.utilities.console.ConsoleUtilities;
-import de.soderer.utilities.console.PasswordConsoleInput;
-import de.soderer.utilities.console.SimpleConsoleInput;
 
 /**
  * Console menu to load and store the connection parameters as preferences in the encrypted preferences file.

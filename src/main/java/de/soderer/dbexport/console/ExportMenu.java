@@ -10,6 +10,11 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import de.soderer.console.ConsoleMenu;
+import de.soderer.console.ConsoleUtilities;
+import de.soderer.console.ConsoleUtilities.TextColor;
+import de.soderer.console.PasswordConsoleInput;
+import de.soderer.console.SimpleConsoleInput;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
 import de.soderer.dbexport.DbExportDefinition.DataType;
@@ -17,11 +22,6 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.FileUtilities;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.console.ConsoleMenu;
-import de.soderer.utilities.console.ConsoleUtilities;
-import de.soderer.utilities.console.ConsoleUtilities.TextColor;
-import de.soderer.utilities.console.PasswordConsoleInput;
-import de.soderer.utilities.console.SimpleConsoleInput;
 import de.soderer.utilities.db.data.DbVendor;
 
 /**

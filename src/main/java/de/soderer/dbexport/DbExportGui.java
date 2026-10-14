@@ -37,12 +37,21 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 
+import de.soderer.applicationbase.ApplicationConfigurationDialog;
+import de.soderer.applicationbase.ApplicationUpdateUtilities;
+import de.soderer.applicationbase.UpdateableGuiApplication;
 import de.soderer.dbexport.DbExportDefinition.DataType;
 import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.network.NetworkUtilities;
 import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
+import de.soderer.swing.DropDown;
+import de.soderer.swing.DualProgressDialog;
+import de.soderer.swing.ProgressDialog;
+import de.soderer.swing.QuestionDialog;
+import de.soderer.swing.SecurePreferencesDialog;
+import de.soderer.swing.SwingColor;
 import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.ExceptionUtilities;
@@ -52,17 +61,8 @@ import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Result;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
-import de.soderer.utilities.appupdate.ApplicationUpdateUtilities;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.data.DbVendor;
-import de.soderer.utilities.swing.ApplicationConfigurationDialog;
-import de.soderer.utilities.swing.DropDown;
-import de.soderer.utilities.swing.DualProgressDialog;
-import de.soderer.utilities.swing.ProgressDialog;
-import de.soderer.utilities.swing.QuestionDialog;
-import de.soderer.utilities.swing.SecurePreferencesDialog;
-import de.soderer.utilities.swing.SwingColor;
-import de.soderer.utilities.swing.UpdateableGuiApplication;
 
 /**
  * The GUI for DbExport.
