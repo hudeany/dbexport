@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="build_jar" name="Create all Jars for Project DbExport">
-	<property name="antbuildhelp.version" value="26.0.9" />
+	<!-- Project specific part -->
+	<property name="applicationName" value="DbExport" />
+	<property name="sourcePath" value="src/main/java" />
+	<property name="mainClass" value="de.soderer.DbExport" />
+	<property name="rsrcMainClass" value="de.soderer.dbexport.DbExport" />
+	<property name="versionFileName" value="version.txt" />
+	<property name="createUnversionedJar" value="true" />
+	
+	<!-- Default: https://soderer.de/index.php?download=Versions.json -->
+	<!-- Override for GitHub: https://api.github.com/repos/hudeany/DbExport/releases/latest -->
+	<property name="VersionsUrl" value="https://api.github.com/repos/hudeany/DbExport/releases/latest" />
 
 	<property name="commons-collections4.version" value="4.4" />
 	<property name="commons-compress.version" value="1.24.0" />
@@ -22,7 +32,6 @@
 	<property name="soderer-swing.version" value="26.0.2" />
 	<property name="soderer-applicationbase.version" value="26.0.5" />
 	<property name="soderer-utilities.version" value="26.2.105" />
-
 	<property name="mariadb-java-client.version" value="3.5.9" />
 	<property name="mysql-connector-j.version" value="9.7.0" />
 	<property name="hsqldb.version" value="2.7.4" />
@@ -33,12 +42,83 @@
 	<property name="orai18n.version" value="23.26.3.0.0" />
 	<property name="derby.version" value="10.17.1.0" />
 
+	<patternset id="application.resources">
+		<include name="**/LanguageProperties*.properties" />
+		<include name="**/*.txt" />
+		<include name="DbExport_Icon.png" />
+		<include name="DbExport.ico" />
+	</patternset>
+
+	<resources id="application.libs">
+		<fileset dir="lib" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
+		<fileset dir="lib_db" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
+	</resources>
+
+	<target name="download_dependencies" depends="register_antbuildhelp, download_dbconnectors">
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-collections4" version="${commons-collections4.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-compress" version="${commons-compress.version}" />
+		<getMavenDependency groupId="commons-io" artifactId="commons-io" version="${commons-io.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-math3" version="${commons-math3.version}" />
+		<getMavenDependency groupId="net.java.dev.jna" artifactId="jna" version="${jna.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-1.2-api" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-api" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-core" version="${log4j.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml-full" version="${poi.version}" />
+		<getMavenDependency groupId="org.apache.xmlbeans" artifactId="xmlbeans" version="${xmlbeans.version}" />
+		<getMavenDependency groupId="net.lingala.zip4j" artifactId="zip4j" version="${zip4j.version}" />
+
+		<getDependency name="kdbx" version="${kdbx.version}" url="https://github.com/hudeany/kdbx/releases/download/{version}/kdbx-{version}.jar" />
+		<getDependency name="csv" version="${csv.version}" url="https://github.com/hudeany/csv/releases/download/{version}/csv-{version}.jar" />
+		<getDependency name="json" version="${json.version}" url="https://github.com/hudeany/json/releases/download/{version}/json-{version}.jar" />
+		<getDependency name="vcf" version="${vcf.version}" url="https://github.com/hudeany/vcf/releases/download/{version}/vcf-{version}.jar" />
+		<getDependency name="proxyautoconfig" version="${proxyautoconfig.version}" url="https://github.com/hudeany/ProxyAutoConfig/releases/download/{version}/proxyautoconfig-{version}.jar" />
+		<getDependency name="network" version="${network.version}" url="https://github.com/hudeany/network/releases/download/{version}/network-{version}.jar" />
+		<getDependency name="dbutilities" version="${dbutilities.version}" url="https://github.com/hudeany/DbUtilities/releases/download/{version}/dbutilities-{version}.jar" />
+		<getDependency name="soderer-console" version="${soderer-console.version}" url="https://github.com/hudeany/Console/releases/download/{version}/soderer-console-{version}.jar" />
+		<getDependency name="soderer-swing" version="${soderer-swing.version}" url="https://github.com/hudeany/Swing/releases/download/{version}/soderer-swing-{version}.jar" />
+		<getDependency name="soderer-applicationbase" version="${soderer-applicationbase.version}" url="https://github.com/hudeany/ApplicationBase/releases/download/{version}/soderer-applicationbase-{version}.jar" />
+		<getDependency name="soderer-utilities" version="${soderer-utilities.version}" url="https://github.com/hudeany/Utilities/releases/download/{version}/soderer-utilities-{version}.jar" />
+	</target>
+
+	<target name="download_dbconnectors" depends="register_antbuildhelp">
+		<getMavenDependency libDir="lib_db" groupId="org.mariadb.jdbc" artifactId="mariadb-java-client" version="${mariadb-java-client.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.mysql" artifactId="mysql-connector-j" version="${mysql-connector-j.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.hsqldb" artifactId="hsqldb" version="${hsqldb.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.microsoft.sqlserver" artifactId="mssql-jdbc" version="${mssql-jdbc.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.postgresql" artifactId="postgresql" version="${postgresql.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.xerial" artifactId="sqlite-jdbc" version="${sqlite-jdbc.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.jdbc" artifactId="ojdbc11" version="${ojdbc11.version}" />
+		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.nls" artifactId="orai18n" version="${orai18n.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derby" version="${derby.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbyshared" version="${derby.version}" />
+		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbytools" version="${derby.version}" />
+	</target>
+
+	<!-- ============================================================================================================ -->
+	<!-- Common part: identical in all applications. Changes are made here once and then copied into every project. -->
+	<!-- The project specific part above must define:                                                                -->
+	<!--   properties  applicationName, sourcePath, mainClass, rsrcMainClass, versionFileName                         -->
+	<!--   optional    VersionsUrl (overrides the value from codeSigning.properties),                                -->
+	<!--               createUnversionedJar (additionally creates "<applicationName>.jar")                            -->
+	<!--               createJavadocJar (additionally creates "<applicationName>-<version>-javadoc.jar")               -->
+	<!--   patternset  "application.resources" (files copied from src/main/resources into the jar)                     -->
+	<!--   resources   "application.libs" (jar files used for compiling and bundled into the jar)                      -->
+	<!--   target      "download_dependencies"                                                                       -->
+	<!-- Code signing and the CA public key files are optional: they are only used, if codeSigning.properties exists. -->
+	<!-- Tests run automatically, if the project has a "src/test/java" directory (JUnit 6, test libs in "lib_test").  -->
+	<!-- ============================================================================================================ -->
+
+	<property name="antbuildhelp.version" value="26.0.9" />
+
+	<!-- Test libraries, same for all applications -->
 	<property name="hamcrest.version" value="3.0" />
 	<property name="junit.version" value="6.0.3" />
 	<property name="opentest4j.version" value="1.3.0" />
 	<property name="apiguardian.version" value="1.1.2" />
 
-	<target name="build_jar" depends="build_setup, cleanup_before, create_jar, sign_jar, cleanup_after" />
+	<target name="build_jar" depends="build_setup, cleanup_before, create_jar, test, create_javadoc, sign_jar, copy_unversioned_jar, cleanup_after" />
 
 	<target name="probe-proxy">
 		<condition property="proxy.enabled">
@@ -72,12 +152,35 @@
 		<typedef resource="de/soderer/antbuildhelp/antlib.xml" classpath="lib_build/antbuildhelp-${antbuildhelp.version}.jar" />
 	</target>
 
+	<available file="${user.home}/git/codeSigning.properties" property="codeSigningPropertiesAvailable" />
+	<available file="src/test/java" type="dir" property="testSourcesAvailable" />
+
 	<target name="build_setup" depends="register_antbuildhelp">
-		<loadfile property="build.version" srcFile="build.version" failonerror="false" />
-		<property name="build.version" value="25.0.0" />
+		<echo>Ant version: ${ant.version}</echo>
+		<echo>Java/JVM HOME: ${java.home}</echo>
+		<echo>Java/JVM version: ${ant.java.version}</echo>
+		<echo>Java/JVM detailed version: ${java.version}</echo>
+
+		<loadfile property="build.version" srcFile="build.version" failonerror="false">
+			<filterchain>
+				<striplinebreaks />
+				<trim />
+			</filterchain>
+		</loadfile>
+		<property name="build.version" value="noVersion" />
+		<echo message="applicationName: ${applicationName}" />
 		<echo message="build.version: ${build.version}" />
 
+		<!-- A VersionsUrl set in the project specific part has priority, because Ant properties are immutable -->
 		<property file="${user.home}/git/codeSigning.properties" />
+		<property name="VersionsUrl" value="" />
+		<echo message="VersionsUrl: ${VersionsUrl}" />
+		<condition property="codeSigningState" value="enabled" else="disabled (no codeSigning.properties)">
+			<isset property="codeSigningPropertiesAvailable" />
+		</condition>
+		<echo message="Code signing: ${codeSigningState}" />
+
+		<property environment="env" />
 
 		<tstamp>
 			<format property="buildTime" pattern="yyyy-MM-dd HH:mm:ss" locale="en" />
@@ -88,41 +191,79 @@
 		<echo message="buildPath: ${buildPath}" />
 	</target>
 
-	<target name="cleanup_before">
+	<target name="cleanup_before" depends="build_setup">
 		<delete dir="${buildPath}" />
 		<mkdir dir="${buildPath}" />
-
-		<delete dir="${buildPath}/bin" />
 		<mkdir dir="${buildPath}/bin" />
 	</target>
 
-	<target name="download_dependencies" depends="proxy">
-		<getMavenDependency groupId="org.apache.commons" artifactId="commons-collections4" version="${commons-collections4.version}" />
-		<getMavenDependency groupId="org.apache.commons" artifactId="commons-compress" version="${commons-compress.version}" />
-		<getMavenDependency groupId="commons-io" artifactId="commons-io" version="${commons-io.version}" />
-		<getMavenDependency groupId="org.apache.commons" artifactId="commons-math3" version="${commons-math3.version}" />
-		<getMavenDependency groupId="net.java.dev.jna" artifactId="jna" version="${jna.version}" />
-		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-1.2-api" version="${log4j.version}" />
-		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-api" version="${log4j.version}" />
-		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-core" version="${log4j.version}" />
-		<getMavenDependency groupId="org.apache.poi" artifactId="poi" version="${poi.version}" />
-		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml" version="${poi.version}" />
-		<getMavenDependency groupId="org.apache.poi" artifactId="poi-ooxml-full" version="${poi.version}" />
-		<getMavenDependency groupId="org.apache.xmlbeans" artifactId="xmlbeans" version="${xmlbeans.version}" />
-		<getMavenDependency groupId="net.lingala.zip4j" artifactId="zip4j" version="${zip4j.version}" />
+	<target name="compile" depends="build_setup, proxy, download_dependencies">
+		<path id="build.classpath">
+			<resources refid="application.libs" />
+		</path>
 
-		<getDependency name="kdbx" version="${kdbx.version}" url="https://github.com/hudeany/kdbx/releases/download/{version}/kdbx-{version}.jar" />
-		<getDependency name="csv" version="${csv.version}" url="https://github.com/hudeany/csv/releases/download/{version}/csv-{version}.jar" />
-		<getDependency name="json" version="${json.version}" url="https://github.com/hudeany/json/releases/download/{version}/json-{version}.jar" />
-		<getDependency name="vcf" version="${vcf.version}" url="https://github.com/hudeany/vcf/releases/download/{version}/vcf-{version}.jar" />
-		<getDependency name="proxyautoconfig" version="${proxyautoconfig.version}" url="https://github.com/hudeany/ProxyAutoConfig/releases/download/{version}/proxyautoconfig-{version}.jar" />
-		<getDependency name="network" version="${network.version}" url="https://github.com/hudeany/network/releases/download/{version}/network-{version}.jar" />
-		<getDependency name="dbutilities" version="${dbutilities.version}" url="https://github.com/hudeany/DbUtilities/releases/download/{version}/dbutilities-{version}.jar" />
-		<getDependency name="soderer-console" version="${soderer-console.version}" url="https://github.com/hudeany/Console/releases/download/{version}/soderer-console-{version}.jar" />
-		<getDependency name="soderer-swing" version="${soderer-swing.version}" url="https://github.com/hudeany/Swing/releases/download/{version}/soderer-swing-{version}.jar" />
-		<getDependency name="soderer-applicationbase" version="${soderer-applicationbase.version}" url="https://github.com/hudeany/ApplicationBase/releases/download/{version}/soderer-applicationbase-{version}.jar" />
-		<getDependency name="soderer-utilities" version="${soderer-utilities.version}" url="https://github.com/hudeany/Utilities/releases/download/{version}/soderer-utilities-{version}.jar" />
+		<mkdir dir="${buildPath}/bin" />
+		<javac release="17" debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" srcdir="${sourcePath}" includeantruntime="false" encoding="UTF-8">
+			<classpath refid="build.classpath" />
+			<compilerarg value="-Xlint:unchecked" />
+			<compilerarg value="-parameters" />
+		</javac>
 
+		<copy todir="${buildPath}/bin">
+			<fileset dir="src/main/resources">
+				<patternset refid="application.resources" />
+			</fileset>
+		</copy>
+
+		<available file="${buildPath}/bin/VersionInfo.txt" property="versionInfoFileAvailable" />
+	</target>
+
+	<!-- Only for applications with a VersionInfo.txt containing the placeholder ${build.version} -->
+	<target name="replace_version_info" depends="compile" if="versionInfoFileAvailable">
+		<replace file="${buildPath}/bin/VersionInfo.txt" token="$${build.version}" value="${build.version}" />
+	</target>
+
+	<!-- The CA public key file names are only known with codeSigning.properties, otherwise they stay empty -->
+	<target name="determine_ca_public_key_file_names" if="codeSigningPropertiesAvailable">
+		<basename property="CaPublicKeyFileName" file="${CaPublicKey}" />
+		<basename property="CaPublicKeyFileNameOld" file="${CaPublicKeyOld}" />
+	</target>
+
+	<!-- Runs after compile, so the copied resources cannot overwrite the generated version file -->
+	<target name="create_versionfile" depends="replace_version_info, determine_ca_public_key_file_names">
+		<property name="CaPublicKeyFileName" value="" />
+		<property name="CaPublicKeyFileNameOld" value="" />
+
+		<delete file="${buildPath}/bin/${versionFileName}" />
+		<echo file="${buildPath}/bin/${versionFileName}" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
+		<delete file="src/main/resources/${versionFileName}" />
+		<echo file="src/main/resources/${versionFileName}" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
+	</target>
+
+	<!-- The CA public key files are placed in the jar root, like before with zipfileset -->
+	<target name="copy_ca_public_keys" depends="create_versionfile" if="codeSigningPropertiesAvailable">
+		<copy file="${CaPublicKey}" todir="${buildPath}/bin" />
+		<copy file="${CaPublicKeyOld}" todir="${buildPath}/bin" />
+	</target>
+
+	<target name="create_jar" depends="copy_ca_public_keys">
+		<jar destfile="${buildPath}/${applicationName}-${build.version}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="${mainClass}" />
+				<attribute name="Rsrc-Main-Class" value="${rsrcMainClass}" />
+				<attribute name="Class-Path" value="." />
+				<attribute name="Enable-Native-Access" value="ALL-UNNAMED" />
+			</manifest>
+
+			<fileset dir="${buildPath}/bin" />
+
+			<!-- Library jars are stored in the jar root for the jar-in-jar loader -->
+			<resources refid="application.libs" />
+		</jar>
+	</target>
+
+	<!-- The "if" is also set here, because Ant runs the dependencies of a target even if the target itself is skipped -->
+	<target name="download_test_dependencies" depends="register_antbuildhelp, proxy" if="testSourcesAvailable">
 		<getMavenDependency libDir="lib_test" groupId="org.hamcrest" artifactId="hamcrest" version="${hamcrest.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.jupiter" artifactId="junit-jupiter-api" version="${junit.version}" />
 		<getMavenDependency libDir="lib_test" groupId="org.junit.jupiter" artifactId="junit-jupiter-engine" version="${junit.version}" />
@@ -136,81 +277,98 @@
 		<getMavenDependency libDir="lib_test" groupId="org.junit.platform" artifactId="junit-platform-suite-engine" version="${junit.version}" />
 	</target>
 
-	<target name="download_dbconnectors" depends="proxy">
-		<getMavenDependency libDir="lib_db" groupId="org.mariadb.jdbc" artifactId="mariadb-java-client" version="${mariadb-java-client.version}" />
-		<getMavenDependency libDir="lib_db" groupId="com.mysql" artifactId="mysql-connector-j" version="${mysql-connector-j.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.hsqldb" artifactId="hsqldb" version="${hsqldb.version}" />
-		<getMavenDependency libDir="lib_db" groupId="com.microsoft.sqlserver" artifactId="mssql-jdbc" version="${mssql-jdbc.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.postgresql" artifactId="postgresql" version="${postgresql.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.xerial" artifactId="sqlite-jdbc" version="${sqlite-jdbc.version}" />
-		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.jdbc" artifactId="ojdbc11" version="${ojdbc11.version}" />
-		<getMavenDependency libDir="lib_db" groupId="com.oracle.database.nls" artifactId="orai18n" version="${orai18n.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derby" version="${derby.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbyshared" version="${derby.version}" />
-		<getMavenDependency libDir="lib_db" groupId="org.apache.derby" artifactId="derbytools" version="${derby.version}" />
-	</target>
-
-	<target name="compile" depends="download_dependencies, download_dbconnectors">
-		<path id="build.classpath">
-			<fileset dir="lib">
+	<!-- Only if the project has test sources -->
+	<target name="test" depends="create_jar, download_test_dependencies" if="testSourcesAvailable">
+		<!-- The application classes are taken from "bin", because the libraries packed inside the jar (jar in jar) are not on the classpath -->
+		<path id="test.classpath">
+			<fileset dir="lib_test">
 				<include name="*.jar" />
 			</fileset>
+			<path refid="build.classpath" />
+			<pathelement location="${buildPath}/bin" />
+			<pathelement location="${buildPath}/testbin" />
 		</path>
 
-		<javac release="17" debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" srcdir="src/main/java" includeantruntime="false" encoding="UTF-8" classpath="lib/*">			
-			<classpath refid="build.classpath" />
-			<compilerarg value="-Xlint:unchecked" />
-			<compilerarg value="-parameters" />
+		<mkdir dir="${buildPath}/testbin" />
+		<javac release="17" srcdir="src/test/java" destdir="${buildPath}/testbin" includeantruntime="false" encoding="UTF-8" debug="true" failonerror="true">
+			<classpath refid="test.classpath" />
+			<include name="**/*.java" />
 		</javac>
 
-		<copy todir="${buildPath}/bin">
-			<fileset dir="src/main/resources">
-				<include name="**/LanguageProperties*.properties" />
-				<include name="**/*.txt" />
-			</fileset>
+		<copy todir="${buildPath}/testbin">
+			<fileset dir="src/test/resources" erroronmissingdir="false" />
 		</copy>
+
+		<junitlauncher printSummary="true" failureProperty="test.failed">
+			<classpath refid="test.classpath" />
+			<testclasses outputdir="${buildPath}">
+				<fileset dir="${buildPath}/testbin">
+					<include name="**/*.class" />
+					<!-- Tests that need manual interaction are skipped -->
+					<exclude name="**/*ManuallyTest*.class" />
+				</fileset>
+				<!-- Writes a report per test class to TEST-*.txt, including details of failed tests -->
+				<listener type="legacy-brief" sendSysOut="false" sendSysErr="false" />
+			</testclasses>
+		</junitlauncher>
+
+		<!-- Show which tests failed and why before stopping the build (only reports with failures or errors) -->
+		<concat if:set="test.failed" xmlns:if="ant:if">
+			<fileset dir="${buildPath}" includes="TEST-*.txt">
+				<or>
+					<contains text="FAILED" />
+					<contains text="Caused an ERROR" />
+				</or>
+			</fileset>
+		</concat>
+		<fail if="test.failed" message="Tests failed!" />
 	</target>
 
-	<target name="create_versionfile">
-		<basename property="CaPublicKeyFileName" file="${CaPublicKey}"/>
-		<basename property="CaPublicKeyFileNameOld" file="${CaPublicKeyOld}"/>
+	<!-- Only if the project specific part sets "createJavadocJar" -->
+	<target name="create_javadoc" depends="create_jar" if="createJavadocJar">
+		<delete dir="${buildPath}/javadoc" />
+		<mkdir dir="${buildPath}/javadoc" />
 
-		<delete file="${buildPath}/bin/version.txt" />
-		<echo file="${buildPath}/bin/version.txt" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
-		<delete file="src/main/resources/version.txt" />
-		<echo file="src/main/resources/version.txt" append="false">${build.version}${line.separator}${buildTime}${line.separator}${VersionsUrl}${line.separator}${CaPublicKeyFileName}, ${CaPublicKeyFileNameOld}${line.separator}</echo>
-	</target>
+		<javadoc destdir="${buildPath}/javadoc" encoding="UTF-8" charset="UTF-8" docencoding="UTF-8" source="17" failonerror="true">
+			<classpath refid="build.classpath" />
+			<arg value="-quiet" />
+			<fileset dir="${sourcePath}" includes="**/*.java" />
+		</javadoc>
 
-	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}/DbExport-${build.version}.jar">
+		<jar destfile="${buildPath}/${applicationName}-${build.version}-javadoc.jar">
 			<manifest>
-				<attribute name="Main-Class" value="de.soderer.DbExport" />
-				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
-				<attribute name="Enable-Native-Access" value="ALL-UNNAMED"/>
+				<attribute name="Version" value="${build.version}" />
 			</manifest>
 
-			<fileset dir="${buildPath}/bin" />
-
-			<zipfileset file="${CaPublicKey}" />
-			<zipfileset file="${CaPublicKeyOld}" />
-			<zipfileset dir="lib" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
-			<zipfileset dir="lib_db" includes="*.jar" />
-			<zipfileset dir="src/main/resources" includes="DbExport_Icon.png" />
-			<zipfileset dir="src/main/resources" includes="DbExport.ico" />
+			<fileset dir="${buildPath}/javadoc" />
+			<fileset dir="." includes="LICENSE.txt" />
 		</jar>
+
+		<delete dir="${buildPath}/javadoc" />
 	</target>
 
-	<available file="${user.home}/git/codeSigning.properties" property="signingPropertiesAvailable" />
-	<target name="sign_jar" depends="create_jar" if="signingPropertiesAvailable">
+	<target name="sign_jar" depends="create_jar" if="codeSigningPropertiesAvailable">
+		<echo message="TsaUrl: ${TsaUrl}" />
 		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
-				<fileset dir="${buildPath}" includes="DbExport-${build.version}.jar" />
+				<fileset dir="${buildPath}" includes="${applicationName}-${build.version}.jar" />
 			</path>
 		</signjar>
 	</target>
 
+	<!-- Only if the project specific part sets "createUnversionedJar". Runs after sign_jar, so both jars are identical. -->
+	<target name="copy_unversioned_jar" depends="sign_jar" if="createUnversionedJar">
+		<copy file="${buildPath}/${applicationName}-${build.version}.jar" tofile="${buildPath}/${applicationName}.jar" overwrite="true" />
+	</target>
+
 	<target name="cleanup_after">
 		<delete dir="${buildPath}/bin" />
+		<delete dir="${buildPath}/testbin" />
+
+		<delete includeEmptyDirs="true">
+			<fileset dir="${buildPath}">
+				<include name="TEST-*" />
+			</fileset>
+		</delete>
 	</target>
 </project>
