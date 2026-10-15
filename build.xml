@@ -6,7 +6,7 @@
 	<property name="commons-compress.version" value="1.24.0" />
 	<property name="commons-io.version" value="2.14.0" />
 	<property name="commons-math3.version" value="3.6.1" />
-	<property name="jna.version" value="5.13.0" />
+	<property name="jna.version" value="5.19.1" />
 	<property name="log4j.version" value="2.20.0" />
 	<property name="poi.version" value="5.2.4" />
 	<property name="xmlbeans.version" value="5.1.1" />
@@ -187,6 +187,7 @@
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
+				<attribute name="Enable-Native-Access" value="ALL-UNNAMED"/>
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
