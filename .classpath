@@ -25,7 +25,7 @@
 	<classpathentry kind="lib" path="lib/vcf-26.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-console-26.0.2.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-console-26.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-swing-26.0.2.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.105.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
