@@ -205,6 +205,7 @@
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
 				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
+				<attribute name="Enable-Native-Access" value="ALL-UNNAMED"/>
 			</manifest>
 
 			<fileset dir="${buildPath}/bin" />
