@@ -182,7 +182,7 @@
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}/DbExport.jar">
+		<jar destfile="${buildPath}/DbExport-${build.version}.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
 				<attribute name="Class-Path" value="." />
@@ -205,7 +205,7 @@
 	<target name="sign_jar" depends="create_jar" if="signingPropertiesAvailable">
 		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
 			<path>
-				<fileset dir="${buildPath}" includes="DbExport.jar" />
+				<fileset dir="${buildPath}" includes="DbExport-${build.version}.jar" />
 			</path>
 		</signjar>
 	</target>
