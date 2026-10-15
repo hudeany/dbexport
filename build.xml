@@ -38,7 +38,9 @@
 	<property name="opentest4j.version" value="1.3.0" />
 	<property name="apiguardian.version" value="1.1.2" />
 
-	<target name="build_jar" depends="build_setup, cleanup_before, create_jar, sign_jar, cleanup_after" />
+	<!-- The jar is signed first (only if codeSigning.properties is available), then copied to the versioned file name,
+	     so both jars are identical and signed with a single timestamp request -->
+	<target name="build_jar" depends="build_setup, cleanup_before, create_jar, sign_jar, copy_versioned_jar, cleanup_after" />
 
 	<target name="probe-proxy">
 		<condition property="proxy.enabled">
@@ -182,24 +184,6 @@
 	</target>
 
 	<target name="create_jar" depends="compile, create_versionfile">
-		<jar destfile="${buildPath}/DbExport-${build.version}.jar">
-			<manifest>
-				<attribute name="Main-Class" value="de.soderer.DbExport" />
-				<attribute name="Class-Path" value="." />
-				<attribute name="Rsrc-Main-Class" value="de.soderer.dbexport.DbExport" />
-				<attribute name="Enable-Native-Access" value="ALL-UNNAMED"/>
-			</manifest>
-
-			<fileset dir="${buildPath}/bin" />
-
-			<zipfileset file="${CaPublicKey}" />
-			<zipfileset file="${CaPublicKeyOld}" />
-			<zipfileset dir="lib" includes="*.jar" excludes="*-sources.jar,*_sources.jar,*-javadoc.jar,*_javadoc.jar" />
-			<zipfileset dir="lib_db" includes="*.jar" />
-			<zipfileset dir="src/main/resources" includes="DbExport_Icon.png" />
-			<zipfileset dir="src/main/resources" includes="DbExport.ico" />
-		</jar>
-			
 		<jar destfile="${buildPath}/DbExport.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.soderer.DbExport" />
@@ -226,11 +210,11 @@
 				<fileset dir="${buildPath}" includes="DbExport.jar" />
 			</path>
 		</signjar>
-		<signjar destDir="${buildPath}" alias="${CodeSigningKeyAlias}" keystore="${CodeSigningKeyStore}" storepass="${CodeSigningKeyStorePassword}" keypass="${CodeSigningKeyPassword}" preservelastmodified="true" tsaurl="${TsaUrl}">
-			<path>
-				<fileset dir="${buildPath}" includes="DbExport-${build.version}.jar" />
-			</path>
-		</signjar>
+	</target>
+
+	<!-- Runs after sign_jar, so the versioned jar is a copy of the signed jar (or of the unsigned one, if signing was skipped) -->
+	<target name="copy_versioned_jar" depends="sign_jar">
+		<copy file="${buildPath}/DbExport.jar" tofile="${buildPath}/DbExport-${build.version}.jar" overwrite="true" />
 	</target>
 
 	<target name="cleanup_after">
