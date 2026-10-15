@@ -4,6 +4,7 @@
 	<classpathentry kind="src" path="src/main/resources"/>
 	<classpathentry kind="src" path="src/test/java"/>
 	<classpathentry kind="src" path="src/test/resources"/>
+	<classpathentry kind="src" path="src/nonautomatedtest/java"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.24.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.14.0.jar"/>
