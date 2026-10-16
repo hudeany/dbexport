@@ -29,7 +29,7 @@
 	<property name="network.version" value="26.0.37" />
 	<property name="dbutilities.version" value="26.1.5" />
 	<property name="soderer-console.version" value="26.0.5" />
-	<property name="soderer-swing.version" value="26.0.3" />
+	<property name="soderer-swing.version" value="26.0.4" />
 	<property name="soderer-applicationbase.version" value="26.0.13" />
 	<property name="soderer-utilities.version" value="26.2.109" />
 	<property name="mariadb-java-client.version" value="3.5.9" />
@@ -110,7 +110,7 @@
 	<!-- Tests run automatically, if the project has a "src/test/java" directory (JUnit 6, test libs in "lib_test").  -->
 	<!-- ============================================================================================================ -->
 
-	<property name="antbuildhelp.version" value="26.0.9" />
+	<property name="antbuildhelp.version" value="26.0.10" />
 
 	<!-- Test libraries, same for all applications -->
 	<property name="hamcrest.version" value="3.0" />
