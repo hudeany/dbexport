@@ -17,16 +17,16 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.4.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/zip4j-2.11.6.jar"/>
-	<classpathentry kind="lib" path="lib/json-26.2.9.jar"/>
+	<classpathentry kind="lib" path="lib/json-26.2.10.jar"/>
 	<classpathentry kind="lib" path="lib/kdbx-26.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/csv-26.1.10.jar"/>
-	<classpathentry kind="lib" path="lib/network-26.0.37.jar"/>
+	<classpathentry kind="lib" path="lib/network-26.0.38.jar"/>
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.4.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.5.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.17.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-console-26.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-swing-26.0.5.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-swing-26.0.6.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.111.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.19.1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
