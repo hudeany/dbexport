@@ -110,7 +110,7 @@
 	<!-- Tests run automatically, if the project has a "src/test/java" directory (JUnit 6, test libs in "lib_test").  -->
 	<!-- ============================================================================================================ -->
 
-	<property name="antbuildhelp.version" value="26.0.10" />
+	<property name="antbuildhelp.version" value="26.0.11" />
 
 	<!-- Test libraries, same for all applications -->
 	<property name="hamcrest.version" value="3.0" />
