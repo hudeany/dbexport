@@ -234,7 +234,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 					ApplicationUpdateUtilities.executeUpdate(this, DbExport.VERSIONINFO_DOWNLOAD_URL, applicationConfiguration.getProxyConfiguration(), DbExport.APPLICATION_NAME, DbExport.VERSION, DbExport.TRUSTED_UPDATE_CA_CERTIFICATES, null, null, appParameters, true, false);
 				}
 			} catch (final Exception e) {
-				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+				new QuestionDialog(this, DbExport.APPLICATION_NAME + " " + LangResources.get("updateCheck") + " ERROR", LangResources.get("error.cannotCheckForUpdate") + "\n" + "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 			}
 		}
 
@@ -283,9 +283,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
 				try (Connection connection = DbUtilities.createConnection(getConfigurationAsDefinition(), false)) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").withBackgroundColor(SwingColor.Green).open();
 				} catch (final Exception e) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -406,7 +406,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						checkButtonStatus();
 					}
 				} catch (final Exception e) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -429,15 +429,15 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 					if (Utilities.isNotBlank((trustStoreFilePathField.getText()))) {
 						if (new File(trustStoreFilePathField.getText()).exists()) {
-							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File already exists: '" + trustStoreFilePathField.getText() + "'").setBackgroundColor(SwingColor.LightRed).open();
+							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File already exists: '" + trustStoreFilePathField.getText() + "'").withBackgroundColor(SwingColor.LightRed).open();
 						} else {
 							TrustManagerUtilities.createTrustStoreFile(hostField.getText(), DbVendor.getDbVendorByName(getRequiredSelectedItem(dbTypeCombo, "dbtype")).getDefaultPort(), new File(trustStoreFilePathField.getText()), trustStorePasswordField.getPassword(), null);
-							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").setBackgroundColor(SwingColor.Green).open();
+							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " OK", "OK").withBackgroundColor(SwingColor.Green).open();
 							checkButtonStatus();
 						}
 					}
 				} catch (final Exception e) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -832,7 +832,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				try {
 					export(getConfigurationAsDefinition(), dbExportGui);
 				} catch (final Exception e) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -861,7 +861,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 					temporaryPreferencesPassword = credentialsDialog.getPassword();
 				} catch (final Exception e) {
 					temporaryPreferencesPassword = null;
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -893,7 +893,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 						applicationConfiguration.save();
 					}
 				} catch (final Exception e) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			}
 		});
@@ -1327,14 +1327,14 @@ public class DbExportGui extends UpdateableGuiApplication {
 			}
 
 			if (result == Result.CANCELED) {
-				new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME, LangResources.get("error.canceledbyuser")).setBackgroundColor(SwingColor.Yellow).open();
+				new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME, LangResources.get("error.canceledbyuser")).withBackgroundColor(SwingColor.Yellow).open();
 			} else if (result == Result.ERROR) {
 				final Exception e = worker.getError();
 				if (e instanceof DbExportException) {
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 				} else {
 					final String stacktrace = ExceptionUtilities.getStackTrace(e);
-					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace).setBackgroundColor(SwingColor.LightRed).open();
+					new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getClass().getSimpleName() + ":\n" + e.getMessage() + "\n\n" + stacktrace).withBackgroundColor(SwingColor.LightRed).open();
 				}
 			} else {
 				final LocalDateTime start = worker.getStartTime();
@@ -1374,7 +1374,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 				}
 			}
 		} catch (final Exception e) {
-			new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).setBackgroundColor(SwingColor.LightRed).open();
+			new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + e.getMessage()).withBackgroundColor(SwingColor.LightRed).open();
 		}
 	}
 

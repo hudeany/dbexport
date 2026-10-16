@@ -86,7 +86,7 @@ public class DbDriverSupplier {
 			System.out.println(LangResources.get("emptyForCancel"));
 			return new SimpleConsoleInput().withPrompt(LangResources.get("enterDriverFile") + ": ").readInput();
 		} else {
-			new QuestionDialog(parent, applicationName + " database driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile), LangResources.get("ok")).setBackgroundColor(SwingColor.LightRed).open();
+			new QuestionDialog(parent, applicationName + " database driver", LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile), LangResources.get("ok")).withBackgroundColor(SwingColor.LightRed).open();
 			final JFileChooser fileChooser = new JFileChooser();
 			fileChooser.setDialogTitle(applicationName + " " + LangResources.get("driverFileSelectTitle", dbVendor.toString()));
 			if (JFileChooser.APPROVE_OPTION == fileChooser.showOpenDialog(parent)) {
