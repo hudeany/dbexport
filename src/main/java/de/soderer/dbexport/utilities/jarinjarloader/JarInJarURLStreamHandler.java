@@ -4,15 +4,15 @@ import java.io.IOException;
 import java.net.URL;
 
 /**
- * URLStreamHandler for the "rsrc:" protocol, which opens a {@link JarInJarURLConnection}.
+ * Stream handler for the "rsrc:" URL protocol, which addresses resources inside the running application jar.
  */
 public class JarInJarURLStreamHandler extends java.net.URLStreamHandler {
 	private final ClassLoader classLoader;
 
 	/**
-	 * Creates the handler.
+	 * Creates a stream handler, that reads the resources via the given class loader.
 	 *
-	 * @param classLoader class loader used to read the addressed resources
+	 * @param classLoader class loader to read the resources with
 	 */
 	public JarInJarURLStreamHandler(final ClassLoader classLoader) {
 		this.classLoader = classLoader;

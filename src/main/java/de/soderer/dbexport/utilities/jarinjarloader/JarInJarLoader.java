@@ -5,15 +5,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.net.JarURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -22,99 +29,122 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /**
- * Loader for executable "jar in jar" files.
- *
+ * Start class for applications packed as a single jar file with their library jars inside (jar in jar).
  * <p>
- * Adds the library jars embedded in the running jar file to a new class loader and starts the main class
- * named in the manifest attribute "Rsrc-Main-Class". The embedded jars are taken from the manifest
- * attribute "Rsrc-Class-Path" or, if that is missing, all embedded jars are used (SWT jars only for the
- * current operating system and architecture).
- * </p>
+ * It reads the main class from the manifest attribute "Rsrc-Main-Class" and the embedded libraries from
+ * "Rsrc-Class-Path" (separated by blanks, URL encoded like "my%20lib.jar"). Without "Rsrc-Class-Path" all jar files
+ * contained in the application jar are used, where of the SWT jars (file name starting with "swt") only the one
+ * matching the current OS (Windows, Linux, macOS) and architecture (x86_64, aarch64) is included.
+ * Then it starts the main class with a class loader, that loads classes from the embedded jars via the
+ * "rsrc:" URL protocol.
  */
 public class JarInJarLoader {
 	/**
-	 * Name of the system property that is set to the absolute path of the currently running jar file.
+	 * Name of the system property, which is set to the absolute path of the running application jar file.
 	 */
 	public static final String SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR = "process.jar";
 
 	/**
-	 * Only for subclasses acting as application specific launcher class, all functionality is static.
+	 * Constructor for subclasses, which provide their own main method calling {@link #jarInJarLoaderStart(String[])}.
 	 */
 	protected JarInJarLoader() {
-		// Nothing to initialize
+		// Only static methods
 	}
 
 	private static class ManifestInfo {
 		String mainClass;
-		String[] classPath;
+		List<URL> classPathUrls = new ArrayList<>();
 	}
 
 	/**
-	 * Starts the main class configured in the manifest of the running jar file.
+	 * Starts the application configured in the manifest.
 	 *
-	 * @param args command line arguments, passed on unchanged to the started main class
-	 * @throws Exception if the manifest attributes are missing or the main class cannot be loaded or started
+	 * @param args command line arguments, which are passed on to the application's main method
+	 * @throws Exception if the manifest is incomplete, the platform is not supported, or the application fails to start.
+	 *             An exception thrown by the application's main method is passed on unwrapped.
 	 */
 	public static void main(final String[] args) throws Exception {
-		jarInJarLoaderStart(args);
+		try {
+			jarInJarLoaderStart(args);
+		} catch (final InvocationTargetException e) {
+			// Report the application's own exception instead of the reflection wrapper
+			final Throwable cause = e.getCause();
+			if (cause instanceof Exception) {
+				throw (Exception) cause;
+			} else if (cause instanceof Error) {
+				throw (Error) cause;
+			} else {
+				throw e;
+			}
+		}
 	}
 
 	/**
-	 * Sets up the class loader for the embedded library jars and invokes the main method of the main class
-	 * configured in the manifest ("Rsrc-Main-Class").
+	 * Starts the application configured in the manifest. Can be called by subclasses with their own main method.
 	 *
-	 * @param args command line arguments, passed on unchanged to the started main class
-	 * @throws IOException if the manifest cannot be read or contains no main class
-	 * @throws MalformedURLException if a class path entry results in an invalid URL
-	 * @throws InvocationTargetException if the started main method throws an exception
-	 * @throws IllegalAccessException if the main method is not accessible
-	 * @throws ClassNotFoundException if the main class cannot be found
-	 * @throws NoSuchMethodException if the main class has no main method
+	 * @param args command line arguments, which are passed on to the application's main method
+	 * @throws IOException if no manifest with the required attributes is found or the platform is not supported by the embedded SWT jars
+	 * @throws MalformedURLException if an embedded class path entry results in an invalid URL
+	 * @throws InvocationTargetException if the application's main method throws an exception
+	 * @throws IllegalAccessException if the application's main method is not accessible
+	 * @throws ClassNotFoundException if the application's main class is not found
+	 * @throws NoSuchMethodException if the application's main class has no static main method
 	 */
 	protected static void jarInJarLoaderStart(final String[] args) throws IOException, MalformedURLException,
 	InvocationTargetException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException {
-		// Fill an environment variable with the path of the executed jar file
-		try {
-			final String currentJarUrlPath = JarInJarLoader.class.getResource(JarInJarLoader.class.getSimpleName() + ".class").toString();
-			if (currentJarUrlPath != null && currentJarUrlPath.length() > 0) {
-				String jarFilePath = currentJarUrlPath.substring(0, currentJarUrlPath.lastIndexOf("!")).replaceFirst("jar:file:", "");
-				jarFilePath = decodeUrlEncodedPath(jarFilePath);
-				final File jarFile = new File(jarFilePath);
-				if (jarFile.exists()) {
-					System.getProperties().put(SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR, jarFile.getAbsolutePath());
-				}
-			}
-		} catch (final Exception e) {
-			e.printStackTrace();
+		// Fill a system property with the path of the executed jar file
+		final Path runningJarFile = getRunningJarFile();
+		if (runningJarFile != null) {
+			System.getProperties().put(SYSTEM_PARAMETER_NAME_CURRENT_RUNNING_JAR, runningJarFile.toAbsolutePath().toString());
 		}
 
-		final ManifestInfo manifestInfo = getManifestInfo();
 		final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		URL.setURLStreamHandlerFactory(new JarInJarURLStreamHandlerFactory(classLoader));
-		final URL[] classPathUrls = new URL[manifestInfo.classPath.length];
-		for (int i = 0; i < manifestInfo.classPath.length; i++) {
-			final String classPath = manifestInfo.classPath[i];
-			if (classPath.endsWith("/")) {
-				classPathUrls[i] = URI.create("rsrc:" + classPath).toURL();
-			} else {
-				classPathUrls[i] = URI.create("jar:rsrc:" + classPath + "!/").toURL();
-			}
-		}
-		final URLClassLoader jceClassLoader = new URLClassLoader(classPathUrls, getParentClassLoader());
+		registerRsrcProtocol(classLoader);
+		final ManifestInfo manifestInfo = getManifestInfo();
+		final URLClassLoader jceClassLoader = new URLClassLoader(manifestInfo.classPathUrls.toArray(new URL[0]), ClassLoader.getPlatformClassLoader());
 		Thread.currentThread().setContextClassLoader(jceClassLoader);
 		final Class<?> mainClass = Class.forName(manifestInfo.mainClass, true, jceClassLoader);
-		final Method mainMethod = mainClass.getMethod("main", new Class[] { args.getClass() });
+		final Method mainMethod = mainClass.getMethod("main", String[].class);
+		if (!Modifier.isStatic(mainMethod.getModifiers())) {
+			throw new NoSuchMethodException("Method main of class " + manifestInfo.mainClass + " is not static");
+		}
 		mainMethod.invoke((Object) null, new Object[] { args });
 	}
 
-	private static ClassLoader getParentClassLoader() throws InvocationTargetException, IllegalAccessException {
+	/**
+	 * Returns the jar file this class was loaded from.
+	 *
+	 * @return jar file, or null if the class was not loaded from a jar file (e.g. from a class folder in an IDE)
+	 */
+	private static Path getRunningJarFile() {
 		try {
-			// We use reflection here because the method ClassLoader.getPlatformClassLoader() is only present starting from Java 9
-			final Method platformClassLoader = ClassLoader.class.getMethod("getPlatformClassLoader", (Class[]) null);
-			return (ClassLoader) platformClassLoader.invoke(null, (Object[]) null);
-		} catch (@SuppressWarnings("unused") final NoSuchMethodException e) {
-			// This is a safe value to be used on Java 8 and previous versions
-			return null;
+			final CodeSource codeSource = JarInJarLoader.class.getProtectionDomain().getCodeSource();
+			if (codeSource != null && codeSource.getLocation() != null) {
+				// URI based conversion handles percent-encoding, Windows drive letters and UNC paths
+				final Path codeSourcePath = Paths.get(codeSource.getLocation().toURI());
+				if (Files.isRegularFile(codeSourcePath)) {
+					return codeSourcePath;
+				}
+			}
+		} catch (final Exception e) {
+			System.err.println("Cannot determine path of the running jar file: " + e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * Registers the "rsrc:" URL protocol. The URL stream handler factory can only be set once per JVM, so a factory set
+	 * before (e.g. by an earlier start within the same JVM) is accepted, as long as it provides the "rsrc:" protocol.
+	 */
+	private static void registerRsrcProtocol(final ClassLoader classLoader) throws MalformedURLException {
+		try {
+			URL.setURLStreamHandlerFactory(new JarInJarURLStreamHandlerFactory(classLoader));
+		} catch (final Error e) {
+			try {
+				URI.create("rsrc:test").toURL();
+			} catch (@SuppressWarnings("unused") final MalformedURLException | IllegalArgumentException e1) {
+				throw new MalformedURLException("Cannot register the URL protocol 'rsrc:', another URLStreamHandlerFactory is already set: " + e.getMessage());
+			}
 		}
 	}
 
@@ -127,49 +157,32 @@ public class JarInJarLoader {
 					final ManifestInfo manifestInfo = new ManifestInfo();
 					final Attributes mainAttributes = new Manifest(inputStream).getMainAttributes();
 					manifestInfo.mainClass = mainAttributes.getValue("Rsrc-Main-Class");
-					String rsrcClassPath = mainAttributes.getValue("Rsrc-Class-Path");
-					if (rsrcClassPath == null) {
-						// find all jar files included in the jar and add them to the classpath
-						rsrcClassPath = "./";
-						final String manifestFileUrlFile = manifestFileUrl.getFile();
-						String jarFilePath = manifestFileUrlFile.substring(0, manifestFileUrlFile.indexOf("!/META-INF/MANIFEST.MF"));
-						jarFilePath = decodeUrlEncodedPath(jarFilePath);
-						if (jarFilePath.startsWith("file:")) {
-							jarFilePath = jarFilePath.substring(5);
+					if (isBlank(manifestInfo.mainClass)) {
+						continue;
+					}
+
+					final String rsrcClassPath = mainAttributes.getValue("Rsrc-Class-Path");
+					if (rsrcClassPath != null) {
+						// Manifest entries are separated by blanks and must be URL encoded themselves (e.g. "my%20lib.jar")
+						for (final String classPathEntry : rsrcClassPath.trim().split("\\s+")) {
+							manifestInfo.classPathUrls.add(createClassPathUrl(classPathEntry));
 						}
-						boolean swtFound = false;
-						boolean swtLoaded = false;
-						final String osName = System.getProperty("os.name").toLowerCase();
-						final String osArch = System.getProperty("os.arch").toLowerCase();
-						try {
-							for (final String entryName : getZipFileEntries(new File(jarFilePath))) {
-								if (endsWithIgnoreCase(entryName, ".jar")) {
-									if (entryName.startsWith("swt")) {
-										swtFound = true;
-										if (osArch.contains("64") && osName.contains("win") && entryName.contains("win32") && entryName.contains("x86_64")) {
-											rsrcClassPath += " " + entryName;
-											swtLoaded = true;
-										} else if (osArch.contains("64") && (osName.contains("linux") || osName.contains("nix")) && entryName.contains("linux") && entryName.contains("gtk") && entryName.contains("x86_64")) {
-											rsrcClassPath += " " + entryName;
-											swtLoaded = true;
-										}
-									} else {
-										rsrcClassPath += " " + entryName;
-									}
-								}
-							}
-						} catch (final Exception e) {
-							e.printStackTrace();
-						}
-						if (swtFound && !swtLoaded) {
-							throw new Exception("Unsupported OS name or architecture for this SWT application: " + osName + " / " + osArch);
+					} else {
+						// Find all jar files included in the jar and add them to the classpath
+						manifestInfo.classPathUrls.add(createClassPathUrl("./"));
+						for (final String entryName : getEmbeddedJarFiles(getJarFileOfUrl(manifestFileUrl))) {
+							// Real file names may contain blanks and other characters, which must be encoded for the URL
+							manifestInfo.classPathUrls.add(createClassPathUrl(encodeResourcePath(entryName)));
 						}
 					}
-					manifestInfo.classPath = rsrcClassPath.split(" ");
-					if (isNotBlank(manifestInfo.mainClass)) {
-						return manifestInfo;
-					}
+					return manifestInfo;
 				}
+			} catch (final UnsupportedOperationException e) {
+				// Report the unsupported platform instead of the misleading "missing attributes" error below
+				throw new IOException(e.getMessage(), e);
+			} catch (final MalformedURLException | IllegalArgumentException e) {
+				// A broken class path entry must not be reported as "missing attributes" either
+				throw new IOException("Invalid entry in Rsrc-Class-Path: " + e.getMessage(), e);
 			} catch (@SuppressWarnings("unused") final Exception e) {
 				// Skip invalid manifest file
 			}
@@ -178,26 +191,114 @@ public class JarInJarLoader {
 	}
 
 	/**
-	 * Decodes a percent-encoded file path (e.g. from a "jar:file:...!/..." or manifest URL).
+	 * Creates the class path URL for an embedded jar file ("jar:rsrc:lib.jar!/") or folder ("rsrc:folder/").
 	 *
-	 * <p>{@link URLDecoder#decode(String, java.nio.charset.Charset)} is built for
-	 * application/x-www-form-urlencoded data and also turns a literal '+' into a space,
-	 * which corrupts file paths that legitimately contain a '+' (e.g. "C++Tools"). Escaping
-	 * '+' to "%2B" beforehand protects it, while real "%XX" escapes are still decoded normally.
+	 * @param encodedPath URL encoded path inside the application jar
 	 */
-	private static String decodeUrlEncodedPath(final String encodedPath) {
-		return URLDecoder.decode(encodedPath.replace("+", "%2B"), StandardCharsets.UTF_8);
+	private static URL createClassPathUrl(final String encodedPath) throws MalformedURLException {
+		if (encodedPath.endsWith("/")) {
+			return URI.create("rsrc:" + encodedPath).toURL();
+		} else {
+			return URI.create("jar:rsrc:" + encodedPath + "!/").toURL();
+		}
+	}
+
+	/**
+	 * URL encodes a path inside the application jar, keeping the "/" separators.
+	 */
+	private static String encodeResourcePath(final String path) throws URISyntaxException {
+		// The multi-argument URI constructor quotes blanks, '%', '#' and other characters not allowed in a URI
+		return new URI(null, null, path, null).getRawPath();
+	}
+
+	/**
+	 * Returns the local jar file containing the resource of a "jar:file:...!/..." URL.
+	 */
+	private static File getJarFileOfUrl(final URL url) throws IOException, URISyntaxException {
+		final URLConnection urlConnection = url.openConnection();
+		if (!(urlConnection instanceof JarURLConnection)) {
+			throw new IOException("Not a jar URL: " + url);
+		}
+		// URI based conversion handles percent-encoding, Windows drive letters and UNC paths
+		return Paths.get(((JarURLConnection) urlConnection).getJarFileURL().toURI()).toFile();
+	}
+
+	/**
+	 * Returns the embedded jar files of the application jar. Of the SWT jars only the one matching the current OS and
+	 * architecture is included.
+	 *
+	 * @throws UnsupportedOperationException if the application jar contains SWT jars, but none for the current platform
+	 */
+	private static List<String> getEmbeddedJarFiles(final File applicationJarFile) throws IOException {
+		final String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+		final String osArch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
+		final String[] swtPlatformTokens = getSwtPlatformTokens(osName, osArch);
+
+		final List<String> embeddedJarFiles = new ArrayList<>();
+		boolean swtFound = false;
+		boolean swtLoaded = false;
+		for (final String entryName : getZipFileEntries(applicationJarFile)) {
+			if (endsWithIgnoreCase(entryName, ".jar")) {
+				// Only the file name decides, the SWT jars may also be located in a sub folder like "lib/"
+				final String fileName = entryName.substring(entryName.lastIndexOf('/') + 1).toLowerCase(Locale.ROOT);
+				if (fileName.startsWith("swt")) {
+					swtFound = true;
+					if (swtPlatformTokens != null && containsAll(fileName, swtPlatformTokens)) {
+						embeddedJarFiles.add(entryName);
+						swtLoaded = true;
+					}
+				} else {
+					embeddedJarFiles.add(entryName);
+				}
+			}
+		}
+		if (swtFound && !swtLoaded) {
+			throw new UnsupportedOperationException("Unsupported OS name or architecture for this SWT application: " + osName + " / " + osArch);
+		}
+		return embeddedJarFiles;
+	}
+
+	/**
+	 * Returns the parts, which the name of the SWT jar for the given platform must contain, e.g. "win32" and "x86_64".
+	 *
+	 * @return name parts, or null for an unsupported platform
+	 */
+	static String[] getSwtPlatformTokens(final String osName, final String osArch) {
+		final String archToken;
+		if ("amd64".equals(osArch) || "x86_64".equals(osArch)) {
+			archToken = "x86_64";
+		} else if ("aarch64".equals(osArch) || "arm64".equals(osArch)) {
+			// Must not fall back to the x86_64 SWT jar, whose native libraries cannot be loaded on ARM
+			archToken = "aarch64";
+		} else {
+			return null;
+		}
+
+		if (osName.contains("win")) {
+			return new String[] { "win32", archToken };
+		} else if (osName.contains("linux")) {
+			return new String[] { "linux", "gtk", archToken };
+		} else if (osName.contains("mac") || osName.contains("darwin")) {
+			return new String[] { "macosx", archToken };
+		} else {
+			return null;
+		}
+	}
+
+	private static boolean containsAll(final String value, final String[] tokens) {
+		for (final String token : tokens) {
+			if (!value.contains(token)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean isBlank(final String value) {
-		return value == null || value.length() == 0 || value.trim().length() == 0;
+		return value == null || value.trim().length() == 0;
 	}
 
-	private static boolean isNotBlank(final String value) {
-		return !isBlank(value);
-	}
-
-	private static String[] getZipFileEntries(final File file) throws ZipException, IOException {
+	private static List<String> getZipFileEntries(final File file) throws ZipException, IOException {
 		try (ZipFile zipFile = new ZipFile(file)) {
 			final Enumeration<? extends ZipEntry> entries = zipFile.entries();
 			final List<String> entryList = new ArrayList<>();
@@ -205,26 +306,15 @@ public class JarInJarLoader {
 				final ZipEntry entry = entries.nextElement();
 				entryList.add(entry.getName());
 			}
-			return entryList.toArray(new String[0]);
+			return entryList;
 		}
 	}
 
 	private static boolean endsWithIgnoreCase(final String data, final String suffix) {
-		if (data == suffix) {
-			// both null or same object
-			return true;
-		} else if (data == null) {
-			// data is null but suffix is not
-			return false;
-		} else if (suffix == null) {
-			// suffix is null but data is not
-			return false;
-		} else if (data.toLowerCase().endsWith(suffix.toLowerCase())) {
-			// both are set, so ignore the case for standard endsWith-method
-			return true;
+		if (data == null || suffix == null) {
+			return data == suffix;
 		} else {
-			// anything else
-			return false;
+			return data.toLowerCase(Locale.ROOT).endsWith(suffix.toLowerCase(Locale.ROOT));
 		}
 	}
 }
