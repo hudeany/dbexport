@@ -15,6 +15,7 @@
 	<property name="commons-collections4.version" value="4.6.0" />
 	<property name="commons-compress.version" value="1.28.0" />
 	<property name="commons-io.version" value="2.22.0" />
+	<property name="commons-lang3.version" value="3.18.0" />
 	<property name="commons-math3.version" value="3.6.1" />
 	<property name="jna.version" value="5.19.1" />
 	<property name="log4j.version" value="2.26.1" />
@@ -59,6 +60,7 @@
 		<getMavenDependency groupId="org.apache.commons" artifactId="commons-collections4" version="${commons-collections4.version}" />
 		<getMavenDependency groupId="org.apache.commons" artifactId="commons-compress" version="${commons-compress.version}" />
 		<getMavenDependency groupId="commons-io" artifactId="commons-io" version="${commons-io.version}" />
+		<getMavenDependency groupId="org.apache.commons" artifactId="commons-lang3" version="${commons-lang3.version}" />
 		<getMavenDependency groupId="org.apache.commons" artifactId="commons-math3" version="${commons-math3.version}" />
 		<getMavenDependency groupId="net.java.dev.jna" artifactId="jna" version="${jna.version}" />
 		<getMavenDependency groupId="org.apache.logging.log4j" artifactId="log4j-1.2-api" version="${log4j.version}" />
