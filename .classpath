@@ -30,6 +30,8 @@
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.112.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.19.1.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-zip-26.0.1.jar"/>
+	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.4.0.jre11.jar"/>
+	<classpathentry kind="lib" path="lib_db/mysql-connector-j-26.7.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
@@ -41,7 +43,6 @@
 	<classpathentry kind="lib" path="lib_db/hsqldb-2.7.4.jar"/>
 	<classpathentry kind="lib" path="lib_db/mariadb-java-client-3.5.10.jar"/>
 	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.6.1.jre8.jar"/>
-	<classpathentry kind="lib" path="lib_db/mysql-connector-j-9.7.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/ojdbc11-23.26.3.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/orai18n-23.26.3.0.0.jar"/>
 	<classpathentry kind="lib" path="lib_db/postgresql-42.7.14.jar"/>

@@ -34,7 +34,7 @@
 	<property name="soderer-utilities.version" value="26.2.112" />
 	<property name="soderer-zip.version" value="26.0.1" />
 	<property name="mariadb-java-client.version" value="3.5.10" />
-	<property name="mysql-connector-j.version" value="9.7.0" />
+	<property name="mysql-connector-j.version" value="26.7.0" />
 	<property name="hsqldb.version" value="2.7.4" />
 	<property name="mssql-jdbc.version" value="13.6.1.jre8" />
 	<property name="postgresql.version" value="42.7.14" />
