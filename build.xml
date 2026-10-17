@@ -15,7 +15,7 @@
 	<property name="commons-collections4.version" value="4.6.0" />
 	<property name="commons-compress.version" value="1.28.0" />
 	<property name="commons-io.version" value="2.22.0" />
-	<property name="commons-lang3.version" value="3.18.0" />
+	<property name="commons-lang3.version" value="3.21.0" />
 	<property name="commons-math3.version" value="3.6.1" />
 	<property name="jna.version" value="5.19.1" />
 	<property name="log4j.version" value="2.26.1" />
