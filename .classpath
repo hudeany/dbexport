@@ -30,7 +30,6 @@
 	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.112.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.19.1.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-zip-26.0.1.jar"/>
-	<classpathentry kind="lib" path="lib_db/mssql-jdbc-13.4.0.jre11.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-26.7.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
