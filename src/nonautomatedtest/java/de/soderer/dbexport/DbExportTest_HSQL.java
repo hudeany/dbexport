@@ -34,8 +34,8 @@ import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
-import de.soderer.utilities.zip.TarGzUtilities;
-import de.soderer.utilities.zip.ZipUtilities;
+import de.soderer.zip.TarGzUtilities;
+import de.soderer.zip.ZipUtilities;
 import net.lingala.zip4j.ZipFile;
 
 public class DbExportTest_HSQL {

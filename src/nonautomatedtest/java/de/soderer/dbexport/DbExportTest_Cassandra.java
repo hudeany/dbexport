@@ -28,7 +28,7 @@ import de.soderer.utilities.WildcardFilenameFilter;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
-import de.soderer.utilities.zip.ZipUtilities;
+import de.soderer.zip.ZipUtilities;
 
 public class DbExportTest_Cassandra {
 	public static final String HOSTNAME = System.getenv().get("HOSTNAME_CASSANDRA_TEST");

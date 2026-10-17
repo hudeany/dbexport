@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingUtilities;
 
+import de.soderer.applicationbase.ApplicationConfigurationProperties;
 import de.soderer.applicationbase.ApplicationUpdateUtilities;
 import de.soderer.applicationbase.UpdateableConsoleApplication;
 import de.soderer.console.ConsoleMenu;
@@ -35,7 +36,6 @@ import de.soderer.dbexport.worker.AbstractDbExportWorker;
 import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
-import de.soderer.utilities.ConfigurationProperties;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
@@ -177,20 +177,20 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			return 1;
 		}
 
-		ConfigurationProperties applicationConfiguration;
+		ApplicationConfigurationProperties applicationConfiguration;
 		try {
-			applicationConfiguration = new ConfigurationProperties(DbExport.APPLICATION_NAME, true);
+			applicationConfiguration = new ApplicationConfigurationProperties(DbExport.APPLICATION_NAME, true);
 			DbExportGui.setupDefaultConfig(applicationConfiguration);
 		} catch (@SuppressWarnings("unused") final Exception e) {
 			System.err.println("Invalid application configuration");
 			return 1;
 		}
 
-		if (!applicationConfiguration.containsKey(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE)) {
+		if (!applicationConfiguration.containsKey(ApplicationConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE)) {
 			if (PacScriptParser.findPacFileUrlByWpad() != null) {
-				applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.WPAD.name());
+				applicationConfiguration.set(ApplicationConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.WPAD.name());
 			} else {
-				applicationConfiguration.set(ConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.None.name());
+				applicationConfiguration.set(ApplicationConfigurationProperties.CONFIG_KEY_PROXY_CONFIGURATION_TYPE, ProxyConfigurationType.None.name());
 			}
 			applicationConfiguration.save();
 		}

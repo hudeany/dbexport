@@ -32,6 +32,7 @@
 	<property name="soderer-swing.version" value="26.0.7" />
 	<property name="soderer-applicationbase.version" value="26.0.18" />
 	<property name="soderer-utilities.version" value="26.2.112" />
+	<property name="soderer-zip.version" value="26.0.0" />
 	<property name="mariadb-java-client.version" value="3.5.9" />
 	<property name="mysql-connector-j.version" value="9.7.0" />
 	<property name="hsqldb.version" value="2.7.4" />
@@ -80,6 +81,7 @@
 		<getDependency name="soderer-swing" version="${soderer-swing.version}" url="https://github.com/hudeany/Swing/releases/download/{version}/soderer-swing-{version}.jar" />
 		<getDependency name="soderer-applicationbase" version="${soderer-applicationbase.version}" url="https://github.com/hudeany/ApplicationBase/releases/download/{version}/soderer-applicationbase-{version}.jar" />
 		<getDependency name="soderer-utilities" version="${soderer-utilities.version}" url="https://github.com/hudeany/Utilities/releases/download/{version}/soderer-utilities-{version}.jar" />
+		<getDependency name="soderer-zip" version="${soderer-zip.version}" url="https://github.com/hudeany/Zip/releases/download/{version}/soderer-zip-{version}.jar" />
 	</target>
 
 	<target name="download_dbconnectors" depends="register_antbuildhelp">

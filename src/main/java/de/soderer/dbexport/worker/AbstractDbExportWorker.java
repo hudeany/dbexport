@@ -64,9 +64,9 @@ import de.soderer.utilities.db.utilities.CaseInsensitiveMap;
 import de.soderer.utilities.db.utilities.CaseInsensitiveSet;
 import de.soderer.utilities.worker.WorkerDual;
 import de.soderer.utilities.worker.WorkerParentDual;
-import de.soderer.utilities.zip.TarGzUtilities;
-import de.soderer.utilities.zip.Zip4jUtilities;
-import de.soderer.utilities.zip.ZipUtilities;
+import de.soderer.zip.TarGzUtilities;
+import de.soderer.zip.Zip4jUtilities;
+import de.soderer.zip.ZipUtilities;
 
 /**
  * Base class of the export workers for the supported export formats.

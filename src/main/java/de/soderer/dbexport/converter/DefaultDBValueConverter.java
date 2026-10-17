@@ -20,9 +20,9 @@ import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.ReaderInputStream;
 import de.soderer.utilities.Utilities;
-import de.soderer.utilities.zip.TarGzUtilities;
-import de.soderer.utilities.zip.Zip4jUtilities;
-import de.soderer.utilities.zip.ZipUtilities;
+import de.soderer.zip.TarGzUtilities;
+import de.soderer.zip.Zip4jUtilities;
+import de.soderer.zip.ZipUtilities;
 
 /**
  * Converts the values of a result set into values for the export: blobs into base64 text or separate files,

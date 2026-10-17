@@ -23,7 +23,7 @@ import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.data.DbVendor;
-import de.soderer.utilities.zip.ZipUtilities;
+import de.soderer.zip.ZipUtilities;
 
 public class DbExportTest_Derby {
 	public static final String DERBY_DB_PATH = System.getProperty("user.home") + File.separator + "temp" + File.separator + "test.derby";
