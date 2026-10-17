@@ -12,14 +12,14 @@
 	<!-- Override for GitHub: https://api.github.com/repos/hudeany/DbExport/releases/latest -->
 	<property name="VersionsUrl" value="https://api.github.com/repos/hudeany/DbExport/releases/latest" />
 
-	<property name="commons-collections4.version" value="4.4" />
+	<property name="commons-collections4.version" value="4.6.0" />
 	<property name="commons-compress.version" value="1.28.0" />
-	<property name="commons-io.version" value="2.14.0" />
+	<property name="commons-io.version" value="2.22.0" />
 	<property name="commons-math3.version" value="3.6.1" />
 	<property name="jna.version" value="5.19.1" />
-	<property name="log4j.version" value="2.20.0" />
-	<property name="poi.version" value="5.2.4" />
-	<property name="xmlbeans.version" value="5.1.1" />
+	<property name="log4j.version" value="2.26.1" />
+	<property name="poi.version" value="5.5.1" />
+	<property name="xmlbeans.version" value="5.4.1" />
 	<property name="zip4j.version" value="2.11.6" />
 	<property name="kdbx.version" value="26.1.6" />
 	<property name="csv.version" value="26.1.10" />
@@ -33,12 +33,12 @@
 	<property name="soderer-applicationbase.version" value="26.0.19" />
 	<property name="soderer-utilities.version" value="26.2.112" />
 	<property name="soderer-zip.version" value="26.0.1" />
-	<property name="mariadb-java-client.version" value="3.5.9" />
+	<property name="mariadb-java-client.version" value="3.5.10" />
 	<property name="mysql-connector-j.version" value="9.7.0" />
 	<property name="hsqldb.version" value="2.7.4" />
-	<property name="mssql-jdbc.version" value="13.4.0.jre11" />
-	<property name="postgresql.version" value="42.7.13" />
-	<property name="sqlite-jdbc.version" value="3.53.2.1" />
+	<property name="mssql-jdbc.version" value="13.6.1.jre8" />
+	<property name="postgresql.version" value="42.7.14" />
+	<property name="sqlite-jdbc.version" value="3.53.4.0" />
 	<property name="ojdbc11.version" value="23.26.3.0.0" />
 	<property name="orai18n.version" value="23.26.3.0.0" />
 	<property name="derby.version" value="10.17.1.0" />
