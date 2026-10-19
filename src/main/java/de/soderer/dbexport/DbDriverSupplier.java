@@ -6,6 +6,17 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 import javax.swing.JFileChooser;
 
@@ -22,7 +33,8 @@ import de.soderer.utilities.db.data.DbVendor;
  * Makes sure, that the JDBC driver of a database vendor is available.
  *
  * <p>
- * If the driver is not on the class path, the driver jar file configured in the configuration file is loaded.
+ * If the driver is not on the class path, the driver jar file configured in the configuration file is loaded
+ * by its own class loader and registered at the {@link DriverManager}.
  * If there is none, the user is asked for the driver jar file (via a file dialog in the GUI or on the console)
  * and the chosen file is stored in the configuration file.
  * </p>
@@ -98,42 +110,119 @@ public class DbDriverSupplier {
 	}
 
 	/**
-	 * Check if driver is included in jar/classpath
+	 * Check if the driver is included in the jar/classpath or was already loaded from a driver jar file
 	 *
-	 * @param dbVendor
-	 * @return
+	 * @return true if the driver is available
 	 */
 	private boolean checkDriverIsAvailable() {
+		prepareDriverLoading();
 		try {
-			if (dbVendor == DbVendor.Derby) {
-				// Prevent creation of file "derby.log"
-				System.setProperty("derby.stream.error.field", "de.soderer.utilities.db.DbUtilities.DEV_NULL");
-			}
-
 			Class.forName(dbVendor.getDriverClassName());
 			return true;
 		} catch (@SuppressWarnings("unused") final ClassNotFoundException e) {
+			// A driver loaded from a jar file by its own class loader is only visible via its registered shim
+			for (final Driver driver : Collections.list(DriverManager.getDrivers())) {
+				if (driver instanceof DriverShim && ((DriverShim) driver).getDriverClassName().equals(dbVendor.getDriverClassName())) {
+					return true;
+				}
+			}
 			return false;
 		}
 	}
 
 	/**
-	 * Check if the given file contains the wanted drive
+	 * Settings, which must be done before a driver class is loaded
+	 */
+	private void prepareDriverLoading() {
+		if (dbVendor == DbVendor.Derby) {
+			// Prevent creation of file "derby.log"
+			System.setProperty("derby.stream.error.field", "de.soderer.utilities.db.DbUtilities.DEV_NULL");
+		}
+	}
+
+	/**
+	 * Check if the given file contains the wanted driver and register it at the DriverManager.
 	 *
-	 * @param dbVendor
-	 * @param driverFilePath
-	 * @return
+	 * <p>
+	 * Since Java 9 the system class loader cannot be extended at runtime anymore, so the jar file gets its own
+	 * class loader. The DriverManager only uses drivers, whose class is visible to the class loader of the caller,
+	 * so the driver is registered wrapped in a {@link DriverShim}, which is loaded by the application class loader.
+	 * </p>
+	 *
+	 * @param driverFilePath path of the driver jar file
+	 * @return true if the driver was loaded and registered
 	 */
 	private boolean checkDriverFile(final String driverFilePath) {
-		if (!new File(driverFilePath).exists()) {
+		final File driverFile = new File(driverFilePath);
+		if (!driverFile.isFile()) {
 			return false;
-		} else {
-			try {
-				Utilities.addFileToClasspath(driverFilePath);
-			} catch (@SuppressWarnings("unused") final Exception e) {
-				return false;
-			}
-			return checkDriverIsAvailable();
+		}
+
+		prepareDriverLoading();
+		URLClassLoader driverClassLoader = null;
+		try {
+			driverClassLoader = new URLClassLoader(new URL[] { driverFile.toURI().toURL() }, DbDriverSupplier.class.getClassLoader());
+			final Class<?> driverClass = Class.forName(dbVendor.getDriverClassName(), true, driverClassLoader);
+			final Driver driver = (Driver) driverClass.getDeclaredConstructor().newInstance();
+			DriverManager.registerDriver(new DriverShim(driver));
+			// The class loader is not closed, because the driver classes are used for the rest of the application's lifetime
+			return true;
+		} catch (@SuppressWarnings("unused") final Exception | LinkageError e) {
+			// Wrong jar file, missing driver class, missing dependencies or driver compiled for a newer Java version
+			Utilities.closeQuietly(driverClassLoader);
+			return false;
+		}
+	}
+
+	/**
+	 * Wrapper for a JDBC driver loaded by a separate class loader.
+	 * The DriverManager ignores drivers, whose class is not visible to the class loader of the caller, but this wrapper
+	 * class is loaded by the application class loader, so the DriverManager uses it and it delegates to the real driver.
+	 */
+	private static class DriverShim implements Driver {
+		private final Driver driver;
+
+		DriverShim(final Driver driver) {
+			this.driver = driver;
+		}
+
+		String getDriverClassName() {
+			return driver.getClass().getName();
+		}
+
+		@Override
+		public Connection connect(final String url, final Properties info) throws SQLException {
+			return driver.connect(url, info);
+		}
+
+		@Override
+		public boolean acceptsURL(final String url) throws SQLException {
+			return driver.acceptsURL(url);
+		}
+
+		@Override
+		public DriverPropertyInfo[] getPropertyInfo(final String url, final Properties info) throws SQLException {
+			return driver.getPropertyInfo(url, info);
+		}
+
+		@Override
+		public int getMajorVersion() {
+			return driver.getMajorVersion();
+		}
+
+		@Override
+		public int getMinorVersion() {
+			return driver.getMinorVersion();
+		}
+
+		@Override
+		public boolean jdbcCompliant() {
+			return driver.jdbcCompliant();
+		}
+
+		@Override
+		public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+			return driver.getParentLogger();
 		}
 	}
 
