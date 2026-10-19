@@ -31,7 +31,7 @@
 	<property name="dbutilities.version" value="26.1.7" />
 	<property name="soderer-console.version" value="26.0.9" />
 	<property name="soderer-swing.version" value="26.0.13" />
-	<property name="soderer-applicationbase.version" value="26.0.29" />
+	<property name="soderer-applicationbase.version" value="26.0.30" />
 	<property name="soderer-utilities.version" value="26.2.118" />
 	<property name="soderer-zip.version" value="26.0.5" />
 	<property name="mariadb-java-client.version" value="3.5.10" />
