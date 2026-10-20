@@ -1312,7 +1312,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		try {
 			dbExportDefinition.checkParameters();
 			if (!new DbDriverSupplier(this, dbExportDefinition.getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
-				throw new Exception("Cannot aquire database driver for database vendor: " + dbExportDefinition.getDbVendor());
+				throw new Exception("Cannot acquire database driver for database vendor: " + dbExportDefinition.getDbVendor());
 			}
 
 			// The worker parent is set later by the opened DualProgressDialog

@@ -76,23 +76,23 @@ public class DbDriverSupplier {
 				if (checkDriverFile(driverFile)) {
 					return true;
 				} else {
-					driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
+					driverFile = acquireDriverFileFromUser(applicationName, configurationFile);
 				}
 			} else {
-				driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
+				driverFile = acquireDriverFileFromUser(applicationName, configurationFile);
 			}
 			while (Utilities.isNotBlank(driverFile)) {
 				if (checkDriverFile(driverFile)) {
 					writeDriverFilePathToConfigFile(configurationFile, driverFile);
 					return true;
 				}
-				driverFile = aquireDriverFileFromUser(applicationName, configurationFile);
+				driverFile = acquireDriverFileFromUser(applicationName, configurationFile);
 			}
 			return false;
 		}
 	}
 
-	private String aquireDriverFileFromUser(final String applicationName, final File configurationFile) throws Exception {
+	private String acquireDriverFileFromUser(final String applicationName, final File configurationFile) throws Exception {
 		if (parent == null) {
 			System.out.println(LangResources.get("driverIsMissing", dbVendor.toString() + "(" + dbVendor.getDriverClassName() + ")\nDownload URL: " + DbUtilities.getDownloadUrl(dbVendor), configurationFile));
 			System.out.println(LangResources.get("emptyForCancel"));

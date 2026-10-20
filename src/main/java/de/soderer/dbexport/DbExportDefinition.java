@@ -691,10 +691,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (getDbVendor() != null) {
 			try {
 				if (!new DbDriverSupplier(null, getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
-					throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + getDbVendor());
+					throw new DbDefinitionException("Cannot acquire database driver for database vendor: " + getDbVendor());
 				}
 			} catch (final Exception e) {
-				throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + getDbVendor(), e);
+				throw new DbDefinitionException("Cannot acquire database driver for database vendor: " + getDbVendor(), e);
 			}
 		}
 

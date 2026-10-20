@@ -453,10 +453,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		if (dbDefinition.getDbVendor() != null) {
 			try {
 				if (!new DbDriverSupplier(null, dbDefinition.getDbVendor()).supplyDriver(DbExport.APPLICATION_NAME, DbExport.CONFIGURATION_FILE)) {
-					throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + dbDefinition.getDbVendor());
+					throw new DbDefinitionException("Cannot acquire database driver for database vendor: " + dbDefinition.getDbVendor());
 				}
 			} catch (final Exception e) {
-				throw new DbDefinitionException("Cannot aquire database driver for database vendor: " + dbDefinition.getDbVendor(), e);
+				throw new DbDefinitionException("Cannot acquire database driver for database vendor: " + dbDefinition.getDbVendor(), e);
 			}
 		}
 
