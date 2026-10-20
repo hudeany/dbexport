@@ -208,6 +208,7 @@
 
 		<mkdir dir="${buildPath}/bin" />
 		<javac release="17" debug="true" nowarn="true" deprecation="false" destdir="${buildPath}/bin" fork="yes" srcdir="${sourcePath}" includeantruntime="false" encoding="UTF-8">
+			<exclude name="test/**" />
 			<classpath refid="build.classpath" />
 			<compilerarg value="-Xlint:unchecked" />
 			<compilerarg value="-parameters" />
@@ -336,7 +337,7 @@
 		<javadoc destdir="${buildPath}/javadoc" encoding="UTF-8" charset="UTF-8" docencoding="UTF-8" source="17" failonerror="true">
 			<classpath refid="build.classpath" />
 			<arg value="-quiet" />
-			<fileset dir="${sourcePath}" includes="**/*.java" />
+			<fileset dir="${sourcePath}" includes="**/*.java" excludes="test/**" />
 		</javadoc>
 
 		<jar destfile="${buildPath}/${applicationName}-${build.version}-javadoc.jar">
