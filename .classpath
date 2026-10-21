@@ -24,10 +24,10 @@
 	<classpathentry kind="lib" path="lib/proxyautoconfig-26.1.5.jar"/>
 	<classpathentry kind="lib" path="lib/vcf-26.1.7.jar"/>
 	<classpathentry kind="lib" path="lib/dbutilities-26.1.7.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.33.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.34.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-console-26.0.10.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-swing-26.0.21.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.120.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-swing-26.0.22.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.121.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.19.1.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-zip-26.0.6.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-26.7.0.jar"/>
