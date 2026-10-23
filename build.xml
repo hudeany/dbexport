@@ -32,7 +32,7 @@
 	<property name="soderer-console.version" value="26.0.11" />
 	<property name="soderer-swing.version" value="26.0.24" />
 	<property name="soderer-applicationbase.version" value="26.0.36" />
-	<property name="soderer-utilities.version" value="26.2.124" />
+	<property name="soderer-utilities.version" value="26.3.0" />
 	<property name="soderer-zip.version" value="26.0.7" />
 	<property name="mariadb-java-client.version" value="3.5.10" />
 	<property name="mysql-connector-j.version" value="26.7.0" />
