@@ -607,10 +607,10 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 
 						String orderPart = "";
 						if (!keyColumnNames.isEmpty()) {
-							orderPart = " ORDER BY " + Utilities.join(escapedKeyColumns, ", ");
+							orderPart = " ORDER BY " + StringUtilities.join(escapedKeyColumns, ", ");
 						}
 
-						final String sqlStatement = "SELECT " + Utilities.join(escapedReadoutColumns, ", ") + " FROM " + tableName + orderPart;
+						final String sqlStatement = "SELECT " + StringUtilities.join(escapedReadoutColumns, ", ") + " FROM " + tableName + orderPart;
 
 						try {
 							export(connection, sqlStatement, nextOutputFilePath);

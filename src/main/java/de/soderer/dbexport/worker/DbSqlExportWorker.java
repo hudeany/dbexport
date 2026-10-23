@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
-import de.soderer.utilities.Utilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.worker.WorkerParentDual;
 
@@ -153,7 +153,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 
 	@Override
 	protected void endTableLine() throws Exception {
-		fileWriter.write("INSERT INTO " + tableName + " (" + Utilities.join(columnNamesOfCurrentTableLine, ", ") + ") VALUES (" + Utilities.join(values, ", ") + ");\n");
+		fileWriter.write("INSERT INTO " + tableName + " (" + StringUtilities.join(columnNamesOfCurrentTableLine, ", ") + ") VALUES (" + StringUtilities.join(values, ", ") + ");\n");
 		columnNamesOfCurrentTableLine = null;
 		values = null;
 	}
