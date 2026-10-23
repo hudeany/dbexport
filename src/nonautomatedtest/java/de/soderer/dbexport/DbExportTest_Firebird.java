@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
@@ -89,7 +90,7 @@ public class DbExportTest_Firebird {
 				statement.execute("CREATE TABLE test_tbl (id INTEGER PRIMARY KEY, " + dataColumnsPart + ")");
 			}
 
-			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (id, " + dataColumnsPartForInsert + ") VALUES (COALESCE((SELECT MAX(id) + 1 FROM test_tbl), 1), " + Utilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
+			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (id, " + dataColumnsPartForInsert + ") VALUES (COALESCE((SELECT MAX(id) + 1 FROM test_tbl), 1), " + StringUtilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
 				for (final Object[] itemData : DATA_VALUES) {
 					preparedStatement.clearParameters();
 					int paramIndex = 1;

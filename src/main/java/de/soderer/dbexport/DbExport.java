@@ -42,6 +42,7 @@ import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.NumberUtilities;
 import de.soderer.utilities.ParameterException;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.Version;
 import de.soderer.utilities.db.DbUtilities;
@@ -268,7 +269,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter for export format");
-						} else if (Utilities.isBlank(arguments[i])) {
+						} else if (StringUtilities.isBlank(arguments[i])) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for export format");
 						} else {
 							dbExportDefinition.setDataType(arguments[i]);
@@ -298,7 +299,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter for compress type");
-						} else if (Utilities.isBlank(arguments[i])) {
+						} else if (StringUtilities.isBlank(arguments[i])) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter for compress type");
 						} else {
 							dbExportDefinition.setCompression(FileCompressionType.getFromString(arguments[i]));
@@ -351,7 +352,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter encoding");
-						} else if (Utilities.isBlank(arguments[i])) {
+						} else if (StringUtilities.isBlank(arguments[i])) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter encoding");
 						} else {
 							dbExportDefinition.setEncoding(Charset.forName(arguments[i]));
@@ -361,7 +362,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter separator character");
-						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
+						} else if (StringUtilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter separator character");
 						} else {
 							dbExportDefinition.setSeparator(arguments[i].charAt(0));
@@ -371,7 +372,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter stringquote character");
-						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
+						} else if (StringUtilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote character");
 						} else {
 							dbExportDefinition.setStringQuote(arguments[i].charAt(0));
@@ -381,7 +382,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter stringquote escape character");
-						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
+						} else if (StringUtilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter stringquote escape character");
 						} else {
 							dbExportDefinition.setStringQuoteEscapeCharacter(arguments[i].charAt(0));
@@ -414,7 +415,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter format locale");
-						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
+						} else if (StringUtilities.isBlank(arguments[i]) || arguments[i].length() != 2) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter format locale");
 						} else {
 							dbExportDefinition.setDateFormatLocale(Locale.forLanguageTag(arguments[i]));
@@ -424,7 +425,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter dateFormat");
-						} else if (Utilities.isBlank(arguments[i])) {
+						} else if (StringUtilities.isBlank(arguments[i])) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter dateFormat");
 						} else {
 							dbExportDefinition.setDateFormat(arguments[i]);
@@ -434,7 +435,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter dateTimeFormat");
-						} else if (Utilities.isBlank(arguments[i])) {
+						} else if (StringUtilities.isBlank(arguments[i])) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter dateTimeFormat");
 						} else {
 							dbExportDefinition.setDateTimeFormat(arguments[i]);
@@ -444,7 +445,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						i++;
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing parameter decimalSeparator");
-						} else if (Utilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
+						} else if (StringUtilities.isBlank(arguments[i]) || arguments[i].length() != 1) {
 							throw new ParameterException(arguments[i - 1] + " " + arguments[i], "Invalid parameter decimalSeparator");
 						} else {
 							dbExportDefinition.setDecimalSeparator(arguments[i].charAt(0));
@@ -502,7 +503,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststorepassword");
 						} else {
-							dbExportDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
+							dbExportDefinition.setTrustStorePassword(StringUtilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
 						}
 						wasAllowedParam = true;
 					} else if ("-createOutputDirectoyIfNotExists".equalsIgnoreCase(arguments[i])) {
@@ -582,7 +583,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						if (i >= arguments.length) {
 							throw new ParameterException(arguments[i - 1], "Missing value for parameter truststorepassword");
 						} else {
-							connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
+							connectionTestDefinition.setTrustStorePassword(StringUtilities.isNotEmpty(arguments[i]) ? arguments[i].toCharArray() : null);
 						}
 						wasAllowedParam = true;
 					} else {
@@ -616,7 +617,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				if (arguments.length < 2 || arguments.length > 3) {
 					throw new ParameterException("createtruststore", "Expected parameters: hostname[:port] truststorefilePath [truststorepassword]");
 				}
-				final char[] trustStorePassword = arguments.length > 2 && Utilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null;
+				final char[] trustStorePassword = arguments.length > 2 && StringUtilities.isNotEmpty(arguments[2]) ? arguments[2].toCharArray() : null;
 				TrustManagerUtilities.createTrustStoreFile(arguments[0], 443, new File(arguments[1]), trustStorePassword, null);
 				System.out.println();
 				System.out.println("Created TrustStore in file '" + arguments[1] + "'");
@@ -706,11 +707,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			} else if (connectionTest) {
 				// If started without GUI we may enter the missing password via the terminal
 				// Not for a HSQL file database, which needs no password (see help)
-				if (Utilities.isNotBlank(connectionTestDefinition.getUsername()) && connectionTestDefinition.getPassword() == null
+				if (StringUtilities.isNotBlank(connectionTestDefinition.getUsername()) && connectionTestDefinition.getPassword() == null
 						&& connectionTestDefinition.getDbVendor() != DbVendor.SQLite
 						&& connectionTestDefinition.getDbVendor() != DbVendor.Derby
 						&& connectionTestDefinition.getDbVendor() != DbVendor.Cassandra
-						&& !(connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort()))) {
+						&& !(connectionTestDefinition.getDbVendor() == DbVendor.HSQL && StringUtilities.isBlank(connectionTestDefinition.getHostnameAndPort()))) {
 					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					connectionTestDefinition.setPassword(passwordArray);
 				}
@@ -719,11 +720,11 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			} else {
 				// If started without GUI we may enter the missing password via the terminal
 				// Not for a HSQL file database, which needs no password (see help)
-				if (Utilities.isNotBlank(dbExportDefinition.getUsername()) && dbExportDefinition.getPassword() == null
+				if (StringUtilities.isNotBlank(dbExportDefinition.getUsername()) && dbExportDefinition.getPassword() == null
 						&& dbExportDefinition.getDbVendor() != DbVendor.SQLite
 						&& dbExportDefinition.getDbVendor() != DbVendor.Derby
 						&& dbExportDefinition.getDbVendor() != DbVendor.Cassandra
-						&& !(dbExportDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(dbExportDefinition.getHostnameAndPort()))) {
+						&& !(dbExportDefinition.getDbVendor() == DbVendor.HSQL && StringUtilities.isBlank(dbExportDefinition.getHostnameAndPort()))) {
 					final char[] passwordArray = new PasswordConsoleInput().withPrompt(LangResources.get("enterDbPassword") + ": ").readInput();
 					dbExportDefinition.setPassword(passwordArray);
 				}
@@ -778,8 +779,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			if (dbExportDefinition.isVerbose()) {
 				final String outputFileName = dbExportDefinition.getOutputpath() == null ? "" : new File(dbExportDefinition.getOutputpath()).getName();
 				System.out.println(worker.getConfigurationLogString(outputFileName, dbExportDefinition.getSqlStatementOrTablelist())
-						+ (Utilities.isNotBlank(dbExportDefinition.getDateFormat()) ? "DateFormatPattern: " + dbExportDefinition.getDateFormat() + "\n" : "")
-						+ (Utilities.isNotBlank(dbExportDefinition.getDateTimeFormat()) ? "DateTimeFormatPattern: " + dbExportDefinition.getDateTimeFormat() + "\n" : "")
+						+ (StringUtilities.isNotBlank(dbExportDefinition.getDateFormat()) ? "DateFormatPattern: " + dbExportDefinition.getDateFormat() + "\n" : "")
+						+ (StringUtilities.isNotBlank(dbExportDefinition.getDateTimeFormat()) ? "DateTimeFormatPattern: " + dbExportDefinition.getDateTimeFormat() + "\n" : "")
 						+ (dbExportDefinition.getDatabaseTimeZone() != null && !dbExportDefinition.getDatabaseTimeZone().equals(dbExportDefinition.getExportDataTimeZone()) ? "DatabaseZoneId: " + dbExportDefinition.getDatabaseTimeZone() + "\nExportDataZoneId: " + dbExportDefinition.getExportDataTimeZone() + "\n" : ""));
 				System.out.println();
 			}
@@ -820,7 +821,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 			Connection testConnection = null;
 			try {
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Creating database connection");
-				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
+				if (connectionTestDefinition.getDbVendor() == DbVendor.Derby || (connectionTestDefinition.getDbVendor() == DbVendor.HSQL && StringUtilities.isBlank(connectionTestDefinition.getHostnameAndPort())) || connectionTestDefinition.getDbVendor() == DbVendor.SQLite) {
 					try {
 						testConnection = DbUtilities.createConnection(connectionTestDefinition, false);
 					} catch (@SuppressWarnings("unused") final DbNotExistsException e) {
@@ -832,7 +833,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Successfully created database connection");
 
-				if (Utilities.isNotBlank(connectionTestDefinition.getCheckStatement())) {
+				if (StringUtilities.isNotBlank(connectionTestDefinition.getCheckStatement())) {
 					try (Statement statement = testConnection.createStatement()) {
 						String statementString = connectionTestDefinition.getCheckStatement();
 						if ("vendor".equalsIgnoreCase(statementString)) {
@@ -939,7 +940,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					ConsoleUtilities.saveCurrentCursorPosition();
 
 					if (currentTerminalWidth < previousTerminalWidth) {
-						System.out.print("\033[F" + Utilities.repeat(" ", currentTerminalWidth));
+						System.out.print("\033[F" + StringUtilities.repeat(" ", currentTerminalWidth));
 					}
 					previousTerminalWidth = currentTerminalWidth;
 
@@ -998,7 +999,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				ConsoleUtilities.saveCurrentCursorPosition();
 
 				if (currentTerminalWidth < previousTerminalWidth) {
-					System.out.print(Utilities.repeat(" ", currentTerminalWidth));
+					System.out.print(StringUtilities.repeat(" ", currentTerminalWidth));
 				}
 				previousTerminalWidth = currentTerminalWidth;
 

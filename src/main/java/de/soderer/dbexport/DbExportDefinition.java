@@ -16,6 +16,7 @@ import de.soderer.dbexport.worker.DbVcfExportWorker;
 import de.soderer.dbexport.worker.DbXmlExportWorker;
 import de.soderer.dbexport.worker.DbYamlExportWorker;
 import de.soderer.utilities.FileCompressionType;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
@@ -1042,7 +1043,7 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		if (getDbVendor() == DbVendor.HSQL) {
 			// HSQL: hostname only for a server database. A file database path is marked by a path separator, so it is
 			// not taken as hostname when the parameters are read again (see DbExport.isHsqlFileDatabasePath()).
-			if (Utilities.isNotBlank(getHostnameAndPort())) {
+			if (StringUtilities.isNotBlank(getHostnameAndPort())) {
 				params += " " + getHostnameAndPort();
 				params += " " + getDbName();
 			} else {
@@ -1131,10 +1132,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			params += " " + "-f" + " " + getDateFormatLocale().getLanguage();
 		}
 		// Quoted, because date patterns usually contain blanks ("dd.MM.yyyy HH:mm:ss")
-		if (Utilities.isNotBlank(getDateFormat())) {
+		if (StringUtilities.isNotBlank(getDateFormat())) {
 			params += " " + "-dateFormat" + " '" + getDateFormat().replace("'", "\\'") + "'";
 		}
-		if (Utilities.isNotBlank(getDateTimeFormat())) {
+		if (StringUtilities.isNotBlank(getDateTimeFormat())) {
 			params += " " + "-dateTimeFormat" + " '" + getDateTimeFormat().replace("'", "\\'") + "'";
 		}
 		if (getDecimalSeparator() != null) {

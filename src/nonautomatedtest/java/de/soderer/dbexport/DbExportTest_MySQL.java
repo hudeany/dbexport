@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.WildcardFilenameFilter;
@@ -86,7 +87,7 @@ public class DbExportTest_MySQL {
 				statement.execute("CREATE TABLE test_tbl (id INTEGER PRIMARY KEY AUTO_INCREMENT, " + dataColumnsPart + ")");
 			}
 
-			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (" + dataColumnsPartForInsert + ") VALUES (" + Utilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
+			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (" + dataColumnsPartForInsert + ") VALUES (" + StringUtilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
 				for (final Object[] itemData : DATA_VALUES) {
 					preparedStatement.clearParameters();
 					int paramIndex = 1;

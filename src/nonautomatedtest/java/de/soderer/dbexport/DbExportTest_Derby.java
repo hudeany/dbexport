@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileUtilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.TextUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
@@ -51,7 +52,7 @@ public class DbExportTest_Derby {
 		};
 
 		if (new File(DERBY_DB_PATH).exists()) {
-			Utilities.delete(new File(DERBY_DB_PATH));
+			FileUtilities.delete(new File(DERBY_DB_PATH));
 		}
 
 		try (Connection connection = DbUtilities.createNewDatabase(DbVendor.Derby, DERBY_DB_PATH)) {
@@ -77,7 +78,7 @@ public class DbExportTest_Derby {
 				statement.execute("CREATE TABLE test_tbl (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), " + dataColumnsPart + ", PRIMARY KEY (id))");
 			}
 
-			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (" + dataColumnsPartForInsert + ") VALUES (" + Utilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
+			try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_tbl (" + dataColumnsPartForInsert + ") VALUES (" + StringUtilities.repeat("?", DATA_TYPES.length, ", ") + ")")) {
 				for (final Object[] itemData : DATA_VALUES) {
 					preparedStatement.clearParameters();
 					int paramIndex = 1;

@@ -60,6 +60,7 @@ import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.Result;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.VersionInfo;
 import de.soderer.utilities.db.DbUtilities;
@@ -421,14 +422,14 @@ public class DbExportGui extends UpdateableGuiApplication {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
 				try {
-					if (Utilities.isBlank((trustStoreFilePathField.getText()))) {
+					if (StringUtilities.isBlank((trustStoreFilePathField.getText()))) {
 						final File trustStoreFile = selectFile(trustStoreFilePathField.getText(), LangResources.get("trustStoreFile"));
 						if (trustStoreFile != null) {
 							trustStoreFilePathField.setText(trustStoreFile.getAbsolutePath());
 						}
 					}
 
-					if (Utilities.isNotBlank((trustStoreFilePathField.getText()))) {
+					if (StringUtilities.isNotBlank((trustStoreFilePathField.getText()))) {
 						if (new File(trustStoreFilePathField.getText()).exists()) {
 							new QuestionDialog(dbExportGui, DbExport.APPLICATION_NAME + " ERROR", "ERROR:\n" + "File already exists: '" + trustStoreFilePathField.getText() + "'").withBackgroundColor(SwingColor.LightRed).open();
 						} else {
@@ -953,7 +954,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setPassword(passwordField.isEnabled() ? passwordField.getPassword() : null);
 		// The secure connection settings were missing, so the GUI always used an unencrypted connection
 		dbExportDefinition.setSecureConnection(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected());
-		dbExportDefinition.setTrustStoreFile(trustStoreFilePathField.isEnabled() && Utilities.isNotBlank(trustStoreFilePathField.getText()) ? new File(trustStoreFilePathField.getText()) : null);
+		dbExportDefinition.setTrustStoreFile(trustStoreFilePathField.isEnabled() && StringUtilities.isNotBlank(trustStoreFilePathField.getText()) ? new File(trustStoreFilePathField.getText()) : null);
 		dbExportDefinition.setTrustStorePassword(trustStorePasswordField.isEnabled() && trustStorePasswordField.getPassword().length > 0 ? trustStorePasswordField.getPassword() : null);
 		dbExportDefinition.setOutputpath(outputpathField.getText());
 		dbExportDefinition.setSqlStatementOrTablelist(statementField.getText());
@@ -969,8 +970,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 		}
 		dbExportDefinition.setCompression(fileCompressionType);
 		// null stands for no usage of zip password, but GUI field text is always not null, so use empty field as deactivation of zip password
-		dbExportDefinition.setZipPassword(Utilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
-		dbExportDefinition.setKdbxPassword(Utilities.isEmpty(kdbxPasswordField.getPassword()) ? null : kdbxPasswordField.getPassword());
+		dbExportDefinition.setZipPassword(StringUtilities.isEmpty(zipPasswordField.getPassword()) ? null : zipPasswordField.getPassword());
+		dbExportDefinition.setKdbxPassword(StringUtilities.isEmpty(kdbxPasswordField.getPassword()) ? null : kdbxPasswordField.getPassword());
 		dbExportDefinition.setAlwaysQuote(alwaysQuoteBox.isEnabled() ? alwaysQuoteBox.isSelected() : false);
 		dbExportDefinition.setInterpretEscapeSequences(interpretEscapeSequencesBox.isEnabled() ? interpretEscapeSequencesBox.isSelected() : true);
 		dbExportDefinition.setCreateBlobFiles(blobfilesBox.isSelected());
@@ -999,11 +1000,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 		final Locale locale = Locale.forLanguageTag(localeCombo.getText());
 		dbExportDefinition.setDateFormatLocale(localeCombo.isEnabled() ? locale : null);
 
-		if (Utilities.isNotBlank(exportDateFormatField.getText()) && exportDateFormatField.isEnabled()) {
+		if (StringUtilities.isNotBlank(exportDateFormatField.getText()) && exportDateFormatField.isEnabled()) {
 			dbExportDefinition.setDateFormat(exportDateFormatField.getText());
 		}
 
-		if (Utilities.isNotBlank(exportDateTimeFormatField.getText()) && exportDateTimeFormatField.isEnabled()) {
+		if (StringUtilities.isNotBlank(exportDateTimeFormatField.getText()) && exportDateTimeFormatField.isEnabled()) {
 			dbExportDefinition.setDateTimeFormat(exportDateTimeFormatField.getText());
 		}
 
@@ -1178,7 +1179,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 			createTrustStoreFileButton.setEnabled(false);
 			trustStorePasswordField.setEnabled(false);
 
-			connectionCheckButton.setEnabled(Utilities.isNotBlank(dbNameField.getText()));
+			connectionCheckButton.setEnabled(StringUtilities.isNotBlank(dbNameField.getText()));
 		} else {
 			hostField.setEnabled(true);
 			userField.setEnabled(true);
@@ -1191,17 +1192,17 @@ public class DbExportGui extends UpdateableGuiApplication {
 			trustStoreFilePathField.setEnabled(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected());
 			trustStoreFileButton.setEnabled(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected());
 			createTrustStoreFileButton.setEnabled(DbVendor.Oracle.toString().equalsIgnoreCase(selectedDbType)
-					&& secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && Utilities.isNotBlank(hostField.getText()));
-			trustStorePasswordField.setEnabled(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && Utilities.isNotBlank(trustStoreFilePathField.getText()));
+					&& secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && StringUtilities.isNotBlank(hostField.getText()));
+			trustStorePasswordField.setEnabled(secureConnectionBox.isEnabled() && secureConnectionBox.isSelected() && StringUtilities.isNotBlank(trustStoreFilePathField.getText()));
 
 			final boolean isCassandra = DbVendor.Cassandra.toString().equalsIgnoreCase(selectedDbType);
 			final boolean credentialsOk = isCassandra
-					? (Utilities.isBlank(userField.getText()) || Utilities.isNotBlank(passwordField.getPassword()))
-					: (Utilities.isNotBlank(userField.getText()) && Utilities.isNotBlank(passwordField.getPassword()));
+					? (StringUtilities.isBlank(userField.getText()) || StringUtilities.isNotBlank(passwordField.getPassword()))
+					: (StringUtilities.isNotBlank(userField.getText()) && StringUtilities.isNotBlank(passwordField.getPassword()));
 
 			connectionCheckButton.setEnabled(
-					Utilities.isNotBlank(dbNameField.getText())
-					&& Utilities.isNotBlank(hostField.getText())
+					StringUtilities.isNotBlank(dbNameField.getText())
+					&& StringUtilities.isNotBlank(hostField.getText())
 					&& credentialsOk);
 		}
 
@@ -1364,10 +1365,10 @@ public class DbExportGui extends UpdateableGuiApplication {
 				} else {
 					resultText += "\n" + LangResources.get("exporteddataamount") + ": " + Utilities.getHumanReadableNumber(worker.getOverallExportedDataAmountRaw(), "Byte", false, 5, false, Locale.getDefault());
 					if (dbExportDefinition.getCompression() != null
-							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".zip")
-							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tar.gz")
-							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tgz")
-							|| Utilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".gz")) {
+							|| StringUtilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".zip")
+							|| StringUtilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tar.gz")
+							|| StringUtilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".tgz")
+							|| StringUtilities.endsWithIgnoreCase(dbExportDefinition.getOutputpath(), ".gz")) {
 						resultText += "\n" + LangResources.get("exporteddataamountcompressed") + ": " + Utilities.getHumanReadableNumber(worker.getOverallExportedDataAmountCompressed(), "Byte", false, 5, false, Locale.getDefault());
 					}
 					resultText += "\n" + LangResources.get("exportSpeed") + ": " + Utilities.getHumanReadableSpeed(worker.getStartTime(), worker.getEndTime(), worker.getOverallExportedDataAmountRaw() * 8, "Bit", true, Locale.getDefault());
@@ -1422,7 +1423,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 	}
 
 	private File selectFile(String basePath, final String text) {
-		if (Utilities.isBlank(basePath)) {
+		if (StringUtilities.isBlank(basePath)) {
 			basePath = System.getProperty("user.home");
 		} else if (basePath.contains(File.separator)) {
 			basePath = basePath.substring(0, basePath.lastIndexOf(File.separator));

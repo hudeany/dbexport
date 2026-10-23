@@ -19,6 +19,7 @@ import java.util.zip.ZipOutputStream;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.IoUtilities;
 import de.soderer.utilities.ReaderInputStream;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.zip.TarGzUtilities;
 import de.soderer.zip.Zip4jUtilities;
@@ -166,19 +167,19 @@ public class DefaultDBValueConverter {
 			OutputStream outputStream = null;
 			File tempFile = null;
 			try {
-				if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+				if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
 					outputStream = ZipUtilities.openNewZipOutputStream(lobOutputFile, null);
 					// The entry is the uncompressed lob file (without ".zip")
 					final String entryName = lobOutputFile.getName().substring(0, lobOutputFile.getName().length() - 1 - FileCompressionType.ZIP.getDefaultFileExtension().length());
 					((ZipOutputStream) outputStream).putNextEntry(new ZipEntry(entryName));
-				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
+				} else if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
 					// The prefix must not contain a path (createTempFile() failed with "Unable to create temporary file")
 					tempFile = File.createTempFile(lobOutputFile.getName(), null);
 					outputStream = new FileOutputStream(tempFile);
-				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
+				} else if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
 					tempFile = File.createTempFile(lobOutputFile.getName(), null);
 					outputStream = new FileOutputStream(tempFile);
-				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.GZ.getDefaultFileExtension())) {
+				} else if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.GZ.getDefaultFileExtension())) {
 					outputStream = new GZIPOutputStream(new FileOutputStream(lobOutputFile));
 				} else {
 					outputStream = new FileOutputStream(lobOutputFile);
@@ -188,14 +189,14 @@ public class DefaultDBValueConverter {
 
 				outputStream.close();
 
-				if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
+				if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.ZIP.getDefaultFileExtension())) {
 					// Like the export file itself: only with a password, and with the configured encryption method
 					if (zipPassword != null) {
 						Zip4jUtilities.createPasswordSecuredZipFile(lobOutputFile.getAbsolutePath(), zipPassword, useZipCrypto);
 					}
-				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
+				} else if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TARGZ.getDefaultFileExtension())) {
 					TarGzUtilities.compress(lobOutputFile, tempFile, lobOutputFile.getName());
-				} else if (Utilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
+				} else if (StringUtilities.endsWithIgnoreCase(lobOutputFile.getName(), "." + FileCompressionType.TGZ.getDefaultFileExtension())) {
 					TarGzUtilities.compress(lobOutputFile, tempFile, lobOutputFile.getName());
 				}
 

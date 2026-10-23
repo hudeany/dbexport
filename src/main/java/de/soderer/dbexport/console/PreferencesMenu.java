@@ -12,7 +12,7 @@ import de.soderer.console.SimpleConsoleInput;
 import de.soderer.dbexport.ConnectionTestDefinition;
 import de.soderer.dbexport.DbExport;
 import de.soderer.dbexport.DbExportDefinition;
-import de.soderer.utilities.Utilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.WrongPasswordException;
 
 /**
@@ -71,7 +71,7 @@ public class PreferencesMenu extends ConsoleMenu {
 							System.out.println();
 							System.out.println("Please enter preferences password (Blank => Cancel)");
 							final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
-							if (Utilities.isBlank(passwordArray)) {
+							if (StringUtilities.isBlank(passwordArray)) {
 								setPassword(null);
 								getParentMenu().getMessages().add("Canceled by user");
 								return 0;
@@ -101,13 +101,13 @@ public class PreferencesMenu extends ConsoleMenu {
 					System.out.println("Please select existing preference\n or 'save' to store new preference\n or 'delete' to delete a preference ('save' => new preference, 'delete' => delete preference, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
-					if (Utilities.isBlank(choice)) {
+					if (StringUtilities.isBlank(choice)) {
 						return 0;
 					} else if ("save".equalsIgnoreCase(choice)) {
 						System.out.println();
 						System.out.println("Please enter new preference name (Blank => Cancel)");
 						final String newPreferenceName = new SimpleConsoleInput().withPrompt(" > ").readInput();
-						if (Utilities.isBlank(newPreferenceName)) {
+						if (StringUtilities.isBlank(newPreferenceName)) {
 							return 0;
 						} else {
 							storeNewPreference(newPreferenceName, dbExportDefinitionCache);
@@ -116,7 +116,7 @@ public class PreferencesMenu extends ConsoleMenu {
 						System.out.println();
 						System.out.println("Please enter new preference name to delete (Blank => Cancel)");
 						final String deletePreferenceName = new SimpleConsoleInput().withAutoCompletionStrings(new ArrayList<>(availablePreferences)).withPrompt(" > ").readInput();
-						if (Utilities.isNotBlank(deletePreferenceName)) {
+						if (StringUtilities.isNotBlank(deletePreferenceName)) {
 							secureDataStore.removeEntriesByEntryName(deletePreferenceName);
 							secureDataStore.save(DbExport.SECURE_PREFERENCES_FILE, getPassword());
 							getMessages().add("Deleted preference: " + deletePreferenceName);
@@ -135,7 +135,7 @@ public class PreferencesMenu extends ConsoleMenu {
 					System.out.println();
 					System.out.println("Please enter new preference name (Blank => Cancel)");
 					final String newPreferenceName = new SimpleConsoleInput().withPrompt(" > ").readInput();
-					if (Utilities.isBlank(newPreferenceName)) {
+					if (StringUtilities.isBlank(newPreferenceName)) {
 						return 0;
 					} else {
 						storeNewPreference(newPreferenceName, dbExportDefinitionCache);
@@ -154,7 +154,7 @@ public class PreferencesMenu extends ConsoleMenu {
 			secureDataStore = new SecureDataStore();
 		}
 
-		if (Utilities.isNotBlank(newPreferenceName)) {
+		if (StringUtilities.isNotBlank(newPreferenceName)) {
 			secureDataStore.addEntry(newPreferenceName, dbExportDefinitionCache);
 			if (getPassword() == null) {
 				System.out.println();

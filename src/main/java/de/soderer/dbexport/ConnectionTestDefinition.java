@@ -2,7 +2,7 @@ package de.soderer.dbexport;
 
 import java.io.File;
 
-import de.soderer.utilities.Utilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.db.exception.DbDefinitionException;
@@ -118,7 +118,7 @@ public class ConnectionTestDefinition extends DbConnectionDefinition {
 		if (getDbVendor() == DbVendor.HSQL) {
 			// HSQL: hostname only for a server database. A file database path is marked by a path separator, so it is
 			// not taken as hostname when the parameters are read again (see DbExport.isHsqlFileDatabasePath()).
-			if (Utilities.isNotBlank(getHostnameAndPort())) {
+			if (StringUtilities.isNotBlank(getHostnameAndPort())) {
 				params += " " + getHostnameAndPort();
 				params += " " + getDbName();
 			} else {
@@ -147,7 +147,7 @@ public class ConnectionTestDefinition extends DbConnectionDefinition {
 			params += " " + "-sleep" + " " + getSleepTime();
 		}
 
-		if (Utilities.isNotBlank(getCheckStatement())) {
+		if (StringUtilities.isNotBlank(getCheckStatement())) {
 			params += " -check '" + getCheckStatement().replace("'", "\\'") + "'";
 		}
 

@@ -12,6 +12,7 @@ import de.soderer.console.SimpleConsoleInput;
 import de.soderer.dbexport.ConnectionTestDefinition;
 import de.soderer.dbexport.DbExport;
 import de.soderer.utilities.FileUtilities;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
 import de.soderer.utilities.db.data.DbVendor;
@@ -73,12 +74,12 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 			printMessages();
 
 			while (true) {
-				while (Utilities.isBlank(connectionTestDefinition.getHostnameAndPort())) {
+				while (StringUtilities.isBlank(connectionTestDefinition.getHostnameAndPort())) {
 					System.out.println();
 					System.out.println("Please enter database hostname and optional port separated by ':' (Default port is 443, Blank => Cancel)");
 					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
-					if (Utilities.isBlank(choice)) {
+					if (StringUtilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
 					} else {
@@ -91,7 +92,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					System.out.println("Please enter database TrustStore filepath (Blank => Cancel)");
 					String choice = new SimpleConsoleInput().withPrompt(" > ").readInput();
 					choice = choice == null ? "" : choice.trim();
-					if (Utilities.isBlank(choice)) {
+					if (StringUtilities.isBlank(choice)) {
 						getParentMenu().getMessages().add("Canceled by user");
 						return 0;
 					} else if (!FileUtilities.isValidFilePath(choice)) {
@@ -136,7 +137,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 
 				String choice = new SimpleConsoleInput().withAutoCompletionStrings(autoCompletionStrings).withPrompt(" > ").readInput();
 				choice = choice == null ? "" : choice.trim();
-				if (Utilities.isBlank(choice)) {
+				if (StringUtilities.isBlank(choice)) {
 					if (dbDefinitionCache != null) {
 						dbDefinitionCache.importParameters(connectionTestDefinition);
 					}
@@ -156,7 +157,7 @@ public class CreateTrustStoreMenu extends ConsoleMenu {
 					System.out.println();
 					System.out.println("Please enter TrustStore password (Blank => Empty)");
 					final char[] passwordArray = new PasswordConsoleInput().withPrompt(" > ").readInput();
-					connectionTestDefinition.setTrustStorePassword(Utilities.isNotEmpty(passwordArray) ? passwordArray : null);
+					connectionTestDefinition.setTrustStorePassword(StringUtilities.isNotEmpty(passwordArray) ? passwordArray : null);
 				} else if ("params".equalsIgnoreCase(choice)) {
 					String params = "createtruststore";
 					params += " " + connectionTestDefinition.getHostnameAndPort();

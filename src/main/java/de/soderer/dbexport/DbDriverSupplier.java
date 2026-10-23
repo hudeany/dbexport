@@ -25,6 +25,7 @@ import de.soderer.swing.QuestionDialog;
 import de.soderer.swing.SwingColor;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.SectionedProperties;
+import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.Utilities;
 import de.soderer.utilities.db.DbUtilities;
 import de.soderer.utilities.db.data.DbVendor;
@@ -81,7 +82,7 @@ public class DbDriverSupplier {
 			} else {
 				driverFile = acquireDriverFileFromUser(applicationName, configurationFile);
 			}
-			while (Utilities.isNotBlank(driverFile)) {
+			while (StringUtilities.isNotBlank(driverFile)) {
 				if (checkDriverFile(driverFile)) {
 					writeDriverFilePathToConfigFile(configurationFile, driverFile);
 					return true;
@@ -258,7 +259,7 @@ public class DbDriverSupplier {
 					configuration.save(outputStream);
 				}
 				return null;
-			} else if (Utilities.isNotBlank(driverFile)) {
+			} else if (StringUtilities.isNotBlank(driverFile)) {
 				return driverFile;
 			} else {
 				return null;
