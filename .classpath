@@ -27,7 +27,7 @@
 	<classpathentry kind="lib" path="lib/soderer-applicationbase-26.0.36.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-console-26.0.11.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-swing-26.0.24.jar"/>
-	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.123.jar"/>
+	<classpathentry kind="lib" path="lib/soderer-utilities-26.2.124.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.19.1.jar"/>
 	<classpathentry kind="lib" path="lib/soderer-zip-26.0.7.jar"/>
 	<classpathentry kind="lib" path="lib_db/mysql-connector-j-26.7.0.jar"/>
