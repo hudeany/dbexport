@@ -952,11 +952,11 @@ public class DbExportGui extends UpdateableGuiApplication {
 		cardConstraints.weightx = 0;
 		cardsPanel.add(optionsCard, cardConstraints);
 
-		// Action bar: close and the main action on the right
+		// Action bar: the main action and close (rightmost) on the right
 		final JPanel rightActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
 		rightActions.setOpaque(false);
-		rightActions.add(closeButton);
 		rightActions.add(startButton);
+		rightActions.add(closeButton);
 		final JPanel actionContent = new JPanel(new BorderLayout());
 		actionContent.setOpaque(false);
 		actionContent.add(rightActions, BorderLayout.EAST);
