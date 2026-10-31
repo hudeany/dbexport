@@ -35,7 +35,6 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -58,9 +57,12 @@ import de.soderer.network.trustmanager.TrustManagerUtilities;
 import de.soderer.pac.PacScriptParser;
 import de.soderer.pac.utilities.ProxyConfiguration.ProxyConfigurationType;
 import de.soderer.swing.DualProgressDialog;
+import de.soderer.swing.modern.Button;
 import de.soderer.swing.modern.ButtonStyle;
+import de.soderer.swing.modern.Card;
 import de.soderer.swing.modern.DialogStyle;
 import de.soderer.swing.modern.DropDown;
+import de.soderer.swing.modern.GradientHeader;
 import de.soderer.swing.modern.IconKind;
 import de.soderer.swing.modern.ModernUi;
 import de.soderer.swing.modern.ProgressDialog;
@@ -106,7 +108,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The database type combo. */
 	private final DropDown dbTypeCombo;
 
-	private final JButton connectionCheckButton;
+	private final Button connectionCheckButton;
 
 	/** The host field. */
 	private final JTextField hostField;
@@ -129,9 +131,9 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/** The trustStorePassword field. */
 	private final JPasswordField trustStorePasswordField;
 
-	private final JButton trustStoreFileButton;
+	private final Button trustStoreFileButton;
 
-	private final JButton createTrustStoreFileButton;
+	private final Button createTrustStoreFileButton;
 
 	/** The data type combo. */
 	private final DropDown dataTypeCombo;
@@ -295,7 +297,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbTypeCombo.addActionListener(event -> checkButtonStatus());
 		dbTypePanel.add(dbTypeCombo, BorderLayout.EAST);
 
-		connectionCheckButton = new ModernUi.Button(LangResources.get("connectionCheck"), IconKind.CHECK, ButtonStyle.SECONDARY);
+		connectionCheckButton = new Button(LangResources.get("connectionCheck"), IconKind.CHECK, ButtonStyle.SECONDARY);
 		connectionCheckButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
@@ -833,7 +835,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		optionalParametersPanel.add(replaceAlreadyExistingFilesBox);
 
 		// Start Button
-		final JButton startButton = new ModernUi.Button(LangResources.get("export"), IconKind.EXPORT, ButtonStyle.PRIMARY);
+		final Button startButton = new Button(LangResources.get("export"), IconKind.EXPORT, ButtonStyle.PRIMARY);
 		startButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
@@ -847,7 +849,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 
 		// Preferences Button
-		final JButton preferencesButton = createHeaderButton(IconKind.LOCK, LangResources.get("preferences"));
+		final Button preferencesButton = createHeaderButton(IconKind.LOCK, LangResources.get("preferences"));
 		preferencesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
@@ -874,7 +876,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 
 		// Configuration Button
-		final JButton configurationButton = createHeaderButton(IconKind.GEAR, LangResources.get("configuration"));
+		final Button configurationButton = createHeaderButton(IconKind.GEAR, LangResources.get("configuration"));
 		configurationButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
@@ -904,7 +906,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 
 
 		// Close Button
-		final JButton closeButton = new ModernUi.Button(LangResources.get("close"), null, ButtonStyle.SECONDARY);
+		final Button closeButton = new Button(LangResources.get("close"), null, ButtonStyle.SECONDARY);
 		closeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent event) {
@@ -931,12 +933,12 @@ public class DbExportGui extends UpdateableGuiApplication {
 		formScrollPane.getVerticalScrollBar().setUnitIncrement(8);
 		ModernUi.styleScrollBars(formScrollPane, ModernUi.CARD);
 		formScrollPane.setPreferredSize(new Dimension(formPanel.getPreferredSize().width + 16, 470));
-		final ModernUi.Card formCard = new ModernUi.Card(null, null, 10);
+		final Card formCard = new Card(null, null, 10);
 		formCard.setContent(formScrollPane);
 
 		optionalParametersPanel.setOpaque(false);
 		ModernUi.blendIntoCard(optionalParametersPanel);
-		final ModernUi.Card optionsCard = new ModernUi.Card(LangResources.get("section_options"), IconKind.CHECK, 10);
+		final Card optionsCard = new Card(LangResources.get("section_options"), IconKind.CHECK, 10);
 		final JPanel optionsContent = new JPanel(new BorderLayout());
 		optionsContent.setOpaque(false);
 		optionsContent.add(optionalParametersPanel, BorderLayout.NORTH);
@@ -960,7 +962,7 @@ public class DbExportGui extends UpdateableGuiApplication {
 		final JPanel actionContent = new JPanel(new BorderLayout());
 		actionContent.setOpaque(false);
 		actionContent.add(rightActions, BorderLayout.EAST);
-		final ModernUi.Card actionCard = new ModernUi.Card(null, null, 6);
+		final Card actionCard = new Card(null, null, 6);
 		actionCard.setContent(actionContent);
 
 		final JPanel mainPanel = new JPanel(new BorderLayout(0, 2));
@@ -988,8 +990,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/**
 	 * Gradient header with logo, application name, version and the buttons for the preferences and the configuration.
 	 */
-	private JPanel createHeader(final JButton preferencesButton, final JButton configurationButton) {
-		final ModernUi.GradientHeader header = new ModernUi.GradientHeader();
+	private JPanel createHeader(final Button preferencesButton, final Button configurationButton) {
+		final GradientHeader header = new GradientHeader();
 		final java.net.URL iconUrl = getClass().getClassLoader().getResource("DbExport_Icon.png");
 		header.add(ModernUi.createLogo(iconUrl == null ? null : new ImageIcon(iconUrl)), BorderLayout.WEST);
 
@@ -1019,8 +1021,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/**
 	 * Transparent icon button for the gradient header; the text is shown as tooltip.
 	 */
-	private static JButton createHeaderButton(final IconKind iconKind, final String text) {
-		final JButton button = new ModernUi.Button(null, iconKind, ButtonStyle.HEADER);
+	private static Button createHeaderButton(final IconKind iconKind, final String text) {
+		final Button button = new Button(null, iconKind, ButtonStyle.HEADER);
 		button.setToolTipText(text);
 		button.getAccessibleContext().setAccessibleName(text);
 		return button;
@@ -1029,8 +1031,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/**
 	 * Small square button next to an input field, e.g. to browse for a file.
 	 */
-	private static JButton createFieldButton(final IconKind iconKind, final String toolTipText) {
-		final JButton button = new ModernUi.Button(null, iconKind, ButtonStyle.SECONDARY);
+	private static Button createFieldButton(final IconKind iconKind, final String toolTipText) {
+		final Button button = new Button(null, iconKind, ButtonStyle.SECONDARY);
 		button.setPreferredSize(new Dimension(FIELD_BUTTON_SIZE, FIELD_BUTTON_SIZE));
 		if (toolTipText != null) {
 			button.setToolTipText(toolTipText);
