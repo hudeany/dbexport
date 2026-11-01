@@ -22,7 +22,7 @@
 	<property name="poi.version" value="5.5.1" />
 	<property name="xmlbeans.version" value="5.4.1" />
 	<property name="zip4j.version" value="2.11.6" />
-	<property name="kdbx.version" value="26.1.10" />
+	<property name="kdbx.version" value="26.1.11" />
 	<property name="csv.version" value="26.1.15" />
 	<property name="json.version" value="26.2.17" />
 	<property name="vcf.version" value="26.1.8" />
