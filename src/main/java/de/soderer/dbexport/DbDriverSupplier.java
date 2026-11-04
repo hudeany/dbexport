@@ -21,8 +21,8 @@ import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 
 import de.soderer.console.SimpleConsoleInput;
-import de.soderer.swing.QuestionDialog;
 import de.soderer.swing.SwingColor;
+import de.soderer.swing.modern.QuestionDialog;
 import de.soderer.utilities.LangResources;
 import de.soderer.utilities.SectionedProperties;
 import de.soderer.utilities.StringUtilities;
