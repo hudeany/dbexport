@@ -29,6 +29,9 @@ Optional parameters for database export
 		compresstype: ZIP | TARGZ | TGZ | GZ
 	-zippassword '<zippassword>' (using AES-256 by default, not supported by Windows)
 	-kdbxpassword '<kdbxpassword>' (for KDBX datatype)
+	-kdbxgrouppath '<columnname>': Column containing the group path of each KDBX entry, e.g. 'Internet/Mail' (relative to the root group, missing groups are created, the column is not stored as entry field)
+	-kdbxgroupseparator '<separator>': Separator of group names in the KDBX group path, default '/'
+	-kdbxrootgroup '<groupname>': Name of the single root group of the KDBX file, default 'Root'
 	-useZipCrypto (use ZipCrypto algorithm, which is weak but is supported by Windows)
 	-e: Output encoding (Default UTF-8)
 	-s: Separator character, default ';', encapsulate by '

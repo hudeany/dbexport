@@ -32,7 +32,7 @@ DbExport writes the result of a SQL statement, or whole tables selected by name 
 | XML | `XML` | `.xml` | `table` element with one `line` element per data line, optionally beautified |
 | SQL | `SQL` | `.sql` | `INSERT` statements, the table name is taken from the `FROM` clause |
 | vCard | `VCF` | `.vcf` | One vCard per data line |
-| KeePass | `KDBX` | `.kdbx` | One entry per data line, password via `-kdbxpassword` |
+| KeePass | `KDBX` | `.kdbx` | One entry per data line below a single root group, password via `-kdbxpassword`, optional group path column via `-kdbxgrouppath` |
 
 ## Supported databases
 
@@ -92,6 +92,14 @@ java -jar DbExport.jar -compress ZIP -zippassword 'secret' oracle dbserver /ORCL
   -export "SELECT * FROM orders" -output "./orders_[YYYY]-[MM]-[DD].csv"
 ```
 
+Export accounts into a KeePass file, grouped by category and subcategory:
+
+```bash
+java -jar DbExport.jar -x KDBX -kdbxpassword 'secret' -kdbxgrouppath kdbx_group postgresql localhost mydb myuser \
+  -export "SELECT category || '/' || subcategory AS kdbx_group, title AS \"Title\", login AS \"UserName\", pwd AS \"Password\", url AS \"URL\" FROM accounts" \
+  -output ./accounts.kdbx
+```
+
 Print a table of a SQLite database to the terminal:
 
 ```bash
@@ -140,6 +148,9 @@ java -jar DbExport.jar [optional parameters] dbtype hostname[:port] dbname usern
 | `-beautify` | Align CSV columns to equal length (takes extra time), or indent JSON and XML output |
 | `-i indentation` | Indentation for JSON and XML: `TAB` (default), `BLANK`, `DOUBLEBLANK` or any text |
 | `-kdbxpassword 'password'` | Password of the KeePass file (required for `KDBX`) |
+| `-kdbxgrouppath 'column'` | Column containing the group path of each KeePass entry, e.g. `Internet/Mail`, relative to the root group. Missing groups are created, the column itself is not stored as entry field. Empty values put the entry into the root group. |
+| `-kdbxgroupseparator 'separator'` | Separator of group names in the group path (default: `/`) |
+| `-kdbxrootgroup 'name'` | Name of the single root group of the KeePass file (default: `Root`) |
 
 ### Values and formats
 
@@ -226,4 +237,3 @@ DbExport stores its files in `~/.DbExport/`:
 |---|---|
 | `.DbExport.config` | Application configuration, e.g. the locations of JDBC driver files |
 | `.DbExport.secpref` | Encrypted connection preferences of the GUI and console menu |
-
