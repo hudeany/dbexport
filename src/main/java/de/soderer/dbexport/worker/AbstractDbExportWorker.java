@@ -441,6 +441,22 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	/**
+	 * Opens the database connection. A failed connection is reported as {@link DbExportException}, so only its
+	 * message is shown (it already contains the cause and help texts, see DbUtilities.getConnectionErrorHelpText())
+	 * instead of a stack trace.
+	 *
+	 * @return the database connection
+	 * @throws DbExportException if the connection cannot be created
+	 */
+	private Connection createDatabaseConnection() throws DbExportException {
+		try {
+			return DbUtilities.createConnection(dbDefinition, true);
+		} catch (final Exception e) {
+			throw new DbExportException(e.getMessage() != null ? e.getMessage() : e.toString(), e);
+		}
+	}
+
+	/**
 	 * Executes the export.
 	 *
 	 * @return true if the export was not canceled
@@ -497,7 +513,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				throw new Exception("Unsupported database vendor: null");
 		}
 
-		try (Connection connection = DbUtilities.createConnection(dbDefinition, true)) {
+		try (Connection connection = createDatabaseConnection()) {
 			if (isStatementFile) {
 				if (StringUtilities.isBlank(sqlStatementOrTablelist)) {
 					throw new DbExportException("Statementfile is missing");

@@ -662,7 +662,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 						System.err.println(e.getMessage());
 						return 1;
 					} catch (final Exception e) {
-						e.printStackTrace();
+						printError(e, dbExportDefinition.isVerbose());
 						return 1;
 					}
 				} else if (consoleMenuExecutionCode == -2) {
@@ -739,7 +739,7 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 					System.err.println(e.getMessage());
 					return 1;
 				} catch (final Exception e) {
-					e.printStackTrace();
+					printError(e, dbExportDefinition.isVerbose());
 					return 1;
 				}
 			}
@@ -810,6 +810,20 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		}
 	}
 
+	/**
+	 * Prints an error of the export. A stack trace is only printed in verbose mode, because the message of
+	 * connection errors already contains the cause and help texts.
+	 *
+	 * @param exception the error
+	 * @param verbose true to also print the stack trace
+	 */
+	private static void printError(final Exception exception, final boolean verbose) {
+		System.err.println(exception.getMessage() != null ? exception.getMessage() : exception.toString());
+		if (verbose) {
+			exception.printStackTrace();
+		}
+	}
+
 	private static int connectionTest(final ConnectionTestDefinition connectionTestDefinition) {
 		int returnCode = 0;
 		int connectionCheckCount = 0;
@@ -851,8 +865,8 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": SQL-Error creating database connection: " + sqle.getMessage() + " (" + sqle.getErrorCode() + " / " + sqle.getSQLState() + ")");
 				returnCode = 1;
 			} catch (final Exception e) {
-				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error creating database connection: " + e.getClass().getSimpleName() + ":" + e.getMessage());
-				e.printStackTrace();
+				// The message contains the cause and help texts (see DbUtilities.getConnectionErrorHelpText())
+				System.out.println(DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now()) + ": Error creating database connection: " + e.getMessage());
 				returnCode = 1;
 			} finally {
 				if (testConnection != null) {
