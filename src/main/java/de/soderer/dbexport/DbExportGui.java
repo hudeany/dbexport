@@ -1640,7 +1640,10 @@ public class DbExportGui extends UpdateableGuiApplication {
 	/**
 	 * Returns whether the daily update check is activated.
 	 *
-	 * @return true if the daily update check is activatedisDailyUpdateCheckActivated() {
+	 * @return true if the daily update check is activated
+	 */
+	@Override
+	protected Boolean isDailyUpdateCheckActivated() {
 		return applicationConfiguration.getBoolean(ApplicationConfigurationProperties.CONFIG_KEY_DAILY_UPDATE_CHECK);
 	}
 
