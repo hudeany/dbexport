@@ -9,10 +9,12 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
@@ -66,11 +68,22 @@ public class DbStructureSqlWriter {
 	private final DbVendor dbVendor;
 	private final Connection connection;
 	private final DatabaseMetaData metaData;
+	/** Current catalog of the connection, used for table names without catalog */
 	private final String catalog;
+	/** Current schema of the connection, used for table names without schema */
 	private final String schema;
 
-	/** Real table names (as stored in the database) by their lower case name */
-	private final Map<String, String> tableNamesByLowerCaseName = new HashMap<>();
+	/** Real table names (as stored in the database) by their lower case name, per lower case "catalog|schema" */
+	private final Map<String, Map<String, String>> tableNamesByContainer = new HashMap<>();
+
+	/** Real schema names by their lower case name */
+	private Map<String, String> schemaNamesByLowerCaseName = null;
+
+	/** Real catalog names by their lower case name */
+	private Map<String, String> catalogNamesByLowerCaseName = null;
+
+	/** Schemas (MySQL/MariaDB: databases) already created by a CREATE SCHEMA statement in the dump */
+	private final Set<String> createdSchemas = new HashSet<>();
 
 	/** CREATE INDEX statements, written after all tables */
 	private final List<String> indexStatements = new ArrayList<>();
@@ -79,7 +92,7 @@ public class DbStructureSqlWriter {
 	private final List<String> foreignKeyStatements = new ArrayList<>();
 
 	/**
-	 * Creates the writer for the current catalog and schema of the connection.
+	 * Creates the writer. Table names without schema refer to the current catalog and schema of the connection.
 	 *
 	 * @param dbVendor vendor of the database, decides about the syntax of the statements
 	 * @param connection database connection to read the structure from
@@ -95,15 +108,6 @@ public class DbStructureSqlWriter {
 		metaData = connection.getMetaData();
 		catalog = getCurrentCatalog(connection);
 		schema = getCurrentSchema(connection);
-
-		try (ResultSet tablesResultSet = metaData.getTables(catalog, schema, "%", new String[] { "TABLE" })) {
-			while (tablesResultSet.next()) {
-				final String tableName = tablesResultSet.getString("TABLE_NAME");
-				if (tableName != null) {
-					tableNamesByLowerCaseName.putIfAbsent(tableName.toLowerCase(Locale.ROOT), tableName);
-				}
-			}
-		}
 	}
 
 	/**
@@ -140,18 +144,20 @@ public class DbStructureSqlWriter {
 	 * Creates the CREATE TABLE statement of a table. Its indices and foreign keys are collected for
 	 * {@link #createDeferredStatements()}.
 	 *
-	 * @param tableName name of the table (case insensitive)
+	 * @param tableName name of the table (case insensitive), optionally qualified by its schema ("schema.table",
+	 *            MySQL/MariaDB: "database.table") or by catalog and schema ("catalog.schema.table")
 	 * @return the CREATE TABLE statement with a leading comment
 	 * @throws Exception if the table does not exist or its structure cannot be read
 	 */
 	public String createTableStatement(final String tableName) throws Exception {
-		final String realTableName = tableNamesByLowerCaseName.getOrDefault(tableName.toLowerCase(Locale.ROOT), tableName);
-		final String quotedTableName = quoteIdentifier(realTableName);
+		final TableReference table = resolveTable(tableName);
+		final String quotedTableName = table.getQuotedName();
 
-		final PrimaryKey primaryKey = readPrimaryKey(realTableName);
-		final List<String> columnDefinitions = readColumnDefinitions(realTableName, primaryKey);
+		final PrimaryKey primaryKey = readPrimaryKey(table);
+		final List<String> columnDefinitions = readColumnDefinitions(table, primaryKey);
 		if (columnDefinitions.isEmpty()) {
-			throw new DbExportException("Table not found or without columns: " + tableName);
+			throw new DbExportException("Table not found or without columns: " + tableName
+					+ " (searched in catalog: " + table.catalog + ", schema: " + table.schema + ", table: " + table.name + ")");
 		}
 
 		final List<String> tableElements = new ArrayList<>(columnDefinitions);
@@ -160,9 +166,9 @@ public class DbStructureSqlWriter {
 					+ "PRIMARY KEY (" + joinQuoted(primaryKey.columnNames) + ")");
 		}
 
-		tableElements.addAll(readCheckConstraintDefinitions(realTableName));
+		tableElements.addAll(readCheckConstraintDefinitions(table));
 
-		final List<String> foreignKeyDefinitions = readForeignKeyDefinitions(realTableName);
+		final List<String> foreignKeyDefinitions = readForeignKeyDefinitions(table);
 		if (dbVendor == DbVendor.SQLite) {
 			// SQLite cannot add foreign keys by ALTER TABLE
 			tableElements.addAll(foreignKeyDefinitions);
@@ -172,11 +178,12 @@ public class DbStructureSqlWriter {
 			}
 		}
 
-		indexStatements.addAll(readIndexStatements(realTableName, quotedTableName, primaryKey));
+		indexStatements.addAll(readIndexStatements(table, primaryKey));
 
 		final StringBuilder statement = new StringBuilder();
+		statement.append(createSchemaStatementIfNeeded(table));
 		statement.append("--\n");
-		statement.append("-- Table: ").append(realTableName).append("\n");
+		statement.append("-- Table: ").append(table.getDisplayName()).append("\n");
 		statement.append("--\n");
 		statement.append("CREATE TABLE ").append(quotedTableName).append(" (\n");
 		for (int i = 0; i < tableElements.size(); i++) {
@@ -188,6 +195,24 @@ public class DbStructureSqlWriter {
 		}
 		statement.append(");\n\n");
 		return statement.toString();
+	}
+
+	/**
+	 * Creates the schema of a qualified table before its first table, so the dump can be imported into an empty
+	 * database (like pg_dump). Only for PostgreSQL and MySQL/MariaDB, which support "IF NOT EXISTS", so an
+	 * existing schema is no error.
+	 */
+	private String createSchemaStatementIfNeeded(final TableReference table) {
+		final String qualifier = table.getQualifier();
+		if (qualifier == null || !createdSchemas.add(qualifier.toLowerCase(Locale.ROOT))) {
+			return "";
+		} else if (dbVendor == DbVendor.PostgreSQL) {
+			return "--\n-- Schema: " + qualifier + "\n--\nCREATE SCHEMA IF NOT EXISTS " + quoteIdentifier(qualifier) + ";\n\n";
+		} else if (usesCatalogsAsSchemas()) {
+			return "--\n-- Database: " + qualifier + "\n--\nCREATE DATABASE IF NOT EXISTS " + quoteIdentifier(qualifier) + ";\n\n";
+		} else {
+			return "";
+		}
 	}
 
 	/**
@@ -250,14 +275,15 @@ public class DbStructureSqlWriter {
 		return statement.toString();
 	}
 
-	private List<String> readColumnDefinitions(final String tableName, final PrimaryKey primaryKey) throws SQLException {
+	private List<String> readColumnDefinitions(final TableReference table, final PrimaryKey primaryKey) throws SQLException {
 		// Sorted by the ordinal position, because the drivers do not guarantee the order
 		final TreeMap<Integer, String> columnDefinitions = new TreeMap<>();
 		int fallbackPosition = 100_000;
-		try (ResultSet columnsResultSet = metaData.getColumns(catalog, schema, escapeMetaDataPattern(tableName), "%")) {
+		try (ResultSet columnsResultSet = metaData.getColumns(table.catalog, escapeMetaDataPattern(table.schema), escapeMetaDataPattern(table.name), "%")) {
 			while (columnsResultSet.next()) {
-				// The table name is a pattern, where "_" matches any character
-				if (!tableName.equals(columnsResultSet.getString("TABLE_NAME"))) {
+				// The names are patterns, where "_" matches any character
+				if (!table.name.equals(columnsResultSet.getString("TABLE_NAME"))
+						|| (table.schema != null && !table.schema.equals(columnsResultSet.getString("TABLE_SCHEM")))) {
 					continue;
 				}
 
@@ -483,10 +509,10 @@ public class DbStructureSqlWriter {
 		}
 	}
 
-	private PrimaryKey readPrimaryKey(final String tableName) throws SQLException {
+	private PrimaryKey readPrimaryKey(final TableReference table) throws SQLException {
 		final TreeMap<Integer, String> columnNamesBySequence = new TreeMap<>();
 		String primaryKeyName = null;
-		try (ResultSet primaryKeyResultSet = metaData.getPrimaryKeys(catalog, schema, tableName)) {
+		try (ResultSet primaryKeyResultSet = metaData.getPrimaryKeys(table.catalog, table.schema, table.name)) {
 			while (primaryKeyResultSet.next()) {
 				columnNamesBySequence.put(primaryKeyResultSet.getInt("KEY_SEQ"), primaryKeyResultSet.getString("COLUMN_NAME"));
 				primaryKeyName = primaryKeyResultSet.getString("PK_NAME");
@@ -502,7 +528,7 @@ public class DbStructureSqlWriter {
 	/**
 	 * Check constraints are not available via JDBC metadata, so they are only read for PostgreSQL from its catalog.
 	 */
-	private List<String> readCheckConstraintDefinitions(final String tableName) throws SQLException {
+	private List<String> readCheckConstraintDefinitions(final TableReference table) throws SQLException {
 		final List<String> checkConstraintDefinitions = new ArrayList<>();
 		if (dbVendor == DbVendor.PostgreSQL) {
 			final String sql = "SELECT con.conname, pg_get_constraintdef(con.oid) FROM pg_constraint con"
@@ -511,8 +537,8 @@ public class DbStructureSqlWriter {
 					+ " WHERE con.contype = 'c' AND rel.relname = ? AND nsp.nspname = COALESCE(?, current_schema())"
 					+ " ORDER BY con.conname";
 			try (PreparedStatement statement = connection.prepareStatement(sql)) {
-				statement.setString(1, tableName);
-				statement.setString(2, schema);
+				statement.setString(1, table.name);
+				statement.setString(2, table.schema);
 				try (ResultSet resultSet = statement.executeQuery()) {
 					while (resultSet.next()) {
 						checkConstraintDefinitions.add("CONSTRAINT " + quoteIdentifier(resultSet.getString(1)) + " " + resultSet.getString(2));
@@ -523,11 +549,11 @@ public class DbStructureSqlWriter {
 		return checkConstraintDefinitions;
 	}
 
-	private List<String> readForeignKeyDefinitions(final String tableName) throws SQLException {
+	private List<String> readForeignKeyDefinitions(final TableReference table) throws SQLException {
 		// Grouped by the foreign key name (or by the start of a new key sequence for unnamed foreign keys)
 		final Map<String, ForeignKey> foreignKeys = new LinkedHashMap<>();
 		ForeignKey currentForeignKey = null;
-		try (ResultSet foreignKeyResultSet = metaData.getImportedKeys(catalog, schema, tableName)) {
+		try (ResultSet foreignKeyResultSet = metaData.getImportedKeys(table.catalog, table.schema, table.name)) {
 			while (foreignKeyResultSet.next()) {
 				final String foreignKeyName = foreignKeyResultSet.getString("FK_NAME");
 				final int keySequence = foreignKeyResultSet.getInt("KEY_SEQ");
@@ -536,12 +562,13 @@ public class DbStructureSqlWriter {
 				if (groupKey != null && foreignKeys.containsKey(groupKey)) {
 					currentForeignKey = foreignKeys.get(groupKey);
 				} else if (groupKey != null || keySequence <= 1 || currentForeignKey == null) {
-					final String referencedSchema = foreignKeyResultSet.getString("PKTABLE_SCHEM");
-					String quotedReferencedTableName = quoteIdentifier(foreignKeyResultSet.getString("PKTABLE_NAME"));
-					if (referencedSchema != null && schema != null && !referencedSchema.equalsIgnoreCase(schema)) {
-						// Referenced table in another schema
-						quotedReferencedTableName = quoteIdentifier(referencedSchema) + "." + quotedReferencedTableName;
-					}
+					// The referenced table is qualified like the table itself, or if it is in another schema
+					final TableReference referencedTable = new TableReference(
+							foreignKeyResultSet.getString("PKTABLE_CAT"),
+							foreignKeyResultSet.getString("PKTABLE_SCHEM"),
+							foreignKeyResultSet.getString("PKTABLE_NAME"),
+							table.isQualified || isOtherContainer(foreignKeyResultSet.getString("PKTABLE_CAT"), foreignKeyResultSet.getString("PKTABLE_SCHEM")));
+					final String quotedReferencedTableName = referencedTable.getQuotedName();
 					currentForeignKey = new ForeignKey(groupKey, quotedReferencedTableName, foreignKeyResultSet.getShort("UPDATE_RULE"), foreignKeyResultSet.getShort("DELETE_RULE"));
 					foreignKeys.put(groupKey != null ? groupKey : "#unnamed" + foreignKeys.size(), currentForeignKey);
 				}
@@ -585,10 +612,12 @@ public class DbStructureSqlWriter {
 		}
 	}
 
-	private List<String> readIndexStatements(final String tableName, final String quotedTableName, final PrimaryKey primaryKey) throws SQLException {
+	private List<String> readIndexStatements(final TableReference table, final PrimaryKey primaryKey) throws SQLException {
+		final String tableName = table.name;
+		final String quotedTableName = table.getQuotedName();
 		final Map<String, Index> indices = new LinkedHashMap<>();
 		// "approximate" must be true, otherwise the Oracle driver executes "ANALYZE TABLE ... COMPUTE STATISTICS"
-		try (ResultSet indexResultSet = metaData.getIndexInfo(catalog, schema, tableName, false, true)) {
+		try (ResultSet indexResultSet = metaData.getIndexInfo(table.catalog, table.schema, table.name, false, true)) {
 			while (indexResultSet.next()) {
 				final String indexName = indexResultSet.getString("INDEX_NAME");
 				if (indexName == null || indexResultSet.getShort("TYPE") == DatabaseMetaData.tableIndexStatistic) {
@@ -624,7 +653,7 @@ public class DbStructureSqlWriter {
 			}
 
 			if (!index.isSupported || columnNames.isEmpty()) {
-				statements.add("-- Index " + index.name + " on " + tableName + " skipped: its definition is not available via JDBC");
+				statements.add("-- Index " + index.name + " on " + table.getDisplayName() + " skipped: its definition is not available via JDBC");
 				continue;
 			} else if (primaryKey != null && index.unique && columnNames.equals(primaryKey.columnNames)) {
 				// The index of the primary key is created with the primary key
@@ -642,7 +671,10 @@ public class DbStructureSqlWriter {
 				indexName = tableName + "_" + String.join("_", columnNames) + "_uk";
 			}
 
-			statements.add("CREATE " + (index.unique ? "UNIQUE " : "") + "INDEX " + quoteIdentifier(indexName) + " ON " + quotedTableName + " (" + String.join(", ", columnDefinitions) + ");");
+			// Oracle and Derby create the index in the current schema, PostgreSQL and the others always in the schema of the
+			// table (PostgreSQL even rejects a qualified index name)
+			final String quotedIndexName = (table.isQualified && (dbVendor == DbVendor.Oracle || dbVendor == DbVendor.Derby) ? quoteIdentifier(table.schema) + "." : "") + quoteIdentifier(indexName);
+			statements.add("CREATE " + (index.unique ? "UNIQUE " : "") + "INDEX " + quotedIndexName + " ON " + quotedTableName + " (" + String.join(", ", columnDefinitions) + ");");
 		}
 		return statements;
 	}
@@ -717,6 +749,9 @@ public class DbStructureSqlWriter {
 	 * Escapes the wildcards "_" and "%" of a name used as metadata search pattern.
 	 */
 	private String escapeMetaDataPattern(final String name) {
+		if (name == null) {
+			return null;
+		}
 		try {
 			final String escape = metaData.getSearchStringEscape();
 			if (escape != null && !escape.isEmpty()) {
@@ -726,6 +761,97 @@ public class DbStructureSqlWriter {
 			// Then the name is used unescaped and the result is filtered by the exact name
 		}
 		return name;
+	}
+
+	/**
+	 * Splits a table name into catalog, schema and table and looks up the real (case sensitive) names in the
+	 * database. Names which are not found are used as given.
+	 */
+	private TableReference resolveTable(final String tableName) throws SQLException {
+		final String[] parts = tableName.split("\\.");
+		String tableCatalog = catalog;
+		String tableSchema = schema;
+		boolean isQualified = false;
+		if (parts.length == 2) {
+			isQualified = true;
+			if (usesCatalogsAsSchemas()) {
+				// MySQL/MariaDB: "database.table", a database is a catalog in JDBC
+				tableCatalog = resolveCatalogName(parts[0]);
+				tableSchema = null;
+			} else {
+				tableSchema = resolveSchemaName(parts[0]);
+			}
+		} else if (parts.length >= 3) {
+			isQualified = true;
+			tableCatalog = resolveCatalogName(parts[parts.length - 3]);
+			tableSchema = resolveSchemaName(parts[parts.length - 2]);
+		}
+		final String plainTableName = parts[parts.length - 1];
+
+		final String containerKey = (tableCatalog == null ? "" : tableCatalog.toLowerCase(Locale.ROOT)) + "|" + (tableSchema == null ? "" : tableSchema.toLowerCase(Locale.ROOT));
+		Map<String, String> tableNamesByLowerCaseName = tableNamesByContainer.get(containerKey);
+		if (tableNamesByLowerCaseName == null) {
+			tableNamesByLowerCaseName = new HashMap<>();
+			try (ResultSet tablesResultSet = metaData.getTables(tableCatalog, escapeMetaDataPattern(tableSchema), "%", new String[] { "TABLE" })) {
+				while (tablesResultSet.next()) {
+					final String realTableName = tablesResultSet.getString("TABLE_NAME");
+					if (realTableName != null && (tableSchema == null || tableSchema.equals(tablesResultSet.getString("TABLE_SCHEM")))) {
+						tableNamesByLowerCaseName.putIfAbsent(realTableName.toLowerCase(Locale.ROOT), realTableName);
+					}
+				}
+			}
+			tableNamesByContainer.put(containerKey, tableNamesByLowerCaseName);
+		}
+
+		return new TableReference(tableCatalog, tableSchema, tableNamesByLowerCaseName.getOrDefault(plainTableName.toLowerCase(Locale.ROOT), plainTableName), isQualified);
+	}
+
+	private String resolveSchemaName(final String schemaName) throws SQLException {
+		if (schemaNamesByLowerCaseName == null) {
+			schemaNamesByLowerCaseName = new HashMap<>();
+			try (ResultSet schemasResultSet = metaData.getSchemas()) {
+				while (schemasResultSet.next()) {
+					final String realSchemaName = schemasResultSet.getString("TABLE_SCHEM");
+					if (realSchemaName != null) {
+						schemaNamesByLowerCaseName.putIfAbsent(realSchemaName.toLowerCase(Locale.ROOT), realSchemaName);
+					}
+				}
+			}
+		}
+		return schemaNamesByLowerCaseName.getOrDefault(schemaName.toLowerCase(Locale.ROOT), schemaName);
+	}
+
+	private String resolveCatalogName(final String catalogName) throws SQLException {
+		if (catalogNamesByLowerCaseName == null) {
+			catalogNamesByLowerCaseName = new HashMap<>();
+			try (ResultSet catalogsResultSet = metaData.getCatalogs()) {
+				while (catalogsResultSet.next()) {
+					final String realCatalogName = catalogsResultSet.getString("TABLE_CAT");
+					if (realCatalogName != null) {
+						catalogNamesByLowerCaseName.putIfAbsent(realCatalogName.toLowerCase(Locale.ROOT), realCatalogName);
+					}
+				}
+			}
+		}
+		return catalogNamesByLowerCaseName.getOrDefault(catalogName.toLowerCase(Locale.ROOT), catalogName);
+	}
+
+	/**
+	 * MySQL and MariaDB have no schemas, their databases are catalogs in JDBC.
+	 */
+	private boolean usesCatalogsAsSchemas() {
+		return dbVendor == DbVendor.MySQL || dbVendor == DbVendor.MariaDB;
+	}
+
+	/**
+	 * Checks whether a referenced table is outside the current catalog and schema, so it must be qualified.
+	 */
+	private boolean isOtherContainer(final String otherCatalog, final String otherSchema) {
+		if (usesCatalogsAsSchemas()) {
+			return otherCatalog != null && catalog != null && !otherCatalog.equalsIgnoreCase(catalog);
+		} else {
+			return otherSchema != null && schema != null && !otherSchema.equalsIgnoreCase(schema);
+		}
 	}
 
 	private static String getCurrentCatalog(final Connection connection) {
@@ -742,6 +868,44 @@ public class DbStructureSqlWriter {
 		} catch (@SuppressWarnings("unused") final Throwable e) {
 			// Older drivers without JDBC 4.1 throw AbstractMethodError
 			return null;
+		}
+	}
+
+	/**
+	 * Table with the real names of its catalog, schema and name.
+	 */
+	private class TableReference {
+		private final String catalog;
+		private final String schema;
+		private final String name;
+		/** Whether the table is written with its schema (or MySQL database) */
+		private final boolean isQualified;
+
+		private TableReference(final String catalog, final String schema, final String name, final boolean isQualified) {
+			this.catalog = catalog;
+			this.schema = schema;
+			this.name = name;
+			this.isQualified = isQualified;
+		}
+
+		private String getQualifier() {
+			if (!isQualified) {
+				return null;
+			} else if (usesCatalogsAsSchemas()) {
+				return catalog;
+			} else {
+				return schema;
+			}
+		}
+
+		private String getQuotedName() {
+			final String qualifier = getQualifier();
+			return (qualifier == null ? "" : quoteIdentifier(qualifier) + ".") + quoteIdentifier(name);
+		}
+
+		private String getDisplayName() {
+			final String qualifier = getQualifier();
+			return (qualifier == null ? "" : qualifier + ".") + name;
 		}
 	}
 
