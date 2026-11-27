@@ -28,7 +28,7 @@
 	<property name="vcf.version" value="26.1.9" />
 	<property name="proxyautoconfig.version" value="26.1.7" />
 	<property name="network.version" value="26.0.45" />
-	<property name="dbutilities.version" value="26.1.10" />
+	<property name="dbutilities.version" value="26.1.13" />
 	<property name="soderer-console.version" value="26.0.18" />
 	<property name="soderer-swing.version" value="26.0.55" />
 	<property name="soderer-applicationbase.version" value="26.0.67" />
