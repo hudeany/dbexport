@@ -41,7 +41,7 @@ import de.soderer.utilities.DateUtilities;
  * Contained objects, in the order of pg_dump:
  * </p>
  * <ul>
- * <li>schemas of the exported tables, extensions</li>
+ * <li>schemas of the exported tables and all schemas without tables, extensions</li>
  * <li>enum types and domains, functions and procedures of these schemas</li>
  * <li>tables of the export (with identity columns, owner and comments), sequences of these schemas</li>
  * <li>views and materialized views of these schemas</li>
@@ -117,6 +117,9 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 				progressListener.tableDone();
 			}
 		}
+		// Schemas without tables are not part of the table list, but are exported too (with their functions,
+		// sequences and views), so an empty schema exists after the import
+		schemaNames.addAll(readSchemasWithoutTables());
 		final List<String> sortedSchemaNames = new ArrayList<>(schemaNames);
 		sortedSchemaNames.sort(null);
 
@@ -191,6 +194,26 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 		} else if (relation instanceof final ViewInfo view) {
 			writeView(view);
 		}
+	}
+
+	/**
+	 * Reads the user schemas, which contain no tables. System schemas (pg_catalog, information_schema, pg_toast,
+	 * temporary schemas) and schemas of extensions are excluded.
+	 */
+	private List<String> readSchemasWithoutTables() throws SQLException {
+		final String sql = "SELECT n.nspname FROM pg_namespace n"
+				+ " WHERE n.nspname NOT LIKE 'pg\\_%' AND n.nspname <> 'information_schema'"
+				+ " AND NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = n.oid AND c.relkind IN ('r', 'p'))"
+				+ " AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_namespace'::regclass AND d.objid = n.oid AND d.deptype = 'e')"
+				+ " ORDER BY n.nspname";
+		final List<String> schemaNames = new ArrayList<>();
+		try (Statement statement = connection.createStatement();
+				ResultSet resultSet = statement.executeQuery(sql)) {
+			while (resultSet.next()) {
+				schemaNames.add(resultSet.getString(1));
+			}
+		}
+		return schemaNames;
 	}
 
 	private void writeHeader(final String creatorText) throws IOException {
