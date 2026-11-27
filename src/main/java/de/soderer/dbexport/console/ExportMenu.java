@@ -501,7 +501,8 @@ public class ExportMenu extends ConsoleMenu {
 				} else if ("structure".equalsIgnoreCase(choice)) {
 					if (dbExportDefinition.getExportStructureFilePath() == null) {
 						// Only the file name, its directory is derived from the output path (see DbExportDefinition.getExportStructureFilePath())
-						final String exportStructureFilePath = "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json";
+						// Without file extension, the export worker appends the extension of the data type (".sql" for SQL, otherwise ".json")
+						final String exportStructureFilePath = "dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now());
 						dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
 					} else {
 						dbExportDefinition.setExportStructureFilePath(null);

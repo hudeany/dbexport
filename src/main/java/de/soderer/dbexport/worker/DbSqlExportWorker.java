@@ -5,6 +5,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import de.soderer.dbexport.DbExport;
 import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.StringUtilities;
@@ -22,6 +25,10 @@ import de.soderer.utilities.worker.WorkerParentDual;
 
 /**
  * Export worker for SQL insert statements. The table name is taken from the FROM clause of the exported statement.
+ *
+ * <p>
+ * The structure export writes SQL DDL statements (CREATE TABLE, CREATE INDEX, foreign keys) without data.
+ * </p>
  */
 public class DbSqlExportWorker extends AbstractDbExportWorker {
 	private Writer fileWriter = null;
@@ -90,12 +97,22 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 			fileWriter.write("--" + statementLine + "\n");
 		}
 
+		tableName = getTableNameOfStatement(sqlStatement);
+	}
+
+	/**
+	 * Returns the table name of the FROM clause of a select statement.
+	 *
+	 * @param sqlStatement the select statement
+	 * @return the first table name of the FROM clause, or "export_tbl" if there is none
+	 */
+	private static String getTableNameOfStatement(final String sqlStatement) {
 		// FROM may also be surrounded by line breaks or tabs
 		final Matcher fromMatcher = Pattern.compile("\\sFROM\\s+([^\\s,;()]+)", Pattern.CASE_INSENSITIVE).matcher(sqlStatement);
 		if (fromMatcher.find()) {
-			tableName = fromMatcher.group(1);
+			return fromMatcher.group(1);
 		} else {
-			tableName = "export_tbl";
+			return "export_tbl";
 		}
 	}
 
@@ -161,6 +178,75 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	@Override
 	protected void endOutput() throws Exception {
 		// nothing to do
+	}
+
+	/**
+	 * The structure is exported as SQL file.
+	 *
+	 * @return "sql"
+	 */
+	@Override
+	protected String getStructureFileExtension() {
+		return "sql";
+	}
+
+	/**
+	 * Writes the structure of the tables as SQL DDL statements without data (like "pg_dump --schema-only"): CREATE
+	 * TABLE statements, then the indices and the foreign keys (see {@link DbStructureSqlWriter}).
+	 *
+	 * @param connection the database connection
+	 * @param tablesToExport the names of the tables
+	 * @param outputStream the output, closed after writing
+	 * @throws Exception if the structure cannot be read or written
+	 */
+	@Override
+	protected void writeDbStructure(final Connection connection, final List<String> tablesToExport, final OutputStream outputStream) throws Exception {
+		signalProgress();
+
+		final DbStructureSqlWriter structureWriter = new DbStructureSqlWriter(dbDefinition.getDbVendor(), connection);
+		try (Writer structureFileWriter = new BufferedWriter(new OutputStreamWriter(outputStream, encoding))) {
+			structureFileWriter.write(structureWriter.createHeader(getCreatorText()));
+			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
+				structureFileWriter.write(structureWriter.createTableStatement(tablesToExport.get(i)));
+
+				itemsDone++;
+				signalProgress();
+			}
+			if (!cancel) {
+				// Indices and foreign keys after all tables, so the order of the tables does not matter
+				structureFileWriter.write(structureWriter.createDeferredStatements());
+			}
+		}
+	}
+
+	/**
+	 * Writes a CREATE TABLE statement for the result columns of a select statement. The table name is taken from
+	 * the FROM clause, like for the data export.
+	 *
+	 * @param connection the database connection
+	 * @param sqlStatement the select statement
+	 * @param outputStream the output, closed after writing
+	 * @throws Exception if the structure cannot be read or written
+	 */
+	@Override
+	protected void writeStatementStructure(final Connection connection, final String sqlStatement, final OutputStream outputStream) throws Exception {
+		final DbStructureSqlWriter structureWriter = new DbStructureSqlWriter(dbDefinition.getDbVendor(), connection);
+		try (Writer structureFileWriter = new BufferedWriter(new OutputStreamWriter(outputStream, encoding));
+				Statement statement = connection.createStatement()) {
+			// Only the metadata of the result is needed
+			statement.setMaxRows(1);
+			try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+				structureFileWriter.write(structureWriter.createHeader(getCreatorText()));
+				for (final String statementLine : sqlStatement.split("\r\n|\r|\n")) {
+					structureFileWriter.write("-- " + statementLine + "\n");
+				}
+				structureFileWriter.write(structureWriter.createTableStatementForResult(getTableNameOfStatement(sqlStatement), resultSet.getMetaData()));
+			}
+		}
+	}
+
+	private static String getCreatorText() {
+		return DbExport.APPLICATION_NAME + " " + DbExport.VERSION + " at " + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now());
 	}
 
 	@Override

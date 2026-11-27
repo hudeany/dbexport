@@ -1215,7 +1215,8 @@ public class DbExportGui extends UpdateableGuiApplication {
 		dbExportDefinition.setBeautify(beautifyBox.isEnabled() ? beautifyBox.isSelected() : false);
 		// Only the file name, its directory is derived from the output path (see DbExportDefinition.getExportStructureFilePath()).
 		// Before, it was always created within the output path, which failed for an output file.
-		final String exportStructureFilePath = exportStructureBox.isSelected() ? ("dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now()) + ".json") : null;
+		// Without file extension, the export worker appends the extension of the selected data type (".sql" for SQL, otherwise ".json").
+		final String exportStructureFilePath = exportStructureBox.isSelected() ? ("dbstructure_" + DateUtilities.formatDate("yyyy-MM-dd_HH-mm-ss", LocalDateTime.now())) : null;
 		dbExportDefinition.setExportStructureFilePath(exportStructureFilePath);
 		dbExportDefinition.setNoHeaders(noHeadersBox.isEnabled() ? noHeadersBox.isSelected() : false);
 		dbExportDefinition.setEncoding(Charset.forName(encodingCombo.getText()));

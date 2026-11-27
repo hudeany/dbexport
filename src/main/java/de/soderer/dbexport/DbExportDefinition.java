@@ -820,8 +820,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 	}
 
 	/**
-	 * Sets the JSON file to export the structure of the selected tables to. If set, only the structure is exported,
+	 * Sets the file to export the structure of the selected tables to. If set, only the structure is exported,
 	 * no data. A file name without directory is placed in the output directory (or next to the output file).
+	 * The format depends on the data type: SQL DDL statements for {@link DataType#SQL}, otherwise JSON. Without
+	 * file extension, ".sql" or ".json" is appended.
 	 *
 	 * @param exportStructureFilePath the structure file path, "console", or null for a data export
 	 */

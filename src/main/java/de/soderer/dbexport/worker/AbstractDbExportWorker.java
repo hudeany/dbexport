@@ -77,7 +77,8 @@ import de.soderer.zip.ZipUtilities;
  * Exports the result of a single SQL select statement into one output file, or each table of a table list
  * (table name patterns with the wildcards "*" and "?", "!" excludes tables) into a separate file in the output
  * directory. The output may be compressed, written to the console ("console") or kept in memory ("gui").
- * Alternatively only the structure of the tables is exported as JSON file.
+ * Alternatively only the structure of the tables is exported, as JSON file or in the format of the worker
+ * (SQL: CREATE TABLE statements, see {@link DbSqlExportWorker}).
  * </p>
  *
  * <p>
@@ -149,7 +150,7 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	 */
 	protected boolean beautify = false;
 	/**
-	 * JSON file to export the table structure to instead of the data, or null.
+	 * File to export the table structure to instead of the data, or null.
 	 */
 	protected String exportStructureFilePath = null;
 	/**
@@ -303,7 +304,8 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 	}
 
 	/**
-	 * Sets the JSON file to export the table structure to. If set, no data is exported.
+	 * Sets the file to export the table structure to. If set, no data is exported. Without file extension, the
+	 * extension of the structure format is appended (see {@link #getStructureFileExtension()}).
 	 *
 	 * @param exportStructureFilePath the structure file path, "console", "gui", or null for a data export
 	 */
@@ -652,7 +654,36 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		}
 	}
 
-	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, String outputFilePath) throws Exception {
+	/**
+	 * Exports the structure of the tables into the structure file in the format of this worker (see
+	 * {@link #writeDbStructure(Connection, List, OutputStream)}).
+	 */
+	private void exportDbStructure(final Connection connection, final List<String> tablesToExport, final String outputFilePath) throws Exception {
+		writeStructureOutput(outputFilePath, outputStream -> writeDbStructure(connection, tablesToExport, outputStream));
+	}
+
+	/**
+	 * Exports the structure of the result columns of a select statement into the structure file in the format of
+	 * this worker (see {@link #writeStatementStructure(Connection, String, OutputStream)}).
+	 */
+	private void exportDbStructure(final Connection connection, final String sqlStatement, final String outputFilePath) throws Exception {
+		writeStructureOutput(outputFilePath, outputStream -> writeStatementStructure(connection, sqlStatement, outputStream));
+	}
+
+	/**
+	 * Writes the content of a structure export into its output.
+	 */
+	@FunctionalInterface
+	private interface StructureContentWriter {
+		void write(OutputStream outputStream) throws Exception;
+	}
+
+	/**
+	 * Opens the output of a structure export (file with the extension of {@link #getStructureFileExtension()},
+	 * optionally compressed, or "console" or "gui"), lets the content be written and compresses the file afterwards.
+	 */
+	private void writeStructureOutput(String outputFilePath, final StructureContentWriter contentWriter) throws Exception {
+		final String fileExtension = "." + getStructureFileExtension();
 		OutputStream outputStream = null;
 		File tempFile = null;
 
@@ -665,50 +696,65 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 			} else {
 				if (compression == FileCompressionType.ZIP) {
 					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".zip")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
+						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, fileExtension)) {
+							outputFilePath = outputFilePath + fileExtension;
 						}
 
 						outputFilePath = outputFilePath + ".zip";
 					}
 				} else if (compression == FileCompressionType.TARGZ) {
 					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".tar.gz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
+						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, fileExtension)) {
+							outputFilePath = outputFilePath + fileExtension;
 						}
 
 						outputFilePath = outputFilePath + ".tar.gz";
 					}
 				} else if (compression == FileCompressionType.TGZ) {
 					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".tgz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
+						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, fileExtension)) {
+							outputFilePath = outputFilePath + fileExtension;
 						}
 
 						outputFilePath = outputFilePath + ".tgz";
 					}
 				} else if (compression == FileCompressionType.GZ) {
 					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".gz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
+						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, fileExtension)) {
+							outputFilePath = outputFilePath + fileExtension;
 						}
 
 						outputFilePath = outputFilePath + ".gz";
 					}
-				} else if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-					outputFilePath = outputFilePath + ".json";
+				} else if (!StringUtilities.endsWithIgnoreCase(outputFilePath, fileExtension)) {
+					outputFilePath = outputFilePath + fileExtension;
 				}
 
 				if (new File(outputFilePath).exists()) {
-					throw new DbExportException("Outputfile already exists: " + outputFilePath);
+					// Like the data export, the structure export now also respects "replaceAlreadyExistingFiles"
+					if (replaceAlreadyExistingFiles) {
+						new File(outputFilePath).delete();
+					} else {
+						throw new DbExportException("DB structure outputfile already exists: " + outputFilePath);
+					}
+				}
+
+				// Like the data export, a missing output directory may be created
+				final File outputDirectory = new File(outputFilePath).getAbsoluteFile().getParentFile();
+				if (!outputDirectory.exists()) {
+					if (createOutputDirectoyIfNotExists) {
+						outputDirectory.mkdirs();
+					} else {
+						throw new DbExportException("DB structure outputfile parent directory does not exist: " + outputDirectory.getAbsolutePath());
+					}
 				}
 
 				if (compression == FileCompressionType.ZIP) {
 					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
 					String entryFileName = new File(outputFilePath).getName();
 					entryFileName = entryFileName.substring(0, entryFileName.length() - 4);
-					if (!StringUtilities.endsWithIgnoreCase(entryFileName, ".json")) {
-						entryFileName += ".json";
+					if (!StringUtilities.endsWithIgnoreCase(entryFileName, fileExtension)) {
+						entryFileName += fileExtension;
 					}
 					final ZipEntry entry = new ZipEntry(entryFileName);
 					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
@@ -726,23 +772,12 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				}
 			}
 
-			signalProgress();
+			// The content writer closes the stream (except System.out)
+			contentWriter.write(outputStream);
 
-			try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
-				jsonWriter.openJsonObject();
-				for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
-					final JsonObject tableJsonObject = createTableStructureJsonObject(connection, tablesToExport.get(i).toLowerCase());
-
-					jsonWriter.openJsonObjectProperty(tablesToExport.get(i).toLowerCase());
-					jsonWriter.add(tableJsonObject);
-
-					itemsDone++;
-					signalProgress();
-				}
-				jsonWriter.closeJsonObject();
-			}
-
-			if (compression == FileCompressionType.ZIP && zipPassword != null) {
+			if ("console".equalsIgnoreCase(outputFilePath) || "gui".equalsIgnoreCase(outputFilePath)) {
+				return;
+			} else if (compression == FileCompressionType.ZIP && zipPassword != null) {
 				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
 			} else if (compression == FileCompressionType.TARGZ) {
 				String entryFileName = new File(outputFilePath).getName();
@@ -763,6 +798,48 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 				tempFile.delete();
 				tempFile = null;
 			}
+		}
+	}
+
+	/**
+	 * Returns the file extension of a structure export. The structure is exported as JSON, unless a worker
+	 * overrides {@link #writeDbStructure(Connection, List, OutputStream)} for its own format.
+	 *
+	 * @return the file extension without dot, default "json"
+	 */
+	protected String getStructureFileExtension() {
+		return "json";
+	}
+
+	/**
+	 * Writes the structure of the tables (columns, keys, indices, foreign keys and constraints) as JSON. Workers of
+	 * other formats may override this to write the structure in their format, then they also override
+	 * {@link #getStructureFileExtension()} and {@link #writeStatementStructure(Connection, String, OutputStream)}.
+	 *
+	 * <p>
+	 * Must count {@code itemsDone} up for each table, signal the progress and stop on {@code cancel}.
+	 * </p>
+	 *
+	 * @param connection the database connection
+	 * @param tablesToExport the names of the tables
+	 * @param outputStream the output, to be closed after writing
+	 * @throws Exception if the structure cannot be read or written
+	 */
+	protected void writeDbStructure(final Connection connection, final List<String> tablesToExport, final OutputStream outputStream) throws Exception {
+		signalProgress();
+
+		try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
+			jsonWriter.openJsonObject();
+			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
+				final JsonObject tableJsonObject = createTableStructureJsonObject(connection, tablesToExport.get(i).toLowerCase());
+
+				jsonWriter.openJsonObjectProperty(tablesToExport.get(i).toLowerCase());
+				jsonWriter.add(tableJsonObject);
+
+				itemsDone++;
+				signalProgress();
+			}
+			jsonWriter.closeJsonObject();
 		}
 	}
 
@@ -877,130 +954,43 @@ public abstract class AbstractDbExportWorker extends WorkerDual<Boolean> {
 		return columnJsonObject;
 	}
 
-	private void exportDbStructure(final Connection connection, final String sqlStatement, String outputFilePath) throws Exception {
-		OutputStream outputStream = null;
-		File tempFile = null;
+	/**
+	 * Writes the structure of the result columns of a select statement as JSON (see
+	 * {@link #writeDbStructure(Connection, List, OutputStream)}).
+	 *
+	 * @param connection the database connection
+	 * @param sqlStatement the select statement
+	 * @param outputStream the output, to be closed after writing
+	 * @throws Exception if the structure cannot be read or written
+	 */
+	protected void writeStatementStructure(final Connection connection, final String sqlStatement, final OutputStream outputStream) throws Exception {
+		try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
+			jsonWriter.openJsonObject();
 
-		try {
-			if ("console".equalsIgnoreCase(outputFilePath)) {
-				outputStream = new NonClosingOutputStream(System.out);
-			} else if ("gui".equalsIgnoreCase(outputFilePath)) {
-				guiOutputStream = new ByteArrayOutputStream();
-				outputStream = guiOutputStream;
-			} else {
-				if (compression == FileCompressionType.ZIP) {
-					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".zip")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
-						}
+			final JsonArray columnsJsonArray = new JsonArray();
 
-						outputFilePath = outputFilePath + ".zip";
+			try (Statement statement = connection.createStatement()) {
+				statement.setFetchSize(100);
+				try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
+					final ResultSetMetaData metaData = resultSet.getMetaData();
+					for (int i = 1; i <= metaData.getColumnCount(); i ++) {
+						final JsonObject columnJsonObject = new JsonObject();
+						columnsJsonArray.add(columnJsonObject);
+
+						columnJsonObject.add("name", metaData.getColumnName(i));
+						columnJsonObject.add("datatype", DbUtilities.getTypeNameById(metaData.getColumnType(i)));
+						columnJsonObject.add("databasevendorspecific_datatype", metaData.getColumnTypeName(i));
 					}
-				} else if (compression == FileCompressionType.TARGZ) {
-					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".tar.gz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
-						}
-
-						outputFilePath = outputFilePath + ".tar.gz";
-					}
-				} else if (compression == FileCompressionType.TGZ) {
-					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".tgz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
-						}
-
-						outputFilePath = outputFilePath + ".tgz";
-					}
-				} else if (compression == FileCompressionType.GZ) {
-					if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".gz")) {
-						if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-							outputFilePath = outputFilePath + ".json";
-						}
-
-						outputFilePath = outputFilePath + ".gz";
-					}
-				} else if (!StringUtilities.endsWithIgnoreCase(outputFilePath, ".json")) {
-					outputFilePath = outputFilePath + ".json";
-				}
-
-				if (new File(outputFilePath).exists()) {
-					throw new DbExportException("DB structure outputfile already exists: " + outputFilePath);
-				}
-
-				if (compression == FileCompressionType.ZIP) {
-					outputStream = ZipUtilities.openNewZipOutputStream(new FileOutputStream(new File(outputFilePath)));
-					String entryFileName = new File(outputFilePath).getName();
-					entryFileName = entryFileName.substring(0, entryFileName.length() - 4);
-					if (!StringUtilities.endsWithIgnoreCase(entryFileName, ".json")) {
-						entryFileName += ".json";
-					}
-					final ZipEntry entry = new ZipEntry(entryFileName);
-					entry.setTime(ZonedDateTime.now().toInstant().toEpochMilli());
-					((ZipOutputStream) outputStream).putNextEntry(entry);
-				} else if (compression == FileCompressionType.TARGZ) {
-					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
-					outputStream = new FileOutputStream(tempFile);
-				} else if (compression == FileCompressionType.TGZ) {
-					tempFile = File.createTempFile(new File(outputFilePath).getName(), "");
-					outputStream = new FileOutputStream(tempFile);
-				} else if (compression == FileCompressionType.GZ) {
-					outputStream = new GZIPOutputStream(new FileOutputStream(new File(outputFilePath)));
-				} else {
-					outputStream = new FileOutputStream(new File(outputFilePath));
 				}
 			}
 
-			try (JsonWriter jsonWriter = new JsonWriter(outputStream)) {
-				jsonWriter.openJsonObject();
+			jsonWriter.openJsonObjectProperty("statement");
+			jsonWriter.addSimpleJsonObjectPropertyValue(sqlStatement);
 
-				final JsonArray columnsJsonArray = new JsonArray();
+			jsonWriter.openJsonObjectProperty("columns");
+			jsonWriter.add(columnsJsonArray);
 
-				try (Statement statement = connection.createStatement()) {
-					statement.setFetchSize(100);
-					try (ResultSet resultSet = statement.executeQuery(sqlStatement)) {
-						final ResultSetMetaData metaData = resultSet.getMetaData();
-						for (int i = 1; i <= metaData.getColumnCount(); i ++) {
-							final JsonObject columnJsonObject = new JsonObject();
-							columnsJsonArray.add(columnJsonObject);
-
-							columnJsonObject.add("name", metaData.getColumnName(i));
-							columnJsonObject.add("datatype", DbUtilities.getTypeNameById(metaData.getColumnType(i)));
-							columnJsonObject.add("databasevendorspecific_datatype", metaData.getColumnTypeName(i));
-						}
-					}
-				}
-
-				jsonWriter.openJsonObjectProperty("statement");
-				jsonWriter.addSimpleJsonObjectPropertyValue(sqlStatement);
-
-				jsonWriter.openJsonObjectProperty("columns");
-				jsonWriter.add(columnsJsonArray);
-
-				jsonWriter.closeJsonObject();
-			}
-
-			if (compression == FileCompressionType.ZIP && zipPassword != null) {
-				Zip4jUtilities.createPasswordSecuredZipFile(outputFilePath, zipPassword, useZipCrypto);
-			} else if (compression == FileCompressionType.TARGZ) {
-				String entryFileName = new File(outputFilePath).getName();
-				if (entryFileName.toLowerCase().endsWith(".tar.gz")) {
-					entryFileName = entryFileName.substring(0, entryFileName.length() - 7);
-				}
-				TarGzUtilities.compress(new File(outputFilePath), tempFile, entryFileName);
-			} else if (compression == FileCompressionType.TGZ) {
-				String entryFileName = new File(outputFilePath).getName();
-				if (entryFileName.toLowerCase().endsWith(".tgz")) {
-					entryFileName = entryFileName.substring(0, entryFileName.length() - 4);
-				}
-				TarGzUtilities.compress(new File(outputFilePath), tempFile, entryFileName);
-			}
-		} finally {
-			Utilities.closeQuietly(outputStream);
-			if (tempFile != null && tempFile.exists()) {
-				tempFile.delete();
-				tempFile = null;
-			}
+			jsonWriter.closeJsonObject();
 		}
 	}
 
