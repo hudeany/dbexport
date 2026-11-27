@@ -50,7 +50,7 @@ import de.soderer.utilities.DateUtilities;
  * </ul>
  *
  * <p>
- * Not contained: grants (ACL), row level security policies, rules, publications, composite and range types,
+ * Views in the table list are written with the views of their schema. Not contained: foreign tables, grants (ACL), row level security policies, rules, publications, composite and range types,
  * aggregates and operators, tablespaces and statistics objects. Requires PostgreSQL 10 or later (pg_sequence).
  * </p>
  */
@@ -100,15 +100,22 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 		writer = outputWriter;
 
 		final List<TableInfo> tables = new ArrayList<>();
-		for (final String tableName : tableNames) {
-			tables.add(resolveTable(tableName));
-		}
-		// pg_dump sorts by schema and name
-		tables.sort(Comparator.comparing((final TableInfo table) -> table.schemaName).thenComparing(table -> table.tableName));
-
 		final Set<String> schemaNames = new LinkedHashSet<>();
-		for (final TableInfo table : tables) {
+		int otherRelationsCount = 0;
+		for (final String tableName : tableNames) {
+			final TableInfo table = resolveTable(tableName);
 			schemaNames.add(table.schemaName);
+			if (table.isTable) {
+				tables.add(table);
+			} else {
+				// The table list of DbExport also contains views, they are written with all views of their schema
+				otherRelationsCount++;
+			}
+		}
+		if (progressListener != null) {
+			for (int i = 0; i < otherRelationsCount; i++) {
+				progressListener.tableDone();
+			}
 		}
 		final List<String> sortedSchemaNames = new ArrayList<>(schemaNames);
 		sortedSchemaNames.sort(null);
@@ -568,8 +575,8 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 				+ " CASE WHEN c.relkind = 'p' THEN pg_get_partkeydef(c.oid) END,"
 				+ " CASE WHEN c.relispartition THEN pg_get_expr(c.relpartbound, c.oid) END"
 				+ " FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace"
-				+ " WHERE c.relkind IN ('r', 'p') AND lower(n.nspname) = lower(COALESCE(?, current_schema())) AND lower(c.relname) = lower(?)"
-				+ " ORDER BY (n.nspname = COALESCE(?, current_schema()) AND c.relname = ?) DESC LIMIT 1";
+				+ " WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f') AND lower(n.nspname) = lower(COALESCE(?, current_schema())) AND lower(c.relname) = lower(?)"
+				+ " ORDER BY (n.nspname = COALESCE(?, current_schema()) AND c.relname = ?) DESC, c.relkind IN ('r', 'p') DESC LIMIT 1";
 		final TableInfo table = new TableInfo();
 		try (PreparedStatement statement = connection.prepareStatement(sql)) {
 			statement.setString(1, schemaName);
@@ -578,7 +585,7 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 			statement.setString(4, plainTableName);
 			try (ResultSet resultSet = statement.executeQuery()) {
 				if (!resultSet.next()) {
-					throw new DbExportException("Table not found: " + tableName);
+					throw new DbExportException("Table or view not found: " + tableName + " (searched in schema " + (schemaName == null ? "of the search path" : schemaName) + ")");
 				}
 				table.oid = resultSet.getLong(1);
 				table.schemaName = resultSet.getString(2);
@@ -587,6 +594,7 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 				table.owner = resultSet.getString(5);
 				table.quotedOwner = resultSet.getString(6);
 				table.isPartitioned = "p".equals(resultSet.getString(7));
+				table.isTable = "r".equals(resultSet.getString(7)) || table.isPartitioned;
 				table.isUnlogged = "u".equals(resultSet.getString(8));
 				final Array reloptions = resultSet.getArray(9);
 				table.options = reloptions == null ? null : (String[]) reloptions.getArray();
@@ -595,6 +603,10 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 				table.partitionKey = resultSet.getString(12);
 				table.partitionBound = resultSet.getString(13);
 			}
+		}
+		if (!table.isTable) {
+			// View, materialized view or foreign table
+			return table;
 		}
 		table.parents = readParentTables(table.oid, table.parentKeys);
 		if (!table.isPartition) {
@@ -1052,6 +1064,8 @@ public class PostgreSqlStructureWriter implements SqlStructureWriter {
 		private String qualifiedName;
 		private String owner;
 		private String quotedOwner;
+		/** False for a view, materialized view or foreign table in the table list */
+		private boolean isTable;
 		private boolean isPartitioned;
 		private boolean isPartition;
 		private boolean isUnlogged;
