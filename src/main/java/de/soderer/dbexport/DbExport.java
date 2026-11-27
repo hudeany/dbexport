@@ -123,6 +123,56 @@ public class DbExport extends UpdateableConsoleApplication implements WorkerPare
 		return value != null && (value.contains("/") || value.contains("\\") || value.startsWith("~") || value.startsWith("."));
 	}
 
+	/**
+	 * Quotes a single command line argument for display (e.g. "Parameters: ..." in the console menu), so that it can be
+	 * copied into the native shell of the current operating system and arrives unchanged in the main method.
+	 * <ul>
+	 * <li>Windows: double quotes, because cmd.exe knows no single quotes and PowerShell removes them. Double quotes also
+	 * prevent the wildcard expansion of "*" and "?" done by the java launcher itself on Windows. Embedded double quotes and
+	 * backslashes before them are escaped by the rules of the Windows argument parser.</li>
+	 * <li>Other systems: single quotes, which suppress all expansion in POSIX shells. An embedded single quote is written
+	 * as '\'' (close quote, escaped quote, reopen quote), because a backslash has no special meaning inside single quotes.</li>
+	 * </ul>
+	 * Arguments consisting only of harmless characters are returned unquoted.
+	 *
+	 * @param argument the argument to quote, null is handled like an empty string
+	 * @return the argument, quoted if needed
+	 */
+	public static String quoteCommandLineArgument(final String argument) {
+		final String value = argument == null ? "" : argument;
+		final boolean isWindows = System.getProperty("os.name", "").toLowerCase().startsWith("windows");
+
+		if (isWindows) {
+			// Restrictive set of safe characters, because cmd.exe and PowerShell both have many special characters (e.g. "," and ";" in PowerShell)
+			if (!value.isEmpty() && value.matches("[A-Za-z0-9_\\-.:/\\\\]+")) {
+				return value;
+			}
+			final StringBuilder result = new StringBuilder("\"");
+			int backslashCount = 0;
+			for (final char character : value.toCharArray()) {
+				if (character == '\\') {
+					backslashCount++;
+					result.append(character);
+				} else if (character == '"') {
+					// Backslashes directly before a quote must be doubled, and the quote itself must be escaped
+					result.append("\\".repeat(backslashCount + 1)).append('"');
+					backslashCount = 0;
+				} else {
+					backslashCount = 0;
+					result.append(character);
+				}
+			}
+			// Trailing backslashes must be doubled, so they do not escape the closing quote
+			result.append("\\".repeat(backslashCount)).append('"');
+			return result.toString();
+		} else {
+			if (!value.isEmpty() && value.matches("[A-Za-z0-9_\\-.:/=@+,%]+")) {
+				return value;
+			}
+			return "'" + value.replace("'", "'\\''") + "'";
+		}
+	}
+
 	/** Lower case keywords for the help text, only recognized as single argument */
 	private static final Set<String> HELP_KEYWORDS = Set.of("help", "-help", "--help", "-h", "--h", "-?", "--?");
 

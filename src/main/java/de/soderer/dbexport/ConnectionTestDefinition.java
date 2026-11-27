@@ -119,24 +119,24 @@ public class ConnectionTestDefinition extends DbConnectionDefinition {
 			// HSQL: hostname only for a server database. A file database path is marked by a path separator, so it is
 			// not taken as hostname when the parameters are read again (see DbExport.isHsqlFileDatabasePath()).
 			if (StringUtilities.isNotBlank(getHostnameAndPort())) {
-				params += " " + getHostnameAndPort();
-				params += " " + getDbName();
+				params += " " + DbExport.quoteCommandLineArgument(getHostnameAndPort());
+				params += " " + DbExport.quoteCommandLineArgument(getDbName());
 			} else {
-				params += " " + (DbExport.isHsqlFileDatabasePath(getDbName()) ? getDbName() : "." + File.separator + getDbName());
+				params += " " + DbExport.quoteCommandLineArgument(DbExport.isHsqlFileDatabasePath(getDbName()) ? getDbName() : "." + File.separator + getDbName());
 			}
 		} else {
 			if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
-				params += " " + getHostnameAndPort();
+				params += " " + DbExport.quoteCommandLineArgument(getHostnameAndPort());
 			}
-			params += " " + getDbName();
+			params += " " + DbExport.quoteCommandLineArgument(getDbName());
 		}
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
 			if (getUsername() != null) {
-				params += " " + getUsername();
+				params += " " + DbExport.quoteCommandLineArgument(getUsername());
 			}
 		}
 		if (getPassword() != null) {
-			params += " '" + new String(getPassword()).replace("'", "\\'") + "'";
+			params += " " + DbExport.quoteCommandLineArgument(new String(getPassword()));
 		}
 
 		if (getIterations() != 1) {
@@ -148,7 +148,7 @@ public class ConnectionTestDefinition extends DbConnectionDefinition {
 		}
 
 		if (StringUtilities.isNotBlank(getCheckStatement())) {
-			params += " -check '" + getCheckStatement().replace("'", "\\'") + "'";
+			params += " -check " + DbExport.quoteCommandLineArgument(getCheckStatement());
 		}
 
 		return params;

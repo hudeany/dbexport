@@ -1046,29 +1046,29 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			// HSQL: hostname only for a server database. A file database path is marked by a path separator, so it is
 			// not taken as hostname when the parameters are read again (see DbExport.isHsqlFileDatabasePath()).
 			if (StringUtilities.isNotBlank(getHostnameAndPort())) {
-				params += " " + getHostnameAndPort();
-				params += " " + getDbName();
+				params += " " + DbExport.quoteCommandLineArgument(getHostnameAndPort());
+				params += " " + DbExport.quoteCommandLineArgument(getDbName());
 			} else {
-				params += " " + (DbExport.isHsqlFileDatabasePath(getDbName()) ? getDbName() : "." + File.separator + getDbName());
+				params += " " + DbExport.quoteCommandLineArgument(DbExport.isHsqlFileDatabasePath(getDbName()) ? getDbName() : "." + File.separator + getDbName());
 			}
 		} else {
 			if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
-				params += " " + getHostnameAndPort();
+				params += " " + DbExport.quoteCommandLineArgument(getHostnameAndPort());
 			}
-			params += " " + getDbName();
+			params += " " + DbExport.quoteCommandLineArgument(getDbName());
 		}
 		if (getDbVendor() != DbVendor.SQLite && getDbVendor() != DbVendor.Derby) {
 			if (getUsername() != null) {
-				params += " " + getUsername();
+				params += " " + DbExport.quoteCommandLineArgument(getUsername());
 			}
 		}
-		params += " -export '" + getSqlStatementOrTablelist().replace("'", "\\'") + "'";
+		params += " -export " + DbExport.quoteCommandLineArgument(getSqlStatementOrTablelist());
 		if (getOutputpath() != null) {
 			// Not set for a structure only export
-			params += " -output '" + getOutputpath().replace("'", "\\'") + "'";
+			params += " -output " + DbExport.quoteCommandLineArgument(getOutputpath());
 		}
 		if (getPassword() != null) {
-			params += " '" + new String(getPassword()).replace("'", "\\'") + "'";
+			params += " " + DbExport.quoteCommandLineArgument(new String(getPassword()));
 		}
 
 		if (getDataType() != DataType.CSV) {
@@ -1088,37 +1088,37 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			params += " " + "-compress " + getCompression().name();
 		}
 		if (getZipPassword() != null) {
-			params += " " + "-zippassword" + " '" + new String(getZipPassword()).replace("'", "\\'") + "'";
+			params += " " + "-zippassword" + " " + DbExport.quoteCommandLineArgument(new String(getZipPassword()));
 		}
 		if (getKdbxPassword() != null) {
-			params += " " + "-kdbxpassword" + " '" + new String(getKdbxPassword()).replace("'", "\\'") + "'";
+			params += " " + "-kdbxpassword" + " " + DbExport.quoteCommandLineArgument(new String(getKdbxPassword()));
 		}
 		if (isUseZipCrypto()) {
 			params += " " + "-useZipCrypto";
 		}
 		if (!TimeZone.getDefault().getID().equalsIgnoreCase(getDatabaseTimeZone())) {
-			params += " " + "-dbtz" + " " + getDatabaseTimeZone();
+			params += " " + "-dbtz" + " " + DbExport.quoteCommandLineArgument(getDatabaseTimeZone());
 		}
 		if (!TimeZone.getDefault().getID().equalsIgnoreCase(getExportDataTimeZone())) {
-			params += " " + "-edtz" + " " + getExportDataTimeZone();
+			params += " " + "-edtz" + " " + DbExport.quoteCommandLineArgument(getExportDataTimeZone());
 		}
 		if (getEncoding() != StandardCharsets.UTF_8) {
 			params += " " + "-e" + " " + getEncoding().name();
 		}
 		if (getSeparator() != ';') {
-			params += " " + "-s" + " '" + Character.toString(getSeparator()).replace("'", "\\'") + "'";
+			params += " " + "-s" + " " + DbExport.quoteCommandLineArgument(Character.toString(getSeparator()));
 		}
 		if (getStringQuote() != '"') {
-			params += " " + "-q" + " '" + Character.toString(getStringQuote()).replace("'", "\\'") + "'";
+			params += " " + "-q" + " " + DbExport.quoteCommandLineArgument(Character.toString(getStringQuote()));
 		}
 		if (getStringQuoteEscapeCharacter() != '"') {
-			params += " " + "-qe" + " '" + Character.toString(getStringQuoteEscapeCharacter()).replace("'", "\\'") + "'";
+			params += " " + "-qe" + " " + DbExport.quoteCommandLineArgument(Character.toString(getStringQuoteEscapeCharacter()));
 		}
 		if (!isInterpretEscapeSequences()) {
 			params += " " + "-noescapesequences";
 		}
 		if (!"\t".equals(getIndentation())) {
-			params += " " + "-i" + " '" + getIndentation().replace("'", "\\'") + "'";
+			params += " " + "-i" + " " + DbExport.quoteCommandLineArgument(getIndentation());
 		}
 		if (isAlwaysQuote()) {
 			params += " " + "-a";
@@ -1135,13 +1135,13 @@ public class DbExportDefinition extends DbConnectionDefinition {
 		}
 		// Quoted, because date patterns usually contain blanks ("dd.MM.yyyy HH:mm:ss")
 		if (StringUtilities.isNotBlank(getDateFormat())) {
-			params += " " + "-dateFormat" + " '" + getDateFormat().replace("'", "\\'") + "'";
+			params += " " + "-dateFormat" + " " + DbExport.quoteCommandLineArgument(getDateFormat());
 		}
 		if (StringUtilities.isNotBlank(getDateTimeFormat())) {
-			params += " " + "-dateTimeFormat" + " '" + getDateTimeFormat().replace("'", "\\'") + "'";
+			params += " " + "-dateTimeFormat" + " " + DbExport.quoteCommandLineArgument(getDateTimeFormat());
 		}
 		if (getDecimalSeparator() != null) {
-			params += " " + "-decimalSeparator" + " '" + getDecimalSeparator() + "'";
+			params += " " + "-decimalSeparator" + " " + DbExport.quoteCommandLineArgument(String.valueOf(getDecimalSeparator()));
 		}
 		if (isBeautify()) {
 			// The command line parameter is "-beautify" ("-b" was rejected as invalid parameter)
@@ -1151,10 +1151,10 @@ public class DbExportDefinition extends DbConnectionDefinition {
 			params += " " + "-noheaders";
 		}
 		if (getExportStructureFilePath() != null) {
-			params += " " + "-structure '" + getExportStructureFilePath().replace("'", "\\'") + "'";
+			params += " " + "-structure " + DbExport.quoteCommandLineArgument(getExportStructureFilePath());
 		}
 		if (!"".equals(getNullValueString())) {
-			params += " " + "-n" + " '" + getNullValueString().replace("'", "\\'") + "'";
+			params += " " + "-n" + " " + DbExport.quoteCommandLineArgument(getNullValueString());
 		}
 		if (isCreateOutputDirectoyIfNotExists()) {
 			params += " " + "-createOutputDirectoyIfNotExists";
