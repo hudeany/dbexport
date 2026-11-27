@@ -30,7 +30,7 @@
 	<property name="network.version" value="26.0.45" />
 	<property name="dbutilities.version" value="26.1.10" />
 	<property name="soderer-console.version" value="26.0.18" />
-	<property name="soderer-swing.version" value="26.0.54" />
+	<property name="soderer-swing.version" value="26.0.55" />
 	<property name="soderer-applicationbase.version" value="26.0.66" />
 	<property name="soderer-utilities.version" value="26.3.7" />
 	<property name="soderer-zip.version" value="26.0.14" />
