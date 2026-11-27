@@ -21,13 +21,15 @@ import de.soderer.utilities.DateUtilities;
 import de.soderer.utilities.FileCompressionType;
 import de.soderer.utilities.StringUtilities;
 import de.soderer.utilities.db.data.DbConnectionDefinition;
+import de.soderer.utilities.db.data.DbVendor;
 import de.soderer.utilities.worker.WorkerParentDual;
 
 /**
  * Export worker for SQL insert statements. The table name is taken from the FROM clause of the exported statement.
  *
  * <p>
- * The structure export writes SQL DDL statements (CREATE TABLE, CREATE INDEX, foreign keys) without data.
+ * The structure export writes SQL DDL statements (CREATE TABLE, CREATE INDEX, foreign keys) without data, for
+ * PostgreSQL in the format of pg_dump (see {@link PostgreSqlStructureWriter}).
  * </p>
  */
 public class DbSqlExportWorker extends AbstractDbExportWorker {
@@ -203,19 +205,23 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	protected void writeDbStructure(final Connection connection, final List<String> tablesToExport, final OutputStream outputStream) throws Exception {
 		signalProgress();
 
-		final DbStructureSqlWriter structureWriter = new DbStructureSqlWriter(dbDefinition.getDbVendor(), connection);
+		// PostgreSQL: complete dump in the format of pg_dump, other vendors: tables, indices and foreign keys via JDBC metadata
+		final SqlStructureWriter structureWriter = dbDefinition.getDbVendor() == DbVendor.PostgreSQL
+				? new PostgreSqlStructureWriter(connection, encoding)
+				: new DbStructureSqlWriter(dbDefinition.getDbVendor(), connection);
 		try (Writer structureFileWriter = new BufferedWriter(new OutputStreamWriter(outputStream, encoding))) {
-			structureFileWriter.write(structureWriter.createHeader(getCreatorText()));
-			for (int i = 0; i < tablesToExport.size() && !cancel; i++) {
-				structureFileWriter.write(structureWriter.createTableStatement(tablesToExport.get(i)));
+			structureWriter.writeStructure(tablesToExport, structureFileWriter, getCreatorText(), new SqlStructureWriter.ProgressListener() {
+				@Override
+				public void tableDone() {
+					itemsDone++;
+					signalProgress();
+				}
 
-				itemsDone++;
-				signalProgress();
-			}
-			if (!cancel) {
-				// Indices and foreign keys after all tables, so the order of the tables does not matter
-				structureFileWriter.write(structureWriter.createDeferredStatements());
-			}
+				@Override
+				public boolean isCanceled() {
+					return cancel;
+				}
+			});
 		}
 	}
 
@@ -246,7 +252,7 @@ public class DbSqlExportWorker extends AbstractDbExportWorker {
 	}
 
 	private static String getCreatorText() {
-		return DbExport.APPLICATION_NAME + " " + DbExport.VERSION + " at " + DateUtilities.formatDate(DateUtilities.YYYY_MM_DD_HHMMSS, LocalDateTime.now());
+		return DbExport.APPLICATION_NAME + " " + DbExport.VERSION;
 	}
 
 	@Override

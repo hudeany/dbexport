@@ -1,5 +1,6 @@
 package de.soderer.dbexport.worker;
 
+import java.io.Writer;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -42,11 +43,15 @@ import de.soderer.utilities.db.data.DbVendor;
  * </p>
  *
  * <p>
- * Usage: {@link #createHeader(String)} once, {@link #createTableStatement(String)} for each table, then
+ * For PostgreSQL the {@link PostgreSqlStructureWriter} writes a more complete dump in the format of pg_dump.
+ * </p>
+ *
+ * <p>
+ * Usage: {@link #writeStructure(List, Writer, String, ProgressListener)}, or {@link #createHeader(String)} once, {@link #createTableStatement(String)} for each table, then
  * {@link #createDeferredStatements()} once for the collected indices and foreign keys.
  * </p>
  */
-public class DbStructureSqlWriter {
+public class DbStructureSqlWriter implements SqlStructureWriter {
 	/** Indentation of the column definitions (like pg_dump) */
 	private static final String INDENTATION = "    ";
 
@@ -108,6 +113,22 @@ public class DbStructureSqlWriter {
 		metaData = connection.getMetaData();
 		catalog = getCurrentCatalog(connection);
 		schema = getCurrentSchema(connection);
+	}
+
+	@Override
+	public void writeStructure(final List<String> tableNames, final Writer writer, final String creatorText, final ProgressListener progressListener) throws Exception {
+		writer.write(createHeader(creatorText));
+		for (final String tableName : tableNames) {
+			if (progressListener != null && progressListener.isCanceled()) {
+				return;
+			}
+			writer.write(createTableStatement(tableName));
+			if (progressListener != null) {
+				progressListener.tableDone();
+			}
+		}
+		// Indices and foreign keys after all tables, so the order of the tables does not matter
+		writer.write(createDeferredStatements());
 	}
 
 	/**

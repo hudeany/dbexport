@@ -53,6 +53,8 @@ Optional parameters for database export
 		a filename without directory is created in the output directory or next to the output file
 		with "-x SQL" the structure is exported as SQL DDL statements (CREATE TABLE, CREATE INDEX, foreign keys) without data,
 		otherwise as JSON file. Without file extension ".sql" or ".json" is appended
+		for PostgreSQL the SQL structure is written in the format of "pg_dump --schema-only" (including schemas, types,
+		functions, sequences, views, triggers and comments of the schemas of the exported tables)
 	-dbtz '<databaseTimeZone>': Use a DatabaseTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-edtz '<exportDataTimeZone>': Use a ExportDataTimeZone (Default is systems default timezone, e.g. Europe/Berlin or Europe/Dublin)
 	-secure: Use TLS/SSL for secure communication with database
